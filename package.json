@@ -1,8 +1,8 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Helper to use emmet modules in Visual Studio Code",
-  "main": "./out/emmetHelper.js",  
+  "main": "./out/emmetHelper.js",
   "author": "Microsoft Corporation",
   "repository": {
     "type": "git",
@@ -12,13 +12,13 @@
   "bugs": {
     "url": "https://github.com/Microsoft/vscode-emmet-helper"
   },
-  "devDependencies": {    
-    "@types/node": "^6.0.46",    
-    "typescript": "^2.1.5"    
+  "devDependencies": {
+    "@types/node": "^6.0.46",
+    "typescript": "^2.1.5"
   },
   "dependencies": {
-     "@emmetio/expand-abbreviation": "^0.5.8",
-     "@emmetio/extract-abbreviation": "^0.1.1"
+    "@emmetio/expand-abbreviation": "^0.5.8",
+    "@emmetio/extract-abbreviation": "^0.1.1"
   },
   "scripts": {
     "prepublish": "tsc -p ./",
