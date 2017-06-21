@@ -1,6 +1,6 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./out/emmetCompletionProvider.js",  
   "author": "Microsoft Corporation",

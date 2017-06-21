@@ -160,3 +160,11 @@ function dirExists(dirPath: string): boolean {
 	}
 }
 
+module.exports = {
+	isStyleSheet,
+	extractAbbreviation,
+	getExpandOptions,
+	getProfile,
+	getVariables,
+	updateExtensionsPath
+}
