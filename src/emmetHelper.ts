@@ -148,7 +148,7 @@ export function getExpandOptions(syntax: string, textToReplace?: string) {
 		profile: getProfile(syntax),
 		addons: syntax === 'jsx' ? { 'jsx': true } : null,
 		variables: getVariables(),
-		text: textToReplace ? textToReplace : ''
+		text: textToReplace ? textToReplace : null
 	};
 }
 
