@@ -11,10 +11,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
+const htmlAbbreviationRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 
 export class EmmetCompletionItemProvider implements vscode.CompletionItemProvider {
 	private _syntax: string;
-
+	
 	constructor(syntax: string) {
 		if (syntax) {
 			this._syntax = syntax;
@@ -29,8 +31,11 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 		}
 
 		let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
-		let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
+		if (!isAbbreviationValid(this._syntax, abbreviation)) {
+			return;
+		}
 
+		let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
 		if (!expandedText) {
 			return;
 		}
@@ -41,11 +46,11 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 		expandedAbbr.range = abbreviationRange;
 		expandedAbbr.detail = 'Emmet Abbreviation';
 
-		// Workaround for the main expanded abbr not appearing before the snippet suggestions
-		expandedAbbr.sortText = '0' + expandedAbbr.label;
-
 		let completionItems: vscode.CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
 		if (!isStyleSheet(this._syntax)) {
+			// Workaround for the main expanded abbr not appearing before the snippet suggestions
+			expandedAbbr.sortText = '0' + expandedAbbr.label;
+
 			let currentWord = this.getCurrentWord(document, position);
 			let abbreviationSuggestions = this.getAbbreviationSuggestions(this._syntax, currentWord, abbreviation, abbreviationRange);
 			completionItems = completionItems.concat(abbreviationSuggestions);
@@ -134,6 +139,16 @@ export function extractAbbreviation(document: vscode.TextDocument, position: vsc
 
 	let rangeToReplace = new vscode.Range(position.line, result.location, position.line, result.location + result.abbreviation.length);
 	return [rangeToReplace, result.abbreviation];
+}
+
+/**
+ * Returns a boolean denoting validity of given abbreviation in the context of given syntax
+ * Not needed once https://github.com/emmetio/atom-plugin/issues/22 is fixed
+ * @param syntax string
+ * @param abbreviation string
+ */
+export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
+	return isStyleSheet(this._syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
 }
 
 /**
