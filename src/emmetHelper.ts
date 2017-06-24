@@ -54,6 +54,11 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 			let currentWord = this.getCurrentWord(document, position);
 			let abbreviationSuggestions = this.getAbbreviationSuggestions(this._syntax, currentWord, abbreviation, abbreviationRange);
 			completionItems = completionItems.concat(abbreviationSuggestions);
+		} else {
+			// Temporary fix for https://github.com/Microsoft/vscode/issues/28933
+			expandedAbbr.filterText = abbreviation;
+			expandedAbbr.sortText = expandedAbbr.documentation;
+			expandedAbbr.label = expandedAbbr.documentation;
 		}
 		return Promise.resolve(new vscode.CompletionList(completionItems, true));
 	}
