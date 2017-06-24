@@ -148,7 +148,7 @@ export function extractAbbreviation(document: vscode.TextDocument, position: vsc
  * @param abbreviation string
  */
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
-	return isStyleSheet(this._syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
+	return isStyleSheet(syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
 }
 
 /**
