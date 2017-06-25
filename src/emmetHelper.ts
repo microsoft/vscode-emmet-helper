@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+*  Copyright (c) Microsoft Corporation. All rights reserved.
+*  Licensed under the MIT License. See License.txt in the project root for license information.
+*--------------------------------------------------------------------------------------------*/
 
 
 import * as vscode from 'vscode';
@@ -15,109 +15,111 @@ const htmlAbbreviationRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 
 export class EmmetCompletionItemProvider implements vscode.CompletionItemProvider {
-	private _syntax: string;
-	
-	constructor(syntax: string) {
-		if (syntax) {
-			this._syntax = syntax;
-		}
-	}
+   private _syntax: string;
 
-	public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionList> {
+   constructor(syntax: string) {
+	   if (syntax) {
+		   this._syntax = syntax;
+	   }
+   }
 
-		let emmetConfig = vscode.workspace.getConfiguration('emmet');
-		if (!emmetConfig['useNewEmmet'] || !emmetConfig['showExpandedAbbreviation']) {
-			return Promise.resolve(null);
-		}
+   public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionList> {
 
-		let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
-		if (!isAbbreviationValid(this._syntax, abbreviation)) {
-			return;
-		}
+	   let emmetConfig = vscode.workspace.getConfiguration('emmet');
+	   if (!emmetConfig['useNewEmmet'] || !emmetConfig['showExpandedAbbreviation']) {
+		   return Promise.resolve(null);
+	   }
 
-		let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
-		if (!expandedText) {
-			return;
-		}
+	   let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
+	   if (!isAbbreviationValid(this._syntax, abbreviation)) {
+		   return;
+	   }
 
-		let expandedAbbr = new vscode.CompletionItem(abbreviation);
-		expandedAbbr.insertText = new vscode.SnippetString(expandedText);
-		expandedAbbr.documentation = this.removeTabStops(expandedText);
-		expandedAbbr.range = abbreviationRange;
-		expandedAbbr.detail = 'Emmet Abbreviation';
+	   let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
+	   if (!expandedText) {
+		   return;
+	   }
 
-		let completionItems: vscode.CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
-		if (!isStyleSheet(this._syntax)) {
-			// Workaround for the main expanded abbr not appearing before the snippet suggestions
-			expandedAbbr.sortText = '0' + expandedAbbr.label;
+	   let expandedAbbr = new vscode.CompletionItem(abbreviation);
+	   expandedAbbr.insertText = new vscode.SnippetString(expandedText);
+	   expandedAbbr.documentation = this.makeCursorsGorgeous(expandedText);
+	   expandedAbbr.range = abbreviationRange;
+	   expandedAbbr.detail = 'Emmet Abbreviation';
 
-			let currentWord = this.getCurrentWord(document, position);
-			let abbreviationSuggestions = this.getAbbreviationSuggestions(this._syntax, currentWord, abbreviation, abbreviationRange);
-			completionItems = completionItems.concat(abbreviationSuggestions);
-		} else {
-			// Temporary fix for https://github.com/Microsoft/vscode/issues/28933
-			expandedAbbr.filterText = abbreviation;
-			expandedAbbr.sortText = expandedAbbr.documentation;
-			expandedAbbr.label = expandedAbbr.documentation;
-		}
-		return Promise.resolve(new vscode.CompletionList(completionItems, true));
-	}
+	   let completionItems: vscode.CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
+	   if (!isStyleSheet(this._syntax)) {
+		   // Workaround for the main expanded abbr not appearing before the snippet suggestions
+		   expandedAbbr.sortText = '0' + expandedAbbr.label;
 
-	getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: vscode.Range): vscode.CompletionItem[] {
-		if (!vscode.workspace.getConfiguration('emmet')['showAbbreviationSuggestions'] || !prefix || !abbreviation) {
-			return [];
-		}
+		   let currentWord = this.getCurrentWord(document, position);
+		   let abbreviationSuggestions = this.getAbbreviationSuggestions(this._syntax, currentWord, abbreviation, abbreviationRange);
+		   completionItems = completionItems.concat(abbreviationSuggestions);
+	   } else {
+		   // Temporary fix for https://github.com/Microsoft/vscode/issues/28933
+		   expandedAbbr.filterText = abbreviation;
+		   expandedAbbr.sortText = expandedAbbr.documentation;
+		   expandedAbbr.label = expandedAbbr.documentation;
+	   }
+	   return Promise.resolve(new vscode.CompletionList(completionItems, true));
+   }
 
-		if (!snippetKeyCache.has(syntax)) {
-			let registry = createSnippetsRegistry(syntax);
-			let snippetKeys: string[] = registry.all({ type: 'string' }).map(snippet => {
-				return snippet.key;
-			});
-			snippetKeyCache.set(syntax, snippetKeys);
-		}
+   getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: vscode.Range): vscode.CompletionItem[] {
+	   if (!vscode.workspace.getConfiguration('emmet')['showAbbreviationSuggestions'] || !prefix || !abbreviation) {
+		   return [];
+	   }
 
-		let snippetKeys = snippetKeyCache.get(syntax);
-		let snippetCompletions = [];
-		snippetKeys.forEach(snippetKey => {
-			if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
-				return;
-			}
+	   if (!snippetKeyCache.has(syntax)) {
+		   let registry = createSnippetsRegistry(syntax);
+		   let snippetKeys: string[] = registry.all({ type: 'string' }).map(snippet => {
+			   return snippet.key;
+		   });
+		   snippetKeyCache.set(syntax, snippetKeys);
+	   }
 
-			let currentAbbr = abbreviation + snippetKey.substr(prefix.length);
-			let expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
+	   let snippetKeys = snippetKeyCache.get(syntax);
+	   let snippetCompletions: vscode.CompletionItem[] = [];
+	   snippetKeys.forEach(snippetKey => {
+		   if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
+			   return;
+		   }
 
-			let item = new vscode.CompletionItem(snippetKey);
-			item.documentation = this.removeTabStops(expandedAbbr);
-			item.detail = 'Emmet Abbreviation';
-			item.insertText = new vscode.SnippetString(expandedAbbr);
-			item.range = abbreviationRange;
+		   let currentAbbr = abbreviation + snippetKey.substr(prefix.length);
+		   let expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
 
-			// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
-			item.filterText = abbreviation;
+		   let item = new vscode.CompletionItem(snippetKey);
+		   item.documentation = this.makeCursorsGorgeous(expandedAbbr);
+		   // TODO: Make translation possible
+		   item.detail = 'Emmet Abbreviation';
+		   item.insertText = new vscode.SnippetString(expandedAbbr);
+		   item.range = abbreviationRange;
 
-			// Workaround for the main expanded abbr not appearing before the snippet suggestions
-			item.sortText = '9' + abbreviation;
+		   // Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey
+		   item.filterText = abbreviation;
 
-			snippetCompletions.push(item);
-		});
+		   // Workaround for the main expanded abbr not appearing before the snippet suggestions
+		   item.sortText = '9' + abbreviation;
 
-		return snippetCompletions;
-	}
+		   snippetCompletions.push(item);
+	   });
 
-	private getCurrentWord(document: vscode.TextDocument, position: vscode.Position): string {
-		let wordAtPosition = document.getWordRangeAtPosition(position);
-		let currentWord = '';
-		if (wordAtPosition && wordAtPosition.start.character < position.character) {
-			let word = document.getText(wordAtPosition);
-			currentWord = word.substr(0, position.character - wordAtPosition.start.character);
-		}
+	   return snippetCompletions;
+   }
 
-		return currentWord;
-	}
+   private getCurrentWord(document: vscode.TextDocument, position: vscode.Position): string {
+	   let wordAtPosition = document.getWordRangeAtPosition(position);
+	   let currentWord = '';
+	   if (wordAtPosition && wordAtPosition.start.character < position.character) {
+		   let word = document.getText(wordAtPosition);
+		   currentWord = word.substr(0, position.character - wordAtPosition.start.character);
+	   }
 
-	private removeTabStops(expandedWord: string): string {
-		return expandedWord.replace(/\$\{\d+\}/g, '').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
-	}
+	   return currentWord;
+   }
+
+   private makeCursorsGorgeous(expandedWord: string): string {
+	   // add one cursor automatically at the end
+	   return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_') + '|';
+   }
 
 }
 
@@ -128,163 +130,156 @@ let emmetExtensionsPath = '';
 const field = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
 
 export function isStyleSheet(syntax): boolean {
-	let stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
-	return (stylesheetSyntaxes.indexOf(syntax) > -1);
+   let stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
+   return (stylesheetSyntaxes.indexOf(syntax) > -1);
 }
 
 /**
- * Extracts abbreviation from the given position in the given document
- */
+* Extracts abbreviation from the given position in the given document
+*/
 export function extractAbbreviation(document: vscode.TextDocument, position: vscode.Position): [vscode.Range, string] {
-	let currentLine = document.lineAt(position.line).text;
-	let result = extract(currentLine, position.character, true);
-	if (!result) {
-		return [null, ''];
-	}
+   let currentLine = document.lineAt(position.line).text;
+   let result = extract(currentLine, position.character, true);
+   if (!result) {
+	   return [null, ''];
+   }
 
-	let rangeToReplace = new vscode.Range(position.line, result.location, position.line, result.location + result.abbreviation.length);
-	return [rangeToReplace, result.abbreviation];
+   let rangeToReplace = new vscode.Range(position.line, result.location, position.line, result.location + result.abbreviation.length);
+   return [rangeToReplace, result.abbreviation];
 }
 
 /**
- * Returns a boolean denoting validity of given abbreviation in the context of given syntax
- * Not needed once https://github.com/emmetio/atom-plugin/issues/22 is fixed
- * @param syntax string
- * @param abbreviation string
- */
+* Returns a boolean denoting validity of given abbreviation in the context of given syntax
+* Not needed once https://github.com/emmetio/atom-plugin/issues/22 is fixed
+* @param syntax string
+* @param abbreviation string
+*/
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
-	return isStyleSheet(syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
+   return isStyleSheet(syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
 }
 
 /**
  * Returns options to be used by the expand module
- * @param syntax 
- * @param textToReplace 
+ * @param syntax
+ * @param textToReplace
  */
 export function getExpandOptions(syntax: string, textToReplace?: string) {
-	return {
-		field: field,
-		syntax: syntax,
-		profile: getProfile(syntax),
-		addons: syntax === 'jsx' ? { 'jsx': true } : null,
-		variables: getVariables(),
-		text: textToReplace ? textToReplace : null
-	};
+   return {
+	   field: field,
+	   syntax: syntax,
+	   profile: getProfile(syntax),
+	   addons: syntax === 'jsx' ? { 'jsx': true } : null,
+	   variables: getVariables(),
+	   text: textToReplace ? textToReplace : null
+   };
 }
 
 /**
- * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
- * @param syntax 
- */
+* Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
+* @param syntax
+*/
 export function getProfile(syntax: string): any {
-	let profilesFromSettings = vscode.workspace.getConfiguration('emmet')['syntaxProfiles'] || {};
-	let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
+   let profilesFromSettings = vscode.workspace.getConfiguration('emmet')['syntaxProfiles'] || {};
+   let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
-	let options = profilesConfig[syntax];
-	if (!options || typeof options === 'string') {
-		if (options === 'xhtml') {
-			return {
-				selfClosingStyle: 'xhtml'
-			};
-		}
-		return {};
-	}
-	let newOptions = {};
-	for (let key in options) {
-		switch (key) {
-			case 'tag_case':
-				newOptions['tagCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
-				break;
-			case 'attr_case':
-				newOptions['attributeCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
-				break;
-			case 'attr_quotes':
-				newOptions['attributeQuotes'] = options[key];
-				break;
-			case 'tag_nl':
-				newOptions['format'] = (options[key] === 'true' || options[key] === 'false') ? options[key] : 'true';
-				break;
-			case 'indent':
-				newOptions['attrCase'] = (options[key] === 'true' || options[key] === 'false') ? '\t' : options[key];
-				break;
-			case 'inline_break':
-				newOptions['inlineBreak'] = options[key];
-				break;
-			case 'self_closing_tag':
-				if (options[key] === true) {
-					newOptions['selfClosingStyle'] = 'xml'; break;
-				}
-				if (options[key] === false) {
-					newOptions['selfClosingStyle'] = 'html'; break;
-				}
-				newOptions['selfClosingStyle'] = options[key];
-				break;
-			default:
-				newOptions[key] = options[key];
-				break;
-		}
-	}
-	return newOptions;
+   let options = profilesConfig[syntax];
+   if (!options || typeof options === 'string') {
+	   if (options === 'xhtml') {
+		   return {
+			   selfClosingStyle: 'xhtml'
+		   };
+	   }
+	   return {};
+   }
+   let newOptions = {};
+   for (let key in options) {
+	   switch (key) {
+		   case 'tag_case':
+			   newOptions['tagCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
+			   break;
+		   case 'attr_case':
+			   newOptions['attributeCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
+			   break;
+		   case 'attr_quotes':
+			   newOptions['attributeQuotes'] = options[key];
+			   break;
+		   case 'tag_nl':
+			   newOptions['format'] = (options[key] === 'true' || options[key] === 'false') ? options[key] : 'true';
+			   break;
+		   case 'indent':
+			   newOptions['attrCase'] = (options[key] === 'true' || options[key] === 'false') ? '\t' : options[key];
+			   break;
+		   case 'inline_break':
+			   newOptions['inlineBreak'] = options[key];
+			   break;
+		   case 'self_closing_tag':
+			   if (options[key] === true) {
+				   newOptions['selfClosingStyle'] = 'xml'; break;
+			   }
+			   if (options[key] === false) {
+				   newOptions['selfClosingStyle'] = 'html'; break;
+			   }
+			   newOptions['selfClosingStyle'] = options[key];
+			   break;
+		   default:
+			   newOptions[key] = options[key];
+			   break;
+	   }
+   }
+   return newOptions;
 }
 
 /**
- * Returns variables to be used while expanding snippets
- */
+* Returns variables to be used while expanding snippets
+*/
 export function getVariables(): any {
-	let variablesFromSettings = vscode.workspace.getConfiguration('emmet')['variables'];
-	return Object.assign({}, variablesFromFile, variablesFromSettings);
+   let variablesFromSettings = vscode.workspace.getConfiguration('emmet')['variables'];
+   return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
 /**
- * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
- */
+* Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
+*/
 export function updateExtensionsPath() {
-	let currentEmmetExtensionsPath = vscode.workspace.getConfiguration('emmet')['extensionsPath'];
-	if (emmetExtensionsPath !== currentEmmetExtensionsPath) {
-		emmetExtensionsPath = currentEmmetExtensionsPath;
+   let currentEmmetExtensionsPath = vscode.workspace.getConfiguration('emmet')['extensionsPath'];
+   if (emmetExtensionsPath !== currentEmmetExtensionsPath) {
+	   emmetExtensionsPath = currentEmmetExtensionsPath;
 
-		if (emmetExtensionsPath && emmetExtensionsPath.trim()) {
-			let dirPath = path.isAbsolute(emmetExtensionsPath) ? emmetExtensionsPath : path.join(vscode.workspace.rootPath, emmetExtensionsPath);
-			let snippetsPath = path.join(dirPath, 'snippets.json');
-			let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
-			if (dirExists(dirPath)) {
-				fs.readFile(snippetsPath, (err, snippetsData) => {
-					if (err) {
-						return;
-					}
-					try {
-						let snippetsJson = JSON.parse(snippetsData.toString());
-						variablesFromFile = snippetsJson['variables'];
-					} catch (e) {
+	   if (emmetExtensionsPath && emmetExtensionsPath.trim()) {
+		   let dirPath = path.isAbsolute(emmetExtensionsPath) ? emmetExtensionsPath : path.join(vscode.workspace.rootPath, emmetExtensionsPath);
+		   let snippetsPath = path.join(dirPath, 'snippets.json');
+		   let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+		   if (dirExists(dirPath)) {
+			   fs.readFile(snippetsPath, (err, snippetsData) => {
+				   if (err) {
+					   return;
+				   }
+				   try {
+					   let snippetsJson = JSON.parse(snippetsData.toString());
+					   variablesFromFile = snippetsJson['variables'];
+				   } catch (e) {
 
-					}
-				});
-				fs.readFile(profilesPath, (err, profilesData) => {
-					if (err) {
-						return;
-					}
-					try {
-						profilesFromFile = JSON.parse(profilesData.toString());
-					} catch (e) {
+				   }
+			   });
+			   fs.readFile(profilesPath, (err, profilesData) => {
+				   if (err) {
+					   return;
+				   }
+				   try {
+					   profilesFromFile = JSON.parse(profilesData.toString());
+				   } catch (e) {
 
-					}
-				});
-			}
-		}
-	}
+				   }
+			   });
+		   }
+	   }
+   }
 }
 
 function dirExists(dirPath: string): boolean {
-	try {
-
-		return fs.statSync(dirPath).isDirectory();
-	} catch (e) {
-		return false;
-	}
+   try {
+	   return fs.statSync(dirPath).isDirectory();
+   } catch (e) {
+	   return false;
+   }
 }
-
-
-
-
-
-
