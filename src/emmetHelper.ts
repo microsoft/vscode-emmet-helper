@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------------------------
-*  Copyright (c) Microsoft Corporation. All rights reserved.
-*  Licensed under the MIT License. See License.txt in the project root for license information.
-*--------------------------------------------------------------------------------------------*/
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 
 
 import * as vscode from 'vscode';
@@ -42,7 +42,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 
 	   let expandedAbbr = new vscode.CompletionItem(abbreviation);
 	   expandedAbbr.insertText = new vscode.SnippetString(expandedText);
-	   expandedAbbr.documentation = this.makeCursorsGorgeous(expandedText);
+	   expandedAbbr.documentation = this.removeTabStops(expandedText);
 	   expandedAbbr.range = abbreviationRange;
 	   expandedAbbr.detail = 'Emmet Abbreviation';
 
@@ -77,7 +77,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	   }
 
 	   let snippetKeys = snippetKeyCache.get(syntax);
-	   let snippetCompletions: vscode.CompletionItem[] = [];
+	   let snippetCompletions = [];
 	   snippetKeys.forEach(snippetKey => {
 		   if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
 			   return;
@@ -87,13 +87,12 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 		   let expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
 
 		   let item = new vscode.CompletionItem(snippetKey);
-		   item.documentation = this.makeCursorsGorgeous(expandedAbbr);
-		   // TODO: Make translation possible
+		   item.documentation = this.removeTabStops(expandedAbbr);
 		   item.detail = 'Emmet Abbreviation';
 		   item.insertText = new vscode.SnippetString(expandedAbbr);
 		   item.range = abbreviationRange;
 
-		   // Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey
+		   // Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
 		   item.filterText = abbreviation;
 
 		   // Workaround for the main expanded abbr not appearing before the snippet suggestions
@@ -159,10 +158,10 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 }
 
 /**
- * Returns options to be used by the expand module
- * @param syntax
- * @param textToReplace
- */
+* Returns options to be used by the expand module
+* @param syntax 
+* @param textToReplace 
+*/
 export function getExpandOptions(syntax: string, textToReplace?: string) {
    return {
 	   field: field,
@@ -176,7 +175,7 @@ export function getExpandOptions(syntax: string, textToReplace?: string) {
 
 /**
 * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
-* @param syntax
+* @param syntax 
 */
 export function getProfile(syntax: string): any {
    let profilesFromSettings = vscode.workspace.getConfiguration('emmet')['syntaxProfiles'] || {};
