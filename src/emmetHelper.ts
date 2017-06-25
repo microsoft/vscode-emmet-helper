@@ -42,7 +42,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 
 	   let expandedAbbr = new vscode.CompletionItem(abbreviation);
 	   expandedAbbr.insertText = new vscode.SnippetString(expandedText);
-	   expandedAbbr.documentation = this.removeTabStops(expandedText);
+	   expandedAbbr.documentation = this.makeCursorsGorgeous(expandedText);
 	   expandedAbbr.range = abbreviationRange;
 	   expandedAbbr.detail = 'Emmet Abbreviation';
 
@@ -77,7 +77,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	   }
 
 	   let snippetKeys = snippetKeyCache.get(syntax);
-	   let snippetCompletions = [];
+	   let snippetCompletions: vscode.CompletionItem[] = [];
 	   snippetKeys.forEach(snippetKey => {
 		   if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
 			   return;
@@ -87,7 +87,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 		   let expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
 
 		   let item = new vscode.CompletionItem(snippetKey);
-		   item.documentation = this.removeTabStops(expandedAbbr);
+		   item.documentation = this.makeCursorsGorgeous(expandedAbbr);
 		   item.detail = 'Emmet Abbreviation';
 		   item.insertText = new vscode.SnippetString(expandedAbbr);
 		   item.range = abbreviationRange;
