@@ -13,6 +13,7 @@ import * as fs from 'fs';
 const snippetKeyCache = new Map<string, string[]>();
 const htmlAbbreviationRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
+const emmetModes = ['html','pug','slim','haml','xml','xsl', 'jsx', 'css','scss','sass','less','stylus'];
 
 export class EmmetCompletionItemProvider implements vscode.CompletionItemProvider {
 	private _syntax: string;
@@ -26,7 +27,10 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionList> {
 
 		let emmetConfig = vscode.workspace.getConfiguration('emmet');
-		if (!emmetConfig['useNewEmmet'] || emmetConfig['showExpandedAbbreviation'] === false || emmetConfig['showExpandedAbbreviation'] === 'never') {
+		if (!emmetConfig['useNewEmmet'] 
+			|| emmetConfig['showExpandedAbbreviation'] === false 
+			|| emmetConfig['showExpandedAbbreviation'] === 'never'
+			|| emmetModes.indexOf(this._syntax) === -1) {
 			return Promise.resolve(null);
 		}
 
@@ -281,6 +285,35 @@ function dirExists(dirPath: string): boolean {
 	} catch (e) {
 		return false;
 	}
+}
+
+/**
+* Get the corresponding emmet mode for given vscode language mode
+* Eg: jsx for typescriptreact/javascriptreact or pug for jade
+* If the language is not supported by emmet or has been exlcuded via `exlcudeLanguages` setting, 
+* then nothing is returned
+* 
+* @param language 
+*/
+export function getEmmetMode(language: string): string {
+    const excludedConfig = vscode.workspace.getConfiguration('emmet')['excludeLanguages'];
+    const excludedLanguages = Array.isArray(excludedConfig) ? excludedConfig : [];
+    
+    if (!language || excludedLanguages.indexOf(language) > -1) {
+        return;
+    }
+    if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
+        return 'jsx';
+    }
+    if (language === 'sass-indented') { // map sass-indented to sass
+        return 'sass';
+    }
+    if (language === 'jade') {
+        return 'pug';
+    }
+    if (emmetModes.indexOf(language) > -1) {
+        return language;
+    }
 }
 
 
