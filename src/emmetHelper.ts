@@ -26,7 +26,7 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionList> {
 
 		let emmetConfig = vscode.workspace.getConfiguration('emmet');
-		if (!emmetConfig['useNewEmmet'] || emmetConfig['showExpandedAbbreviation'] !== false || emmetConfig['showExpandedAbbreviation'] !== 'never') {
+		if (!emmetConfig['useNewEmmet'] || emmetConfig['showExpandedAbbreviation'] === false || emmetConfig['showExpandedAbbreviation'] === 'never') {
 			return Promise.resolve(null);
 		}
 
