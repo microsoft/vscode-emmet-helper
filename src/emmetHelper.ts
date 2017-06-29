@@ -11,13 +11,14 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
-const htmlAbbreviationRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
-const emmetModes = ['html','pug','slim','haml','xml','xsl', 'jsx', 'css','scss','sass','less','stylus'];
+const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 
 export class EmmetCompletionItemProvider implements vscode.CompletionItemProvider {
 	private _syntax: string;
-	
+
 	constructor(syntax: string) {
 		if (syntax) {
 			this._syntax = syntax;
@@ -27,42 +28,44 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	public provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionList> {
 
 		let emmetConfig = vscode.workspace.getConfiguration('emmet');
-		if (!emmetConfig['useNewEmmet'] 
-			|| emmetConfig['showExpandedAbbreviation'] === false 
+		if (!emmetConfig['useNewEmmet']
+			|| emmetConfig['showExpandedAbbreviation'] === false
 			|| emmetConfig['showExpandedAbbreviation'] === 'never'
 			|| emmetModes.indexOf(this._syntax) === -1) {
 			return Promise.resolve(null);
 		}
 
+		let expandedAbbr: vscode.CompletionItem;
 		let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
-		if (!isAbbreviationValid(this._syntax, abbreviation)) {
-			return;
-		}
 
-		let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
-		if (!expandedText) {
-			return;
+		if (isAbbreviationValid(this._syntax, abbreviation)) {
+			let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
+			if (expandedText) {
+				expandedAbbr = new vscode.CompletionItem(abbreviation);
+				expandedAbbr.insertText = new vscode.SnippetString(expandedText);
+				expandedAbbr.documentation = this.removeTabStops(expandedText);
+				expandedAbbr.range = abbreviationRange;
+				expandedAbbr.detail = 'Emmet Abbreviation';
+				if (isStyleSheet(this._syntax)) {
+					// Temporary fix for https://github.com/Microsoft/vscode/issues/28933
+					expandedAbbr.filterText = abbreviation;
+					expandedAbbr.sortText = expandedAbbr.documentation;
+					expandedAbbr.label = expandedAbbr.documentation;
+					return Promise.resolve(new vscode.CompletionList([expandedAbbr], true));
+				}
+			}
 		}
-
-		let expandedAbbr = new vscode.CompletionItem(abbreviation);
-		expandedAbbr.insertText = new vscode.SnippetString(expandedText);
-		expandedAbbr.documentation = this.removeTabStops(expandedText);
-		expandedAbbr.range = abbreviationRange;
-		expandedAbbr.detail = 'Emmet Abbreviation';
 
 		let completionItems: vscode.CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
 		if (!isStyleSheet(this._syntax)) {
-			// Workaround for the main expanded abbr not appearing before the snippet suggestions
-			expandedAbbr.sortText = '0' + expandedAbbr.label;
+			if (expandedAbbr) {
+				// Workaround for the main expanded abbr not appearing before the snippet suggestions
+				expandedAbbr.sortText = '0' + expandedAbbr.label;
+			}
 
 			let currentWord = this.getCurrentWord(document, position);
 			let abbreviationSuggestions = this.getAbbreviationSuggestions(this._syntax, currentWord, abbreviation, abbreviationRange);
 			completionItems = completionItems.concat(abbreviationSuggestions);
-		} else {
-			// Temporary fix for https://github.com/Microsoft/vscode/issues/28933
-			expandedAbbr.filterText = abbreviation;
-			expandedAbbr.sortText = expandedAbbr.documentation;
-			expandedAbbr.label = expandedAbbr.documentation;
 		}
 		return Promise.resolve(new vscode.CompletionList(completionItems, true));
 	}
@@ -109,14 +112,11 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 	}
 
 	private getCurrentWord(document: vscode.TextDocument, position: vscode.Position): string {
-		let wordAtPosition = document.getWordRangeAtPosition(position);
-		let currentWord = '';
-		if (wordAtPosition && wordAtPosition.start.character < position.character) {
-			let word = document.getText(wordAtPosition);
-			currentWord = word.substr(0, position.character - wordAtPosition.start.character);
+		let currentLine = document.lineAt(position.line).text;
+		let matches = currentLine.match(/[\w,:]*$/);
+		if (matches) {
+			return matches[0];
 		}
-
-		return currentWord;
 	}
 
 	private removeTabStops(expandedWord: string): string {
@@ -157,7 +157,7 @@ export function extractAbbreviation(document: vscode.TextDocument, position: vsc
  * @param abbreviation string
  */
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
-	return !isStyleSheet(syntax) ? htmlAbbreviationRegex.test(abbreviation) : cssAbbreviationRegex.test(abbreviation);
+	return !isStyleSheet(syntax) ? (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation)) : cssAbbreviationRegex.test(abbreviation);
 }
 
 /**
@@ -296,24 +296,24 @@ function dirExists(dirPath: string): boolean {
 * @param language 
 */
 export function getEmmetMode(language: string): string {
-    const excludedConfig = vscode.workspace.getConfiguration('emmet')['excludeLanguages'];
-    const excludedLanguages = Array.isArray(excludedConfig) ? excludedConfig : [];
-    
-    if (!language || excludedLanguages.indexOf(language) > -1) {
-        return;
-    }
-    if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
-        return 'jsx';
-    }
-    if (language === 'sass-indented') { // map sass-indented to sass
-        return 'sass';
-    }
-    if (language === 'jade') {
-        return 'pug';
-    }
-    if (emmetModes.indexOf(language) > -1) {
-        return language;
-    }
+	    const excludedConfig = vscode.workspace.getConfiguration('emmet')['excludeLanguages'];
+	    const excludedLanguages = Array.isArray(excludedConfig) ? excludedConfig : [];
+
+	    if (!language || excludedLanguages.indexOf(language) > -1) {
+		        return;
+	    }
+	    if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
+		        return 'jsx';
+	    }
+	    if (language === 'sass-indented') { // map sass-indented to sass
+		        return 'sass';
+	    }
+	    if (language === 'jade') {
+		        return 'pug';
+	    }
+	    if (emmetModes.indexOf(language) > -1) {
+		        return language;
+	    }
 }
 
 
