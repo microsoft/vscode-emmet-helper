@@ -39,7 +39,13 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 		let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
 
 		if (isAbbreviationValid(this._syntax, abbreviation)) {
-			let expandedText = expand(abbreviation, getExpandOptions(this._syntax));
+			let expandedText;
+			try {
+				expandedText = expand(abbreviation, getExpandOptions(this._syntax));
+			} catch (e) {
+
+			}
+
 			if (expandedText) {
 				expandedAbbr = new vscode.CompletionItem(abbreviation);
 				expandedAbbr.insertText = new vscode.SnippetString(expandedText);
@@ -91,7 +97,12 @@ export class EmmetCompletionItemProvider implements vscode.CompletionItemProvide
 			}
 
 			let currentAbbr = abbreviation + snippetKey.substr(prefix.length);
-			let expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
+			let expandedAbbr;
+			try {
+				expandedAbbr = expand(currentAbbr, getExpandOptions(syntax));
+			} catch (e) {
+
+			}
 
 			let item = new vscode.CompletionItem(snippetKey);
 			item.documentation = this.removeTabStops(expandedAbbr);
@@ -141,7 +152,12 @@ export function isStyleSheet(syntax): boolean {
  */
 export function extractAbbreviation(document: vscode.TextDocument, position: vscode.Position): [vscode.Range, string] {
 	let currentLine = document.lineAt(position.line).text;
-	let result = extract(currentLine, position.character, true);
+	let result;
+	try {
+		result = extract(currentLine, position.character, true);
+	} catch (e) {
+
+	}
 	if (!result) {
 		return [null, ''];
 	}
@@ -296,24 +312,24 @@ function dirExists(dirPath: string): boolean {
 * @param language 
 */
 export function getEmmetMode(language: string): string {
-	    const excludedConfig = vscode.workspace.getConfiguration('emmet')['excludeLanguages'];
-	    const excludedLanguages = Array.isArray(excludedConfig) ? excludedConfig : [];
+	const excludedConfig = vscode.workspace.getConfiguration('emmet')['excludeLanguages'];
+	const excludedLanguages = Array.isArray(excludedConfig) ? excludedConfig : [];
 
-	    if (!language || excludedLanguages.indexOf(language) > -1) {
-		        return;
-	    }
-	    if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
-		        return 'jsx';
-	    }
-	    if (language === 'sass-indented') { // map sass-indented to sass
-		        return 'sass';
-	    }
-	    if (language === 'jade') {
-		        return 'pug';
-	    }
-	    if (emmetModes.indexOf(language) > -1) {
-		        return language;
-	    }
+	if (!language || excludedLanguages.indexOf(language) > -1) {
+		return;
+	}
+	if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
+		return 'jsx';
+	}
+	if (language === 'sass-indented') { // map sass-indented to sass
+		return 'sass';
+	}
+	if (language === 'jade') {
+		return 'pug';
+	}
+	if (emmetModes.indexOf(language) > -1) {
+		return language;
+	}
 }
 
 
