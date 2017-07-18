@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@emmetio/expand-abbreviation": "^0.5.8",
-    "@emmetio/extract-abbreviation": "^0.1.1"
+    "@emmetio/extract-abbreviation": "^0.1.1",
+    "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {
     "prepublish": "tsc -p ./",
