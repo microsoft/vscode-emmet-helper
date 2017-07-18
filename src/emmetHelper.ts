@@ -32,7 +32,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (!snippetKeyCache.has('html')) {
-		let registry = createSnippetsRegistry('html');
+		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry('html');
 		htmlSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
 			return snippet.key;
 		});
@@ -97,7 +97,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
 	if (!snippetKeyCache.has(syntax)) {
-		let registry = createSnippetsRegistry(syntax);
+		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
 		let snippetKeys: string[] = registry.all({ type: 'string' }).map(snippet => {
 			return snippet.key;
 		});
@@ -164,7 +164,7 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 	}
 }
 
-
+let customSnippetRegistry = {};
 let variablesFromFile = {};
 let profilesFromFile = {};
 let emmetExtensionsPath = '';
@@ -217,7 +217,8 @@ export function getExpandOptions(syntaxProfiles: object, variables: object, synt
 		profile: getProfile(syntax, syntaxProfiles),
 		addons: syntax === 'jsx' ? { 'jsx': true } : null,
 		variables: getVariables(variables),
-		text: textToReplace ? textToReplace : null
+		text: textToReplace ? textToReplace : null,
+		snippets: customSnippetRegistry[syntax]
 	};
 }
 
@@ -225,7 +226,7 @@ export function getExpandOptions(syntaxProfiles: object, variables: object, synt
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax 
  */
-export function getProfile(syntax: string, profilesFromSettings: object): any {
+function getProfile(syntax: string, profilesFromSettings: object): any {
 	let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
 	let options = profilesConfig[syntax];
@@ -278,7 +279,7 @@ export function getProfile(syntax: string, profilesFromSettings: object): any {
 /**
  * Returns variables to be used while expanding snippets
  */
-export function getVariables(variablesFromSettings: object): any {
+function getVariables(variablesFromSettings: object): any {
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
@@ -301,6 +302,11 @@ export function updateExtensionsPath(currentEmmetExtensionsPath: string) {
 					try {
 						let snippetsJson = JSON.parse(snippetsData.toString());
 						variablesFromFile = snippetsJson['variables'];
+						Object.keys(snippetsJson).forEach(syntax => {
+							if (snippetsJson[syntax]['snippets']) {
+								customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, snippetsJson[syntax]['snippets']);
+							}
+						});
 					} catch (e) {
 
 					}
