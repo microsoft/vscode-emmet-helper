@@ -49,6 +49,10 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (isStyleSheet(syntax) || !/^[a-z,A-Z]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
+				// Skip cases when abc -> abc: ; as this is noise
+				if (isStyleSheet(syntax) && expandedText === `${abbreviation}: \${1};`) {
+					expandedText = '';
+				}
 			} catch (e) {
 
 			}
