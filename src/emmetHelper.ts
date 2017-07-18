@@ -65,8 +65,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			if (isStyleSheet(syntax)) {
-				// Temporary fix for https://github.com/Microsoft/vscode/issues/28933
-				expandedAbbr.filterText = abbreviation;
+				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
+				// Due to this we set filterText, sortText and label to expanded abbreviation
+				// - Label makes it clear to the user what their choice is 
+				// - FilterText fixes the issue when user types in propertyname and emmet uses it to match with abbreviations
+				// - SortText will sort the choice in a way that is intutive to the user
+				expandedAbbr.filterText = expandedAbbr.documentation;
 				expandedAbbr.sortText = expandedAbbr.documentation;
 				expandedAbbr.label = expandedAbbr.documentation;
 				return CompletionList.create([expandedAbbr], true);
