@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
+let htmlSnippetKeys: string[];
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
@@ -30,16 +31,27 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return;
 	}
 
+	if (!snippetKeyCache.has('html')) {
+		let registry = createSnippetsRegistry('html');
+		htmlSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
+			return snippet.key;
+		});
+		snippetKeyCache.set('html', htmlSnippetKeys);
+	}
+
 	let expandedAbbr: CompletionItem;
 	let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
 	let expandOptions = getExpandOptions(emmetConfig.syntaxProfiles, emmetConfig.variables, syntax);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
-		try {
-			expandedText = expand(abbreviation, expandOptions);
-		} catch (e) {
+		// Skip cases where abc -> <abc>${1}</abc> as this is noise
+		if (isStyleSheet(syntax) || !/^[a-z,A-Z]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1) {
+			try {
+				expandedText = expand(abbreviation, expandOptions);
+			} catch (e) {
 
+			}
 		}
 
 		if (expandedText) {
@@ -119,9 +131,11 @@ function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation
 
 function getCurrentWord(document: TextDocument, position: Position): string {
 	let currentLine = getCurrentLine(document, position);
-	let matches = currentLine.match(/[\w,:]*$/);
-	if (matches) {
-		return matches[0];
+	if (currentLine) {
+		let matches = currentLine.match(/[\w,:]*$/);
+		if (matches) {
+			return matches[0];
+		}
 	}
 }
 
@@ -135,6 +149,9 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 	for (let i = offset - 1; i >= 0; i--) {
 		if (text[i] === '\n') {
 			return text.substring(i + 1, offset);
+		}
+		if (i === 0) {
+			return text.substring(0, offset);
 		}
 	}
 }
