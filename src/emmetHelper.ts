@@ -32,7 +32,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (!snippetKeyCache.has('html')) {
-		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry('html');
+		let registry = customSnippetRegistry['html'] ? customSnippetRegistry['html'] : createSnippetsRegistry('html');
 		htmlSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
 			return snippet.key;
 		});
@@ -96,18 +96,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 }
 
 function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
-	if (!prefix) {
+	if (!prefix || isStyleSheet(syntax)) {
 		return [];
 	}
-	if (!snippetKeyCache.has(syntax)) {
-		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
-		let snippetKeys: string[] = registry.all({ type: 'string' }).map(snippet => {
-			return snippet.key;
-		});
-		snippetKeyCache.set(syntax, snippetKeys);
-	}
 
-	let snippetKeys = snippetKeyCache.get(syntax);
+	let snippetKeys = snippetKeyCache.has(syntax) ? snippetKeyCache.get(syntax) : snippetKeyCache.get('html');
 	let snippetCompletions = [];
 	snippetKeys.forEach(snippetKey => {
 		if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
@@ -177,7 +170,6 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 let customSnippetRegistry = {};
 let variablesFromFile = {};
 let profilesFromFile = {};
-let emmetExtensionsPath = '';
 
 const field = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
 
@@ -221,6 +213,11 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
  * @param textToReplace 
  */
 export function getExpandOptions(syntaxProfiles: object, variables: object, syntax: string, textToReplace?: string) {
+	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
+		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
+	}
+
 	return {
 		field: field,
 		syntax: syntax,
@@ -290,50 +287,69 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
  * Returns variables to be used while expanding snippets
  */
 function getVariables(variablesFromSettings: object): any {
+	if (!variablesFromSettings) {
+		return variablesFromFile;
+	}
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export function updateExtensionsPath(currentEmmetExtensionsPath: string) {
-	if (emmetExtensionsPath !== currentEmmetExtensionsPath) {
-		emmetExtensionsPath = currentEmmetExtensionsPath;
-
-		if (emmetExtensionsPath && emmetExtensionsPath.trim() && path.isAbsolute(emmetExtensionsPath.trim())) {
-			let dirPath = emmetExtensionsPath.trim();
-			let snippetsPath = path.join(dirPath, 'snippets.json');
-			let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
-			if (dirExists(dirPath)) {
-				fs.readFile(snippetsPath, (err, snippetsData) => {
-					if (err) {
-						return;
-					}
-					try {
-						let snippetsJson = JSON.parse(snippetsData.toString());
-						variablesFromFile = snippetsJson['variables'];
-						Object.keys(snippetsJson).forEach(syntax => {
-							if (snippetsJson[syntax]['snippets']) {
-								customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, snippetsJson[syntax]['snippets']);
-							}
-						});
-					} catch (e) {
-
-					}
-				});
-				fs.readFile(profilesPath, (err, profilesData) => {
-					if (err) {
-						return;
-					}
-					try {
-						profilesFromFile = JSON.parse(profilesData.toString());
-					} catch (e) {
-
-					}
-				});
-			}
-		}
+export function updateExtensionsPath(emmetExtensionsPath: string) {
+	if (!emmetExtensionsPath || !emmetExtensionsPath.trim() || !path.isAbsolute(emmetExtensionsPath.trim()) || !dirExists(emmetExtensionsPath.trim())) {
+		customSnippetRegistry = {};
+		snippetKeyCache.clear();
+		return;
 	}
+
+	let dirPath = emmetExtensionsPath.trim();
+	let snippetsPath = path.join(dirPath, 'snippets.json');
+	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+
+	fs.readFile(snippetsPath, (err, snippetsData) => {
+		if (err) {
+			return;
+		}
+		try {
+			let snippetsJson = JSON.parse(snippetsData.toString());
+			variablesFromFile = snippetsJson['variables'];
+			customSnippetRegistry = {};
+			snippetKeyCache.clear();
+			Object.keys(snippetsJson).forEach(syntax => {
+				if (!snippetsJson[syntax]['snippets']) {
+					return;
+				}
+				let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+				let customSnippets = snippetsJson[syntax]['snippets'];
+				if (snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
+					customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
+				}
+
+				customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
+
+				let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
+					return snippet.key;
+				});
+				snippetKeyCache.set(syntax, snippetKeys);
+			});
+		} catch (e) {
+
+		}
+	});
+	fs.readFile(profilesPath, (err, profilesData) => {
+		if (err) {
+			return;
+		}
+		try {
+			profilesFromFile = JSON.parse(profilesData.toString());
+		} catch (e) {
+
+		}
+	});
+
+
+
 }
 
 function dirExists(dirPath: string): boolean {
