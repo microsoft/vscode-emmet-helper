@@ -96,6 +96,9 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 }
 
 function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
+	if (!prefix) {
+		return [];
+	}
 	if (!snippetKeyCache.has(syntax)) {
 		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
 		let snippetKeys: string[] = registry.all({ type: 'string' }).map(snippet => {
@@ -154,14 +157,21 @@ function removeTabStops(expandedWord: string): string {
 function getCurrentLine(document: TextDocument, position: Position): string {
 	let offset = document.offsetAt(position);
 	let text = document.getText();
+	let start = 0;
+	let end = text.length - 1;
 	for (let i = offset - 1; i >= 0; i--) {
 		if (text[i] === '\n') {
-			return text.substring(i + 1, offset);
-		}
-		if (i === 0) {
-			return text.substring(0, offset);
+			start = i + 1;
+			break;
 		}
 	}
+	for (let i = offset; i < text.length; i++) {
+		if (text[i] === '\n') {
+			end = i;
+			break;
+		}
+	}
+	return text.substring(start, end);
 }
 
 let customSnippetRegistry = {};
