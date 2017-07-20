@@ -151,7 +151,7 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 	let offset = document.offsetAt(position);
 	let text = document.getText();
 	let start = 0;
-	let end = text.length - 1;
+	let end = text.length;
 	for (let i = offset - 1; i >= 0; i--) {
 		if (text[i] === '\n') {
 			start = i + 1;
@@ -164,7 +164,7 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 			break;
 		}
 	}
-	return text.substring(start, end + 1);
+	return text.substring(start, end);
 }
 
 let customSnippetRegistry = {};
