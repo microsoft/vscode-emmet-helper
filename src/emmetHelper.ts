@@ -164,7 +164,7 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 			break;
 		}
 	}
-	return text.substring(start, end);
+	return text.substring(start, end + 1);
 }
 
 let customSnippetRegistry = {};
