@@ -16,6 +16,7 @@ const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
+const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script'];
 
 export interface EmmetConfiguration {
 	useNewEmmet: string;
@@ -46,7 +47,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
 		// Skip cases where abc -> <abc>${1}</abc> as this is noise
-		if (isStyleSheet(syntax) || !/^[a-z,A-Z]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1) {
+		if (isStyleSheet(syntax) || !/^[a-z,A-Z]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
