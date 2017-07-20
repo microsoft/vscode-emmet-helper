@@ -300,6 +300,8 @@ export function updateExtensionsPath(emmetExtensionsPath: string) {
 	if (!emmetExtensionsPath || !emmetExtensionsPath.trim() || !path.isAbsolute(emmetExtensionsPath.trim()) || !dirExists(emmetExtensionsPath.trim())) {
 		customSnippetRegistry = {};
 		snippetKeyCache.clear();
+		profilesFromFile = {};
+		variablesFromFile = {};
 		return;
 	}
 
