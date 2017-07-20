@@ -16,7 +16,7 @@ const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
-const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script'];
+const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 export interface EmmetConfiguration {
 	useNewEmmet: string;
@@ -47,7 +47,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
 		// Skip cases where abc -> <abc>${1}</abc> as this is noise
-		if (isStyleSheet(syntax) || !/^[a-z,A-Z]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
+		if (isStyleSheet(syntax) || !/^[a-z,A-Z,\d]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
@@ -205,7 +205,17 @@ export function extractAbbreviation(document: TextDocument, position: Position):
  * @param abbreviation string
  */
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
-	return !isStyleSheet(syntax) ? (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation)) : cssAbbreviationRegex.test(abbreviation);
+	if (isStyleSheet(syntax)) {
+		return cssAbbreviationRegex.test(abbreviation);
+	}
+	if (abbreviation.startsWith('!') && /[^!]/.test(abbreviation)) {
+		return false;
+	}
+	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
+	if (abbreviation.startsWith('(') && abbreviation.endsWith(')') && !/^\(.+[>,+,*].+\)$/.test(abbreviation)) {
+		return false;
+	}
+	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation));
 }
 
 /**
