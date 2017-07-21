@@ -84,10 +84,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedAbbr) {
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			expandedAbbr.sortText = '0' + expandedAbbr.label;
-		}
+		} 
+
+		let currentWord = getCurrentWord(document, position);
+		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
+		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions) {
-			let currentWord = getCurrentWord(document, position);
 			let abbreviationSuggestions = getAbbreviationSuggestions(syntax, currentWord, abbreviation, abbreviationRange, expandOptions);
 			completionItems = completionItems.concat(abbreviationSuggestions);
 		}
@@ -96,14 +99,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	return CompletionList.create(completionItems, true);
 }
 
-function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
-	if (!prefix || isStyleSheet(syntax)) {
+function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any): CompletionItem[] {
+	if (!prefix) {
 		return [];
 	}
-
-	let snippetKeys = snippetKeyCache.has(syntax) ? snippetKeyCache.get(syntax) : snippetKeyCache.get('html');
 	let snippetCompletions = [];
-	snippetKeys.forEach(snippetKey => {
+	snippets.forEach(snippetKey => {
 		if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
 			return;
 		}
@@ -130,8 +131,18 @@ function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation
 
 		snippetCompletions.push(item);
 	});
-
 	return snippetCompletions;
+}
+
+function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
+	if (!prefix || isStyleSheet(syntax)) {
+		return [];
+	}
+
+	let snippetKeys = snippetKeyCache.has(syntax) ? snippetKeyCache.get(syntax) : snippetKeyCache.get('html');
+	let snippetCompletions = [];
+	
+	return makeSnippetSuggestion(snippetKeys, prefix, abbreviation, abbreviationRange, expandOptions);;
 }
 
 function getCurrentWord(document: TextDocument, position: Position): string {
