@@ -19,7 +19,7 @@ const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', '
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 export interface EmmetConfiguration {
-	useNewEmmet: string;
+	useNewEmmet: boolean;
 	showExpandedAbbreviation: string;
 	showAbbreviationSuggestions: boolean;
 	syntaxProfiles: object;
@@ -172,7 +172,7 @@ let customSnippetRegistry = {};
 let variablesFromFile = {};
 let profilesFromFile = {};
 
-const field = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
+export const emmetSnippetField = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
 
 export function isStyleSheet(syntax): boolean {
 	let stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
@@ -230,7 +230,7 @@ export function getExpandOptions(syntaxProfiles: object, variables: object, synt
 	}
 
 	return {
-		field: field,
+		field: emmetSnippetField,
 		syntax: syntax,
 		profile: getProfile(syntax, syntaxProfiles),
 		addons: syntax === 'jsx' ? { 'jsx': true } : null,
@@ -269,10 +269,7 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
 				newOptions['attributeQuotes'] = options[key];
 				break;
 			case 'tag_nl':
-				newOptions['format'] = (options[key] === 'true' || options[key] === 'false') ? options[key] : 'true';
-				break;
-			case 'indent':
-				newOptions['attrCase'] = (options[key] === 'true' || options[key] === 'false') ? '\t' : options[key];
+				newOptions['format'] = (options[key] === true || options[key] === false) ? options[key] : true;
 				break;
 			case 'inline_break':
 				newOptions['inlineBreak'] = options[key];
@@ -307,61 +304,67 @@ function getVariables(variablesFromSettings: object): any {
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export function updateExtensionsPath(emmetExtensionsPath: string) {
+export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void> {
 	if (!emmetExtensionsPath || !emmetExtensionsPath.trim() || !path.isAbsolute(emmetExtensionsPath.trim()) || !dirExists(emmetExtensionsPath.trim())) {
 		customSnippetRegistry = {};
 		snippetKeyCache.clear();
 		profilesFromFile = {};
 		variablesFromFile = {};
-		return;
+		return Promise.resolve();
 	}
 
 	let dirPath = emmetExtensionsPath.trim();
 	let snippetsPath = path.join(dirPath, 'snippets.json');
 	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
 
-	fs.readFile(snippetsPath, (err, snippetsData) => {
-		if (err) {
-			return;
-		}
-		try {
-			let snippetsJson = JSON.parse(snippetsData.toString());
-			variablesFromFile = snippetsJson['variables'];
-			customSnippetRegistry = {};
-			snippetKeyCache.clear();
-			Object.keys(snippetsJson).forEach(syntax => {
-				if (!snippetsJson[syntax]['snippets']) {
-					return;
-				}
-				let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
-				let customSnippets = snippetsJson[syntax]['snippets'];
-				if (snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
-					customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
-				}
+	let snippetsPromise = new Promise<void>((resolve, reject) => {
+		fs.readFile(snippetsPath, (err, snippetsData) => {
+			if (err) {
+				return resolve();
+			}
+			try {
+				let snippetsJson = JSON.parse(snippetsData.toString());
+				variablesFromFile = snippetsJson['variables'];
+				customSnippetRegistry = {};
+				snippetKeyCache.clear();
+				Object.keys(snippetsJson).forEach(syntax => {
+					if (!snippetsJson[syntax]['snippets']) {
+						return;
+					}
+					let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+					let customSnippets = snippetsJson[syntax]['snippets'];
+					if (snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
+						customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
+					}
 
-				customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
+					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
 
-				let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
-					return snippet.key;
+					let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
+						return snippet.key;
+					});
+					snippetKeyCache.set(syntax, snippetKeys);
 				});
-				snippetKeyCache.set(syntax, snippetKeys);
-			});
-		} catch (e) {
+			} catch (e) {
 
-		}
-	});
-	fs.readFile(profilesPath, (err, profilesData) => {
-		if (err) {
-			return;
-		}
-		try {
-			profilesFromFile = JSON.parse(profilesData.toString());
-		} catch (e) {
-
-		}
+			}
+			return resolve();
+		});
 	});
 
+	let variablesPromise = new Promise<void>((resolve, reject) => {
+		fs.readFile(profilesPath, (err, profilesData) => {
+			try {
+				if (!err) {
+					profilesFromFile = JSON.parse(profilesData.toString());
+				}
+			} catch (e) {
 
+			}
+			return resolve();
+		});
+	});
+
+	return Promise.all([snippetsPromise, variablesFromFile]).then(()=> Promise.resolve());
 
 }
 

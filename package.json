@@ -14,7 +14,8 @@
   },
   "devDependencies": {
     "@types/node": "^6.0.46",
-    "typescript": "^2.1.5"
+    "typescript": "^2.1.5",
+    "mocha": "3.4.2"
   },
   "dependencies": {
     "@emmetio/expand-abbreviation": "^0.5.8",
@@ -23,6 +24,7 @@
   },
   "scripts": {
     "prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./"
+    "compile": "tsc -watch -p ./",
+    "test": "mocha out/emmetHelperTest.js"
   }
 }
