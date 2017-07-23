@@ -16,7 +16,7 @@ const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
-const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
 
 export interface EmmetConfiguration {
 	useNewEmmet: boolean;
@@ -38,6 +38,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			return snippet.key;
 		});
 		snippetKeyCache.set('html', htmlSnippetKeys);
+	} else {
+		htmlSnippetKeys = snippetKeyCache.get('html');
 	}
 
 	let expandedAbbr: CompletionItem;
