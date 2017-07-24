@@ -11,7 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
-let htmlSnippetKeys: string[];
+let markupSnippetKeys: string[];
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
@@ -32,14 +32,16 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return;
 	}
 
-	if (!snippetKeyCache.has('html')) {
-		let registry = customSnippetRegistry['html'] ? customSnippetRegistry['html'] : createSnippetsRegistry('html');
-		htmlSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
-			return snippet.key;
-		});
-		snippetKeyCache.set('html', htmlSnippetKeys);
-	} else {
-		htmlSnippetKeys = snippetKeyCache.get('html');
+	if (!isStyleSheet(syntax)) {
+		if (!snippetKeyCache.has(syntax)) {
+			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
+			markupSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
+				return snippet.key;
+			});
+			snippetKeyCache.set(syntax, markupSnippetKeys);
+		} else {
+			markupSnippetKeys = snippetKeyCache.get(syntax);
+		}
 	}
 
 	let expandedAbbr: CompletionItem;
@@ -49,7 +51,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
 		// Skip cases where abc -> <abc>${1}</abc> as this is noise
-		if (isStyleSheet(syntax) || !/^[a-z,A-Z,\d]*$/.test(abbreviation) || htmlSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
+		if (isStyleSheet(syntax) || !/^[a-z,A-Z,\d]*$/.test(abbreviation) || markupSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
@@ -86,7 +88,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedAbbr) {
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			expandedAbbr.sortText = '0' + expandedAbbr.label;
-		} 
+		}
 
 		let currentWord = getCurrentWord(document, position);
 		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
@@ -143,7 +145,7 @@ function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation
 
 	let snippetKeys = snippetKeyCache.has(syntax) ? snippetKeyCache.get(syntax) : snippetKeyCache.get('html');
 	let snippetCompletions = [];
-	
+
 	return makeSnippetSuggestion(snippetKeys, prefix, abbreviation, abbreviationRange, expandOptions);;
 }
 
@@ -377,7 +379,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 		});
 	});
 
-	return Promise.all([snippetsPromise, variablesFromFile]).then(()=> Promise.resolve());
+	return Promise.all([snippetsPromise, variablesFromFile]).then(() => Promise.resolve());
 
 }
 
