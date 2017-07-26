@@ -233,10 +233,12 @@ describe('Test completions', () => {
         });
     });
 
-        it('should provide completions', () => {
+    it('should not provide completions', () => {
         updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['<div>abc</div>', 0, 8],
+                ['<div>abc12</div>', 0, 10],
+                ['<div>abc.</div>', 0, 9],
                 ['<div>(div)</div>', 0, 10]
             ];
 

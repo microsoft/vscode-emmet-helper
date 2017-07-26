@@ -50,8 +50,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
-		// Skip cases where abc -> <abc>${1}</abc> as this is noise
-		if (isStyleSheet(syntax) || !/^[a-z,A-Z,\d]*$/.test(abbreviation) || markupSnippetKeys.indexOf(abbreviation) > -1 || commonlyUsedTags.indexOf(abbreviation) > -1) {
+		// Skip non stylesheet abbreviations that are just letters/numbers unless they are valid snippets or commonly used tags
+        // This is to avoid noise where abc -> <abc>${1}</abc> 
+        // Also skip abbreviations ending with `.` This will be noise when people are typing simple text and ending it with period.
+        if (isStyleSheet(syntax)                                
+            || (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))   
+            || markupSnippetKeys.indexOf(abbreviation) > -1      
+            || commonlyUsedTags.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
