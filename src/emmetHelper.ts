@@ -17,6 +17,8 @@ const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
+const bemFilterSuffix = 'bem';
+const filterDelimitor = '|';
 
 export interface EmmetConfiguration {
 	useNewEmmet: boolean;
@@ -45,18 +47,18 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	let expandedAbbr: CompletionItem;
-	let [abbreviationRange, abbreviation] = extractAbbreviation(document, position);
-	let expandOptions = getExpandOptions(emmetConfig.syntaxProfiles, emmetConfig.variables, syntax);
+	let { abbreviationRange, abbreviation, filters } = extractAbbreviation(document, position);
+	let expandOptions = getExpandOptions(syntax, emmetConfig.syntaxProfiles, emmetConfig.variables, filters);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
 		// Skip non stylesheet abbreviations that are just letters/numbers unless they are valid snippets or commonly used tags
-        // This is to avoid noise where abc -> <abc>${1}</abc> 
-        // Also skip abbreviations ending with `.` This will be noise when people are typing simple text and ending it with period.
-        if (isStyleSheet(syntax)                                
-            || (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))   
-            || markupSnippetKeys.indexOf(abbreviation) > -1      
-            || commonlyUsedTags.indexOf(abbreviation) > -1) {
+		// This is to avoid noise where abc -> <abc>${1}</abc> 
+		// Also skip abbreviations ending with `.` This will be noise when people are typing simple text and ending it with period.
+		if (isStyleSheet(syntax)
+			|| (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))
+			|| markupSnippetKeys.indexOf(abbreviation) > -1
+			|| commonlyUsedTags.indexOf(abbreviation) > -1) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
@@ -74,6 +76,9 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.documentation = removeTabStops(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
+			if (filters.indexOf('bem') > -1) {
+				expandedAbbr.label = abbreviation + filterDelimitor + bemFilterSuffix;
+			}
 			if (isStyleSheet(syntax)) {
 				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// Due to this we set filterText, sortText and label to expanded abbreviation
@@ -202,20 +207,54 @@ export function isStyleSheet(syntax): boolean {
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position): [Range, string] {
+export function extractAbbreviation(document: TextDocument, position: Position) {
+	let filters = [];
+	let pos = position.character;
 	let currentLine = getCurrentLine(document, position);
+	let currentLineTillPosition = currentLine.substr(0, position.character);
+	let lengthOccupiedByFilter = 0;
+	if (currentLineTillPosition.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
+		lengthOccupiedByFilter = 4;
+		pos -= lengthOccupiedByFilter;
+		filters.push(bemFilterSuffix)
+	}
 	let result;
 	try {
-		result = extract(currentLine, position.character, true);
-	} catch (e) {
-
+		result = extract(currentLine, pos, true);
+	}
+	catch (e) {
 	}
 	if (!result) {
-		return [null, ''];
+		return null;
 	}
+	let rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
+	return {
+		abbreviationRange: rangeToReplace,
+		abbreviation: result.abbreviation,
+		filters
+	};
+}
 
-	let rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length);
-	return [rangeToReplace, result.abbreviation];
+export function extractAbbreviationFromText(text: string): any {
+	let filters = [];
+	let pos = text.length;
+	if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
+		pos -= 4;
+		filters.push(bemFilterSuffix)
+	}
+	let result;
+	try {
+		result = extract(text, pos, true);
+	}
+	catch (e) {
+	}
+	if (!result) {
+		return null;
+	}
+	return {
+		abbreviation: result.abbreviation,
+		filters
+	};
 }
 
 /**
@@ -243,19 +282,21 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntaxProfiles: object, variables: object, syntax: string, textToReplace?: string) {
+export function getExpandOptions(syntax: string, syntaxProfiles?: object, variables?: object, filters?: string[], ) {
 	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
 	}
-
+	let addons = syntax === 'jsx' ? { 'jsx': true } : {};
+	if (filters && filters.indexOf('bem') > -1) {
+		addons['bem'] = { element: '__' };
+	}
 	return {
 		field: emmetSnippetField,
 		syntax: syntax,
 		profile: getProfile(syntax, syntaxProfiles),
-		addons: syntax === 'jsx' ? { 'jsx': true } : null,
+		addons: addons,
 		variables: getVariables(variables),
-		text: textToReplace ? textToReplace : null,
 		snippets: customSnippetRegistry[syntax]
 	};
 }
@@ -265,6 +306,9 @@ export function getExpandOptions(syntaxProfiles: object, variables: object, synt
  * @param syntax 
  */
 function getProfile(syntax: string, profilesFromSettings: object): any {
+	if (!profilesFromSettings) {
+		profilesFromSettings = {};
+	}
 	let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
 	let options = profilesConfig[syntax];

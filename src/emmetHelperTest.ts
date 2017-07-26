@@ -1,5 +1,5 @@
 import { TextDocument, Position } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete } from './emmetHelper';
+import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete } from './emmetHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -35,24 +35,49 @@ describe('Validate Abbreviations', () => {
 });
 
 describe('Extract Abbreviations', () => {
-    it('should extract abbreviations', () => {
-        const testCases: [string, number, number, string, number, number, number, number][] = [
-            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7],
-            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10],
-            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12],
-            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5]
+    it('should extract abbreviations from document', () => {
+        const testCases: [string, number, number, string, number, number, number, number, string[]][] = [
+            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7,[]],
+            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10,[]],
+            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12,[]],
+            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5,[]],
+            ['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9,['bem']]
         ]
 
-        testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar]) => {
+        testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilters]) => {
             const document = TextDocument.create('test://test/test.html', 'html', 0, content);
             const position = Position.create(positionLine, positionChar);
-            const [abbrRange, abbr] = extractAbbreviation(document, position);
+            const {abbreviationRange, abbreviation, filters} = extractAbbreviation(document, position);
 
-            assert.equal(expectedAbbr, abbr);
-            assert.equal(expectedRangeStartLine, abbrRange.start.line);
-            assert.equal(expectedRangeStartChar, abbrRange.start.character);
-            assert.equal(expectedRangeEndLine, abbrRange.end.line);
-            assert.equal(expectedRangeEndChar, abbrRange.end.character);
+            assert.equal(expectedAbbr, abbreviation);
+            assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
+            assert.equal(expectedRangeStartChar, abbreviationRange.start.character);
+            assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
+            assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
+            assert.equal(filters.length, expectedFilters.length);
+            for(let i = 0; i < filters.length; i++) {
+                assert.equal(filters[i], expectedFilters[i]);
+            }
+        });
+    });
+
+    it('should extract abbreviations from text', () => {
+        const testCases: [string, string, string[]][] = [
+            ['ul', 'ul', []],
+            ['ul>li', 'ul>li', []],
+            ['ul>li*3', 'ul>li*3', []],
+            ['ul>li|bem', 'ul>li', ['bem']]
+        ]
+
+        testCases.forEach(([content, expectedAbbr, expectedFilters]) => {
+            const {abbreviation, filters} = extractAbbreviationFromText(content);
+
+            assert.equal(expectedAbbr, abbreviation);
+            assert.equal(filters.length, expectedFilters.length);
+            for(let i = 0; i < filters.length; i++) {
+                assert.equal(filters[i], expectedFilters[i]);
+            }
+            
         });
     });
 });
@@ -61,11 +86,10 @@ describe('Test Basic Expand Options', () => {
     it('should check for basic expand options', () => {
         const textToReplace = 'textToReplace';
         const syntax = 'anythingreally';
-        let expandOptions = getExpandOptions({}, {}, syntax, textToReplace);
+        let expandOptions = getExpandOptions(syntax);
 
         assert.equal(expandOptions.field, emmetSnippetField)
         assert.equal(expandOptions.syntax, syntax);
-        assert.equal(expandOptions.text, textToReplace)
     });
 });
 
@@ -80,7 +104,7 @@ describe('Test output profile settings', () => {
             self_closing_tag: 'xhtml'
         }
 
-        const expandOptions = getExpandOptions({ html: profile }, {}, 'html');
+        const expandOptions = getExpandOptions('html', { html: profile });
 
         assert.equal(profile['tag_case'], expandOptions.profile['tagCase']);
         assert.equal(profile['attr_case'], expandOptions.profile['attributeCase']);
@@ -95,7 +119,7 @@ describe('Test output profile settings', () => {
         const expectedValue = ['xml', 'html', 'xhtml'];
 
         for (let i = 0; i < testCases.length; i++) {
-            const expandOptions = getExpandOptions({ html: { self_closing_tag: testCases[i] } }, {}, 'html');
+            const expandOptions = getExpandOptions('html', { html: { self_closing_tag: testCases[i] } });
             assert.equal(expandOptions.profile['selfClosingStyle'], expectedValue[i]);
         }
     });
@@ -105,7 +129,7 @@ describe('Test output profile settings', () => {
         const expectedValue = [true, false, true];
 
         for (let i = 0; i < testCases.length; i++) {
-            const expandOptions = getExpandOptions({ html: { tag_nl: testCases[i] } }, {}, 'html');
+            const expandOptions = getExpandOptions('html', { html: { tag_nl: testCases[i] } });
             assert.equal(expandOptions.profile['format'], expectedValue[i]);
         }
     });
@@ -120,7 +144,7 @@ describe('Test output profile settings', () => {
             selfClosingStyle: 'xhtml'
         };
 
-        const expandOptions = getExpandOptions({ html: profile }, {}, 'html');
+        const expandOptions = getExpandOptions('html', { html: profile });
         Object.keys(profile).forEach(key => {
             assert.equal(expandOptions.profile[key], profile[key]);
         });
@@ -137,7 +161,7 @@ describe('Test output profile settings', () => {
                 self_closing_tag: 'xhtml'
             }
 
-            const expandOptions = getExpandOptions({ html: profile }, {}, 'html');
+            const expandOptions = getExpandOptions('html', { html: profile });
             assert.equal(expandOptions.profile['tagCase'], 'upper');
             assert.equal(profile['tag_case'], 'lower');
         });
@@ -151,7 +175,7 @@ describe('Test variables settings', () => {
             charset: 'UTF-8'
         }
 
-        const expandOptions = getExpandOptions({}, variables, 'html');
+        const expandOptions = getExpandOptions('html', {}, variables);
         Object.keys(variables).forEach(key => {
             assert.equal(expandOptions.variables[key], variables[key]);
         });
@@ -164,7 +188,7 @@ describe('Test variables settings', () => {
                 charset: 'UTF-8'
             }
 
-            const expandOptions = getExpandOptions({}, variables, 'html');
+            const expandOptions = getExpandOptions('html', {}, variables);
             assert.equal(expandOptions.variables['lang'], 'fr');
             assert.equal(variables['lang'], 'en');
         });
@@ -177,7 +201,7 @@ describe('Test custom snippets', () => {
 
 
         updateExtensionsPath(null).then(() => {
-            const expandOptionsWithoutCustomSnippets = getExpandOptions({}, {}, 'css');
+            const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
             assert(!expandOptionsWithoutCustomSnippets.snippets);
 
             // Use custom snippets from extensionsPath
@@ -185,8 +209,8 @@ describe('Test custom snippets', () => {
                 let foundCustomSnippet = false;
                 let foundCustomSnippetInInhertitedSyntax = false;
 
-                const expandOptionsWithCustomSnippets = getExpandOptions({}, {}, 'css');
-                const expandOptionsWithCustomSnippetsInhertedSytnax = getExpandOptions({}, {}, 'scss');
+                const expandOptionsWithCustomSnippets = getExpandOptions('css');
+                const expandOptionsWithCustomSnippetsInhertedSytnax = getExpandOptions('scss');
 
                 expandOptionsWithoutCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
                     if (snippet.key === customSnippetKey) {
