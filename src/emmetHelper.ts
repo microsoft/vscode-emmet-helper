@@ -73,7 +73,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText) {
 			expandedAbbr = CompletionItem.create(abbreviation);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, expandedText);
-			expandedAbbr.documentation = removeTabStops(expandedText);
+			expandedAbbr.documentation = makeCursorsGorgeous(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			if (filters.indexOf('bem') > -1) {
@@ -132,7 +132,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		}
 
 		let item = CompletionItem.create(snippetKey);
-		item.documentation = removeTabStops(expandedAbbr);
+		item.documentation = makeCursorsGorgeous(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, expandedAbbr);
 		item.insertTextFormat = InsertTextFormat.Snippet;
@@ -169,7 +169,7 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 	}
 }
 
-function removeTabStops(expandedWord: string): string {
+function makeCursorsGorgeous(expandedWord: string): string {
 	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_') + '|';
 }
 
