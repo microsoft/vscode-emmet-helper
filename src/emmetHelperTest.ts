@@ -150,16 +150,6 @@ describe('Test output profile settings', () => {
         });
     });
 
-    it('should use profile from extensionsPath', () => {
-        return updateExtensionsPath(extensionsPath).then(() => {
-           
-            const expandOptions = getExpandOptions('html', {});
-            assert.equal(expandOptions.profile['tagCase'], 'upper');
-            return Promise.resolve();
-        });
-    });
-
-    
     it('should use profile from settings that overrides the ones from extensionsPath', () => {
         return updateExtensionsPath(extensionsPath).then(() => {
             const profile = {
@@ -247,13 +237,13 @@ describe('Test custom snippets', () => {
 describe('Test completions', () => {
     it('should provide completions', () => {
         return updateExtensionsPath(null).then(() => {
-            const testCases: [string, number, number, string, string, number, number, number, number][] = [
-                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul></ul>', 0, 5, 0, 7],
-                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li></li>\n</ul>', 0, 5, 0, 10],
-                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>', 0, 5, 0, 10]
+            const testCases: [string, number, number, string, string][] = [
+                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul></ul>'],
+                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li></li>\n</ul>'],
+                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>']
             ];
 
-            testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar]) => {
+            testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'html', {
@@ -294,6 +284,32 @@ describe('Test completions', () => {
 
                 assert.equal(completionList.items.length, 0);
             });
+            return Promise.resolve();
+
+        });
+    });
+
+    it('should provide completions for lorem', () => {
+        return updateExtensionsPath(null).then(() => {
+
+
+            const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem10.item');
+            const position = Position.create(0, 12);
+            const completionList = doComplete(document, position, 'html', {
+                useNewEmmet: true,
+                showExpandedAbbreviation: 'always',
+                showAbbreviationSuggestions: false,
+                syntaxProfiles: {},
+                variables: {}
+            });
+            const expandedText = completionList.items[0].documentation;
+            let matches = expandedText.match(/<div class="item">(.*)<\/div>/);
+
+            assert.equal(completionList.items[0].label, 'lorem10.item');
+            assert.equal(matches != null, true);
+            assert.equal(matches[1].split(' ').length, 10);
+            assert.equal(matches[1].startsWith('Lorem'), true);
+
             return Promise.resolve();
 
         });

@@ -12,6 +12,7 @@ import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
+let markupSnippetKeysRegex: RegExp[];
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
@@ -40,6 +41,9 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			markupSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
 				return snippet.key;
 			});
+			markupSnippetKeysRegex =  registry.all({ type: 'regexp' }).map(snippet => {
+				return snippet.key;
+			});
 			snippetKeyCache.set(syntax, markupSnippetKeys);
 		} else {
 			markupSnippetKeys = snippetKeyCache.get(syntax);
@@ -58,7 +62,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (isStyleSheet(syntax)
 			|| (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))
 			|| markupSnippetKeys.indexOf(abbreviation) > -1
-			|| commonlyUsedTags.indexOf(abbreviation) > -1) {
+			|| commonlyUsedTags.indexOf(abbreviation) > -1
+			|| markupSnippetKeysRegex.find(x => x.test(abbreviation)) ) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
