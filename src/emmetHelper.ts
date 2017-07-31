@@ -5,7 +5,7 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry } from '@emmetio/expand-abbreviation';
+import { expand, createSnippetsRegistry } from 'vscode-expand-abbreviation';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
