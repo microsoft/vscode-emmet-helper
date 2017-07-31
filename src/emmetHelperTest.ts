@@ -37,17 +37,17 @@ describe('Validate Abbreviations', () => {
 describe('Extract Abbreviations', () => {
     it('should extract abbreviations from document', () => {
         const testCases: [string, number, number, string, number, number, number, number, string[]][] = [
-            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7,[]],
-            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10,[]],
-            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12,[]],
-            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5,[]],
-            ['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9,['bem']]
+            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7, []],
+            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10, []],
+            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, []],
+            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, []],
+            ['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, ['bem']]
         ]
 
         testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilters]) => {
             const document = TextDocument.create('test://test/test.html', 'html', 0, content);
             const position = Position.create(positionLine, positionChar);
-            const {abbreviationRange, abbreviation, filters} = extractAbbreviation(document, position);
+            const { abbreviationRange, abbreviation, filters } = extractAbbreviation(document, position);
 
             assert.equal(expectedAbbr, abbreviation);
             assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
@@ -55,7 +55,7 @@ describe('Extract Abbreviations', () => {
             assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
             assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
             assert.equal(filters.length, expectedFilters.length);
-            for(let i = 0; i < filters.length; i++) {
+            for (let i = 0; i < filters.length; i++) {
                 assert.equal(filters[i], expectedFilters[i]);
             }
         });
@@ -70,14 +70,14 @@ describe('Extract Abbreviations', () => {
         ]
 
         testCases.forEach(([content, expectedAbbr, expectedFilters]) => {
-            const {abbreviation, filters} = extractAbbreviationFromText(content);
+            const { abbreviation, filters } = extractAbbreviationFromText(content);
 
             assert.equal(expectedAbbr, abbreviation);
             assert.equal(filters.length, expectedFilters.length);
-            for(let i = 0; i < filters.length; i++) {
+            for (let i = 0; i < filters.length; i++) {
                 assert.equal(filters[i], expectedFilters[i]);
             }
-            
+
         });
     });
 });
@@ -151,7 +151,17 @@ describe('Test output profile settings', () => {
     });
 
     it('should use profile from extensionsPath', () => {
-        updateExtensionsPath(extensionsPath).then(() => {
+        return updateExtensionsPath(extensionsPath).then(() => {
+           
+            const expandOptions = getExpandOptions('html', {});
+            assert.equal(expandOptions.profile['tagCase'], 'upper');
+            return Promise.resolve();
+        });
+    });
+
+    
+    it('should use profile from settings that overrides the ones from extensionsPath', () => {
+        return updateExtensionsPath(extensionsPath).then(() => {
             const profile = {
                 tag_case: 'lower',
                 attr_case: 'lower',
@@ -162,8 +172,9 @@ describe('Test output profile settings', () => {
             }
 
             const expandOptions = getExpandOptions('html', { html: profile });
-            assert.equal(expandOptions.profile['tagCase'], 'upper');
+            assert.equal(expandOptions.profile['tagCase'], 'lower');
             assert.equal(profile['tag_case'], 'lower');
+            return Promise.resolve();
         });
     });
 });
@@ -200,19 +211,19 @@ describe('Test custom snippets', () => {
         const customSnippetKey = 'ch';
 
 
-        updateExtensionsPath(null).then(() => {
+        return updateExtensionsPath(null).then(() => {
             const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
             assert(!expandOptionsWithoutCustomSnippets.snippets);
 
             // Use custom snippets from extensionsPath
-            updateExtensionsPath(extensionsPath).then(() => {
+            return updateExtensionsPath(extensionsPath).then(() => {
                 let foundCustomSnippet = false;
                 let foundCustomSnippetInInhertitedSyntax = false;
 
                 const expandOptionsWithCustomSnippets = getExpandOptions('css');
                 const expandOptionsWithCustomSnippetsInhertedSytnax = getExpandOptions('scss');
 
-                expandOptionsWithoutCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
+                expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
                     if (snippet.key === customSnippetKey) {
                         foundCustomSnippet = true;
                     }
@@ -220,12 +231,14 @@ describe('Test custom snippets', () => {
 
                 expandOptionsWithCustomSnippetsInhertedSytnax.snippets.all({ type: 'string' }).forEach(snippet => {
                     if (snippet.key === customSnippetKey) {
-                        foundCustomSnippet = true;
+                        foundCustomSnippetInInhertitedSyntax = true;
                     }
                 });
 
                 assert.equal(foundCustomSnippet, true);
                 assert.equal(foundCustomSnippetInInhertitedSyntax, true);
+
+                return Promise.resolve();
             });
         });
     });
@@ -233,10 +246,11 @@ describe('Test custom snippets', () => {
 
 describe('Test completions', () => {
     it('should provide completions', () => {
-        updateExtensionsPath(null).then(() => {
+        return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number, string, string, number, number, number, number][] = [
                 ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul></ul>', 0, 5, 0, 7],
-                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li></li>\n</ul>', 0, 5, 0, 10]
+                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li></li>\n</ul>', 0, 5, 0, 10],
+                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>', 0, 5, 0, 10]
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar]) => {
@@ -253,12 +267,13 @@ describe('Test completions', () => {
                 assert.equal(completionList.items[0].label, expectedAbbr);
                 assert.equal(completionList.items[0].documentation, expectedExpansion);
             });
+            return Promise.resolve();
 
         });
     });
 
     it('should not provide completions', () => {
-        updateExtensionsPath(null).then(() => {
+        return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['<div>abc</div>', 0, 8],
                 ['<div>abc12</div>', 0, 10],
@@ -279,6 +294,7 @@ describe('Test completions', () => {
 
                 assert.equal(completionList.items.length, 0);
             });
+            return Promise.resolve();
 
         });
     });
