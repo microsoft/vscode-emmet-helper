@@ -80,14 +80,16 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 				expandedAbbr.label = abbreviation + filterDelimitor + bemFilterSuffix;
 			}
 			if (isStyleSheet(syntax)) {
+				let expandedTextWithoutTabStops = removeTabStops(expandedText);
+
 				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// Due to this we set filterText, sortText and label to expanded abbreviation
-				// - Label makes it clear to the user what their choice is 
+				// - Label makes it clear to the user what their choice is
 				// - FilterText fixes the issue when user types in propertyname and emmet uses it to match with abbreviations
 				// - SortText will sort the choice in a way that is intutive to the user
-				expandedAbbr.filterText = expandedAbbr.documentation;
-				expandedAbbr.sortText = expandedAbbr.documentation;
-				expandedAbbr.label = expandedAbbr.documentation;
+				expandedAbbr.filterText = expandedTextWithoutTabStops;
+				expandedAbbr.sortText = expandedTextWithoutTabStops;
+				expandedAbbr.label = expandedTextWithoutTabStops;
 				return CompletionList.create([expandedAbbr], true);
 			}
 		}
@@ -170,7 +172,11 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 }
 
 function makeCursorsGorgeous(expandedWord: string): string {
-	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_') + '|';
+	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_');
+}
+
+function removeTabStops(expandedWord: string): string {
+	return expandedWord.replace(/\$\{\d+\}/g, '').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
 }
 
 function getCurrentLine(document: TextDocument, position: Position): string {
