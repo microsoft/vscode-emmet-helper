@@ -1,3 +1,4 @@
+// This UMD model has been generated from https://github.com/emmetio/expand-abbreviation/tree/v0.5.8
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -1445,8 +1446,7 @@ function parse$2(str) {
 			// The grouping node should be detached to properly handle
 			// out-of-bounds `^` operator. Node will be attached right on group end
 			const node = new Node();
-			const groupCtx = groupStack.length ? last(groupStack)[0] : ctx;
-			groupStack.push([node, groupCtx, stream.pos]);
+			groupStack.push([node, ctx, stream.pos]);
 			ctx = node;
 			stream.next();
 			continue;
@@ -1507,10 +1507,6 @@ function parse$2(str) {
 	}
 
 	return root;
-}
-
-function last(arr) {
-	return arr[arr.length - 1];
 }
 
 /**
@@ -5448,7 +5444,7 @@ var index$8 = function(node, options) {
 	} else {
 		// Replace named node with generated content
 		node.value = paragraph(dict, options.wordCount, startWithCommon);
-		node.name = resolveImplicitName(node.parent.name);
+		node.name = node.parent.name ? resolveImplicitName(node.parent.name) : null;
 	}
 
 	return node;
