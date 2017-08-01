@@ -238,9 +238,9 @@ describe('Test completions', () => {
     it('should provide completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number, string, string][] = [
-                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul></ul>'],
-                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li></li>\n</ul>'],
-                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>\n<ul>\n\t<li></li>\n</ul>']
+                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'],
+                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'],
+                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>']
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {

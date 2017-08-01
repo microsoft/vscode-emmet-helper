@@ -78,7 +78,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText) {
 			expandedAbbr = CompletionItem.create(abbreviation);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, expandedText);
-			expandedAbbr.documentation = makeCursorsGorgeous(expandedText);
+			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			if (filters.indexOf('bem') > -1) {
@@ -139,7 +139,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		}
 
 		let item = CompletionItem.create(snippetKey);
-		item.documentation = makeCursorsGorgeous(expandedAbbr);
+		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, expandedAbbr);
 		item.insertTextFormat = InsertTextFormat.Snippet;
@@ -176,8 +176,8 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 	}
 }
 
-function makeCursorsGorgeous(expandedWord: string): string {
-	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_');
+function replaceTabStopsWithCursors(expandedWord: string): string {
+	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
 }
 
 function removeTabStops(expandedWord: string): string {
