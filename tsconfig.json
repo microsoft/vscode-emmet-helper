@@ -5,10 +5,12 @@
 			"es2016"
 		],
 		"module": "commonjs",
-		"outDir": "./out"
+		"outDir": "./out",
+		"allowJs": true
 
 	},
 	"exclude": [
-		"node_modules"
+		"node_modules",
+		"out"
 	]
 }
