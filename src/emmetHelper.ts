@@ -307,6 +307,15 @@ export function getExpandOptions(syntax: string, syntaxProfiles?: object, variab
 }
 
 /**
+ * Expands given abbreviation using given options
+ * @param abbreviation string
+ * @param options 
+ */
+export function expandAbbreviation(abbreviation: string, options: any) {
+	return expand(abbreviation, options);
+}
+
+/**
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax 
  */
