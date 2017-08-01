@@ -78,21 +78,23 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText) {
 			expandedAbbr = CompletionItem.create(abbreviation);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, expandedText);
-			expandedAbbr.documentation = removeTabStops(expandedText);
+			expandedAbbr.documentation = makeCursorsGorgeous(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			if (filters.indexOf('bem') > -1) {
 				expandedAbbr.label = abbreviation + filterDelimitor + bemFilterSuffix;
 			}
 			if (isStyleSheet(syntax)) {
+				let expandedTextWithoutTabStops = removeTabStops(expandedText);
+
 				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// Due to this we set filterText, sortText and label to expanded abbreviation
-				// - Label makes it clear to the user what their choice is 
+				// - Label makes it clear to the user what their choice is
 				// - FilterText fixes the issue when user types in propertyname and emmet uses it to match with abbreviations
 				// - SortText will sort the choice in a way that is intutive to the user
-				expandedAbbr.filterText = expandedAbbr.documentation;
-				expandedAbbr.sortText = expandedAbbr.documentation;
-				expandedAbbr.label = expandedAbbr.documentation;
+				expandedAbbr.filterText = expandedTextWithoutTabStops;
+				expandedAbbr.sortText = expandedTextWithoutTabStops;
+				expandedAbbr.label = expandedTextWithoutTabStops;
 				return CompletionList.create([expandedAbbr], true);
 			}
 		}
@@ -137,7 +139,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		}
 
 		let item = CompletionItem.create(snippetKey);
-		item.documentation = removeTabStops(expandedAbbr);
+		item.documentation = makeCursorsGorgeous(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, expandedAbbr);
 		item.insertTextFormat = InsertTextFormat.Snippet;
@@ -172,6 +174,10 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 			return matches[0];
 		}
 	}
+}
+
+function makeCursorsGorgeous(expandedWord: string): string {
+	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '_$1_');
 }
 
 function removeTabStops(expandedWord: string): string {
