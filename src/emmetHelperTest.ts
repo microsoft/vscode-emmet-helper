@@ -66,7 +66,8 @@ describe('Extract Abbreviations', () => {
             ['ul', 'ul', []],
             ['ul>li', 'ul>li', []],
             ['ul>li*3', 'ul>li*3', []],
-            ['ul>li|bem', 'ul>li', ['bem']]
+            ['ul>li|bem', 'ul>li', ['bem']],
+            ['ul>li|t', 'ul>li', ['t']]
         ]
 
         testCases.forEach(([content, expectedAbbr, expectedFilters]) => {
@@ -265,7 +266,7 @@ describe('Test completions', () => {
     it('should provide completions using custom snippets', () => {
         return updateExtensionsPath(extensionsPath).then(() => {
             const testCases: [string, number, number, string, string][] = [
-               ['<div>hey</div>', 0, 8, 'hey', '<ul>\n\t<li><span class="hello">|</span></li>\n\t<li><span class="hello">|</span></li>\n</ul>']
+                ['<div>hey</div>', 0, 8, 'hey', '<ul>\n\t<li><span class="hello">|</span></li>\n\t<li><span class="hello">|</span></li>\n</ul>']
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {

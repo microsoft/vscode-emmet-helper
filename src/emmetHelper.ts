@@ -20,6 +20,7 @@ const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', '
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
 const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
+const trimFilterSuffix = 't';
 
 export interface EmmetConfiguration {
 	useNewEmmet: boolean;
@@ -251,10 +252,19 @@ export function extractAbbreviation(document: TextDocument, position: Position) 
 
 export function extractAbbreviationFromText(text: string): any {
 	let filters = [];
+	if (!text) {
+		return {
+			abbreviation: '',
+			filters
+		}
+	}
 	let pos = text.length;
 	if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
-		pos -= 4;
+		pos -= bemFilterSuffix.length + 1;
 		filters.push(bemFilterSuffix)
+	} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`)) {
+		pos -= trimFilterSuffix.length + 1;
+		filters.push(trimFilterSuffix)
 	}
 	let result;
 	try {
