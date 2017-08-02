@@ -36,18 +36,21 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (!isStyleSheet(syntax)) {
-		if (!snippetKeyCache.has(syntax)) {
+		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
 			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
-			markupSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
+
+			if (!snippetKeyCache.has(syntax)) {
+				snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
+					return snippet.key;
+				}));
+			}
+
+			markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
 				return snippet.key;
 			});
-			markupSnippetKeysRegex =  registry.all({ type: 'regexp' }).map(snippet => {
-				return snippet.key;
-			});
-			snippetKeyCache.set(syntax, markupSnippetKeys);
-		} else {
-			markupSnippetKeys = snippetKeyCache.get(syntax);
+
 		}
+		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
 	let expandedAbbr: CompletionItem;
@@ -63,7 +66,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			|| (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))
 			|| markupSnippetKeys.indexOf(abbreviation) > -1
 			|| commonlyUsedTags.indexOf(abbreviation) > -1
-			|| markupSnippetKeysRegex.find(x => x.test(abbreviation)) ) {
+			|| markupSnippetKeysRegex.find(x => x.test(abbreviation))) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise

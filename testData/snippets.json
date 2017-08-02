@@ -6,5 +6,10 @@
     },
      "variables": {
 		"lang": "fr"
-	}
+    },
+    "html": {
+        "snippets": {
+            "hey": "ul>li*2>span.hello"
+        }
+    }
 }

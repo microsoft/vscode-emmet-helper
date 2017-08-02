@@ -262,6 +262,35 @@ describe('Test completions', () => {
         });
     });
 
+    it('should provide completions using custom snippets', () => {
+        return updateExtensionsPath(extensionsPath).then(() => {
+            const testCases: [string, number, number, string, string][] = [
+               ['<div>hey</div>', 0, 8, 'hey', '<ul>\n\t<li><span class="hello">|</span></li>\n\t<li><span class="hello">|</span></li>\n</ul>']
+            ];
+
+            testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
+                const document = TextDocument.create('test://test/test.html', 'html', 0, content);
+                const position = Position.create(positionLine, positionChar);
+                const completionList = doComplete(document, position, 'html', {
+                    useNewEmmet: true,
+                    showExpandedAbbreviation: 'always',
+                    showAbbreviationSuggestions: false,
+                    syntaxProfiles: {
+                        'html': {
+                            'tag_case': 'lower'
+                        }
+                    },
+                    variables: {}
+                });
+
+                assert.equal(completionList.items[0].label, expectedAbbr);
+                assert.equal(completionList.items[0].documentation, expectedExpansion);
+            });
+            return Promise.resolve();
+
+        });
+    });
+
     it('should not provide completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
