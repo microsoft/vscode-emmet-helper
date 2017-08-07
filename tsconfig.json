@@ -1,16 +1,11 @@
 {
-	"compilerOptions": {
-		"target": "es6",
-		"lib": [
-			"es2016"
-		],
-		"module": "commonjs",
-		"outDir": "./out",
-		"allowJs": true
-
-	},
-	"exclude": [
-		"node_modules",
-		"out"
-	]
+  "compilerOptions": {
+    "target": "es6",
+    "lib": ["es2016"],
+    "module": "commonjs",
+    "outDir": "out",
+    "declaration": true,
+    "allowJs": true
+  },
+  "exclude": ["node_modules", "out"]
 }

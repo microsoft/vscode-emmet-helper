@@ -3,6 +3,7 @@
   "version": "1.0.10",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./out/emmetHelper.js",
+  "types": "./out/emmetHelper.d.ts",
   "author": "Microsoft Corporation",
   "repository": {
     "type": "git",
