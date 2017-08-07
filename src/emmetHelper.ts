@@ -5,13 +5,14 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry } from '@emmetio/expand-abbreviation';
+import { expand, createSnippetsRegistry } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
+let markupSnippetKeysRegex: RegExp[];
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
@@ -19,6 +20,7 @@ const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', '
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'section'];
 const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
+const trimFilterSuffix = 't';
 
 export interface EmmetConfiguration {
 	useNewEmmet: boolean;
@@ -35,15 +37,21 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (!isStyleSheet(syntax)) {
-		if (!snippetKeyCache.has(syntax)) {
+		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
 			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
-			markupSnippetKeys = registry.all({ type: 'string' }).map(snippet => {
+
+			if (!snippetKeyCache.has(syntax)) {
+				snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
+					return snippet.key;
+				}));
+			}
+
+			markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
 				return snippet.key;
 			});
-			snippetKeyCache.set(syntax, markupSnippetKeys);
-		} else {
-			markupSnippetKeys = snippetKeyCache.get(syntax);
+
 		}
+		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
 	let expandedAbbr: CompletionItem;
@@ -58,7 +66,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (isStyleSheet(syntax)
 			|| (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))
 			|| markupSnippetKeys.indexOf(abbreviation) > -1
-			|| commonlyUsedTags.indexOf(abbreviation) > -1) {
+			|| commonlyUsedTags.indexOf(abbreviation) > -1
+			|| markupSnippetKeysRegex.find(x => x.test(abbreviation))) {
 			try {
 				expandedText = expand(abbreviation, expandOptions);
 				// Skip cases when abc -> abc: ; as this is noise
@@ -73,21 +82,23 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText) {
 			expandedAbbr = CompletionItem.create(abbreviation);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, expandedText);
-			expandedAbbr.documentation = removeTabStops(expandedText);
+			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			if (filters.indexOf('bem') > -1) {
 				expandedAbbr.label = abbreviation + filterDelimitor + bemFilterSuffix;
 			}
 			if (isStyleSheet(syntax)) {
+				let expandedTextWithoutTabStops = removeTabStops(expandedText);
+
 				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// Due to this we set filterText, sortText and label to expanded abbreviation
-				// - Label makes it clear to the user what their choice is 
+				// - Label makes it clear to the user what their choice is
 				// - FilterText fixes the issue when user types in propertyname and emmet uses it to match with abbreviations
 				// - SortText will sort the choice in a way that is intutive to the user
-				expandedAbbr.filterText = expandedAbbr.documentation;
-				expandedAbbr.sortText = expandedAbbr.documentation;
-				expandedAbbr.label = expandedAbbr.documentation;
+				expandedAbbr.filterText = expandedTextWithoutTabStops;
+				expandedAbbr.sortText = expandedTextWithoutTabStops;
+				expandedAbbr.label = expandedTextWithoutTabStops;
 				return CompletionList.create([expandedAbbr], true);
 			}
 		}
@@ -132,7 +143,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		}
 
 		let item = CompletionItem.create(snippetKey);
-		item.documentation = removeTabStops(expandedAbbr);
+		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, expandedAbbr);
 		item.insertTextFormat = InsertTextFormat.Snippet;
@@ -167,6 +178,10 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 			return matches[0];
 		}
 	}
+}
+
+function replaceTabStopsWithCursors(expandedWord: string): string {
+	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
 }
 
 function removeTabStops(expandedWord: string): string {
@@ -237,10 +252,19 @@ export function extractAbbreviation(document: TextDocument, position: Position) 
 
 export function extractAbbreviationFromText(text: string): any {
 	let filters = [];
+	if (!text) {
+		return {
+			abbreviation: '',
+			filters
+		}
+	}
 	let pos = text.length;
 	if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
-		pos -= 4;
+		pos -= bemFilterSuffix.length + 1;
 		filters.push(bemFilterSuffix)
+	} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`)) {
+		pos -= trimFilterSuffix.length + 1;
+		filters.push(trimFilterSuffix)
 	}
 	let result;
 	try {
@@ -299,6 +323,15 @@ export function getExpandOptions(syntax: string, syntaxProfiles?: object, variab
 		variables: getVariables(variables),
 		snippets: customSnippetRegistry[syntax]
 	};
+}
+
+/**
+ * Expands given abbreviation using given options
+ * @param abbreviation string
+ * @param options 
+ */
+export function expandAbbreviation(abbreviation: string, options: any) {
+	return expand(abbreviation, options);
 }
 
 /**
