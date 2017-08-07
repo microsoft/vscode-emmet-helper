@@ -1,6 +1,6 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./out/emmetHelper.js",
   "types": "./out/emmetHelper.d.ts",
@@ -16,15 +16,16 @@
   "devDependencies": {
     "@types/node": "^6.0.46",
     "typescript": "^2.1.5",
-    "mocha": "3.4.2"
+    "mocha": "3.4.2",
+    "cpy-cli": "^1.0.1"
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.1.1",
     "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {
-    "prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "test": "mocha out/emmetHelperTest.js"
+    "prepublish": "npm run compile",
+    "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand && cpy ./src/emmetHelper.d.ts ./out",
+    "test": "mocha out/test"
   }
 }

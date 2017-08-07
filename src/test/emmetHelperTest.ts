@@ -1,10 +1,10 @@
 import { TextDocument, Position } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete } from './emmetHelper';
+import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete } from '../emmetHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';
 
-const extensionsPath = path.join(path.normalize(path.join(__dirname, '..')), 'testData');
+const extensionsPath = path.join(path.normalize(path.join(__dirname, '../..')), 'testData');
 
 describe('Validate Abbreviations', () => {
     it('should return true for valid abbreivations', () => {
