@@ -15,7 +15,7 @@
                 "--timeout",
                 "999999",
                 "--colors",
-                "${workspaceRoot}/out/emmetHelperTest.js"
+                "${workspaceRoot}/out/test/emmetHelperTest.js"
             ]
         }
     ]

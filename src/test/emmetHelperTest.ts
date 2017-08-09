@@ -85,12 +85,41 @@ describe('Extract Abbreviations', () => {
 
 describe('Test Basic Expand Options', () => {
     it('should check for basic expand options', () => {
-        const textToReplace = 'textToReplace';
         const syntax = 'anythingreally';
         let expandOptions = getExpandOptions(syntax);
 
         assert.equal(expandOptions.field, emmetSnippetField)
         assert.equal(expandOptions.syntax, syntax);
+        assert.equal(Object.keys(expandOptions.addons).length, 0);
+    });
+});
+
+describe('Test addons in Expand Options', () => {
+    it('should add jsx as addon for jsx syntax', () => {
+        const syntax = 'jsx';
+        let expandOptions = getExpandOptions(syntax);
+
+        assert.equal(Object.keys(expandOptions.addons).length, 1);
+        assert.equal(expandOptions.addons['jsx'], true);
+    });
+
+    it('should add bem as addon when bem filter is provided', () => {
+        const syntax = 'anythingreally';
+        let expandOptions = getExpandOptions(syntax, {}, {}, ['bem']);
+
+        assert.equal(Object.keys(expandOptions.addons).length, 1);
+        assert.equal(expandOptions.addons['bem']['element'], '__');
+    });
+
+    it('should add bem before jsx as addon when bem filter is provided', () => {
+        const syntax = 'jsx';
+        let expandOptions = getExpandOptions(syntax, {}, {}, ['bem']);
+
+        assert.equal(Object.keys(expandOptions.addons).length, 2);
+        assert.equal(Object.keys(expandOptions.addons)[0], 'bem');
+        assert.equal(Object.keys(expandOptions.addons)[1], 'jsx');
+        assert.equal(expandOptions.addons['bem']['element'], '__');
+        assert.equal(expandOptions.addons['jsx'], true);
     });
 });
 
