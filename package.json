@@ -25,7 +25,7 @@
   },
   "scripts": {
     "prepublish": "npm run compile",
-    "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand && cpy ./src/emmetHelper.d.ts ./out",
+    "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand",
     "test": "mocha out/test"
   }
 }
