@@ -311,9 +311,12 @@ export function getExpandOptions(syntax: string, syntaxProfiles?: object, variab
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
 	}
-	let addons = syntax === 'jsx' ? { 'jsx': true } : {};
+	let addons = {};
 	if (filters && filters.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
+	}
+	if (syntax === 'jsx') {
+		addons['jsx'] = true;
 	}
 	return {
 		field: emmetSnippetField,
