@@ -55,7 +55,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	let expandedAbbr: CompletionItem;
-	let { abbreviationRange, abbreviation, filters } = extractAbbreviation(document, position);
+	let extractedValue = extractAbbreviation(document, position);
+	if (!extractedValue) {
+		return;
+	}
+	let { abbreviationRange, abbreviation, filters } = extractedValue;
 	let expandOptions = getExpandOptions(syntax, emmetConfig.syntaxProfiles, emmetConfig.variables, filters);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
@@ -289,6 +293,10 @@ export function extractAbbreviationFromText(text: string): any {
  */
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
 	if (isStyleSheet(syntax)) {
+		// Fix for https://github.com/Microsoft/vscode/issues/1623 in new emmet
+		if (abbreviation.endsWith(':')) {
+			return false;
+		}
 		return cssAbbreviationRegex.test(abbreviation);
 	}
 	if (abbreviation.startsWith('!') && /[^!]/.test(abbreviation)) {
