@@ -391,6 +391,9 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
 				}
 				newOptions['selfClosingStyle'] = options[key];
 				break;
+			case 'compact_bool':
+				newOptions['compactBooleanAttributes'] = options[key];
+				break;
 			default:
 				newOptions[key] = options[key];
 				break;
