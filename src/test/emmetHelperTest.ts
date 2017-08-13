@@ -268,9 +268,9 @@ describe('Test completions', () => {
     it('should provide completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number, string, string][] = [
-                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'],
-                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'],
-                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>']
+                ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'], // One of the commonly used tags
+                ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'], // Valid abbreviation
+                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'] //Valid abbreviation with grouping
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
@@ -321,13 +321,13 @@ describe('Test completions', () => {
         });
     });
 
-    it('should not provide completions', () => {
+    it('should not provide completions as they would noise when typing', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
-                ['<div>abc</div>', 0, 8],
-                ['<div>abc12</div>', 0, 10],
-                ['<div>abc.</div>', 0, 9],
-                ['<div>(div)</div>', 0, 10]
+                ['<div>abc</div>', 0, 8], // Simple word
+                ['<div>abc12</div>', 0, 10], // Simple word with numbers
+                ['<div>abc.</div>', 0, 9], // Word ending with period
+                ['<div>(div)</div>', 0, 10] // Word inside brackets
             ];
 
             testCases.forEach(([content, positionLine, positionChar]) => {

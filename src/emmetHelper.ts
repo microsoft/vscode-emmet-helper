@@ -57,30 +57,20 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	let expandedAbbr: CompletionItem;
 	let extractedValue = extractAbbreviation(document, position);
 	if (!extractedValue) {
-		return;
+		return CompletionList.create([], true);
 	}
 	let { abbreviationRange, abbreviation, filters } = extractedValue;
 	let expandOptions = getExpandOptions(syntax, emmetConfig.syntaxProfiles, emmetConfig.variables, filters);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
-		// Skip non stylesheet abbreviations that are just letters/numbers unless they are valid snippets or commonly used tags
-		// This is to avoid noise where abc -> <abc>${1}</abc> 
-		// Also skip abbreviations ending with `.` This will be noise when people are typing simple text and ending it with period.
-		if (isStyleSheet(syntax)
-			|| (!/^[a-z,A-Z,\d]*$/.test(abbreviation) && !abbreviation.endsWith('.'))
-			|| markupSnippetKeys.indexOf(abbreviation) > -1
-			|| commonlyUsedTags.indexOf(abbreviation) > -1
-			|| markupSnippetKeysRegex.find(x => x.test(abbreviation))) {
-			try {
-				expandedText = expand(abbreviation, expandOptions);
-				// Skip cases when abc -> abc: ; as this is noise
-				if (isStyleSheet(syntax) && expandedText === `${abbreviation}: \${1};`) {
-					expandedText = '';
-				}
-			} catch (e) {
+		try {
+			expandedText = expand(abbreviation, expandOptions);
+		} catch (e) {
+		}
 
-			}
+		if (isExpandedTextNoise(syntax, abbreviation, expandedText)) {
+			expandedText = '';
 		}
 
 		if (expandedText) {
@@ -292,6 +282,9 @@ export function extractAbbreviationFromText(text: string): any {
  * @param abbreviation string
  */
 export function isAbbreviationValid(syntax: string, abbreviation: string): boolean {
+	if (!abbreviation) {
+		return false;
+	}
 	if (isStyleSheet(syntax)) {
 		// Fix for https://github.com/Microsoft/vscode/issues/1623 in new emmet
 		if (abbreviation.endsWith(':')) {
@@ -306,7 +299,30 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (abbreviation.startsWith('(') && abbreviation.endsWith(')') && !/^\(.+[>,+,*].+\)$/.test(abbreviation)) {
 		return false;
 	}
+
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation));
+}
+
+function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
+	// Unresolved css abbreviations get expanded to a blank property value
+	// Eg: abc -> abc: ; which is noise if it gets suggested for every word typed
+	if (isStyleSheet(syntax)) {
+		return expandedText === `${abbreviation}: \${1};`
+	}
+
+	if (commonlyUsedTags.indexOf(abbreviation) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
+		return false;
+	}
+
+	// Its common for users to type some text and end it with period, this should not be treated as an abbreviation
+	// Else it becomes noise.
+	if (/^[a-z,A-Z,\d]*\.$/.test(abbreviation)) {
+		return true;
+	}
+
+	// Unresolved html abbreviations get expanded as if it were a tag
+	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed 
+	return expandedText === `<${abbreviation}>\${1}</${abbreviation}>`;
 }
 
 /**
