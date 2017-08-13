@@ -1,6 +1,6 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./out/emmetHelper.js",
   "types": "./out/emmetHelper.d.ts",

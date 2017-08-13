@@ -292,6 +292,32 @@ describe('Test completions', () => {
         });
     });
 
+    it('should provide completions for text that are prefix for snippets', () => {
+        return updateExtensionsPath(null).then(() => {
+            const testCases: [string, number, number][] = [
+                ['<div> l </div>', 0, 7]
+                 ];
+
+            testCases.forEach(([content, positionLine, positionChar]) => {
+                const document = TextDocument.create('test://test/test.html', 'html', 0, content);
+                const position = Position.create(positionLine, positionChar);
+                const completionList = doComplete(document, position, 'html', {
+                    useNewEmmet: true,
+                    showExpandedAbbreviation: 'always',
+                    showAbbreviationSuggestions: true,
+                    syntaxProfiles: {},
+                    variables: {}
+                });
+
+                assert.equal(completionList.items.map(x => x.label).indexOf('link') > -1, true);
+                assert.equal(completionList.items.map(x => x.label).indexOf('label') > -1, true);
+                assert.equal(completionList.items.map(x => x.label).indexOf('link:atom') > -1, true);
+            });
+            return Promise.resolve();
+
+        });
+    });
+
     it('should provide completions using custom snippets', () => {
         return updateExtensionsPath(extensionsPath).then(() => {
             const testCases: [string, number, number, string, string][] = [

@@ -168,8 +168,9 @@ function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation
 
 function getCurrentWord(document: TextDocument, position: Position): string {
 	let currentLine = getCurrentLine(document, position);
-	if (currentLine) {
-		let matches = currentLine.match(/[\w,:]*$/);
+	let currentLineTillPosition = currentLine.substr(0, position.character); 
+	if (currentLineTillPosition) {
+		let matches = currentLineTillPosition.match(/[\w,:]*$/);
 		if (matches) {
 			return matches[0];
 		}
