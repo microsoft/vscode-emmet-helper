@@ -219,7 +219,7 @@ export function isStyleSheet(syntax): boolean {
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position) {
+export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
 	let filters = [];
 	let pos = position.character;
 	let currentLine = getCurrentLine(document, position);
@@ -232,7 +232,7 @@ export function extractAbbreviation(document: TextDocument, position: Position) 
 	}
 	let result;
 	try {
-		result = extract(currentLine, pos, true);
+		result = extract(currentLine, pos, lookAhead);
 	}
 	catch (e) {
 	}
