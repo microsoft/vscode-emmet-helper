@@ -77,7 +77,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 		if (expandedText) {
 			expandedAbbr = CompletionItem.create(abbreviation);
-			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, expandedText);
+			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedText));
 			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
@@ -141,7 +141,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		let item = CompletionItem.create(snippetKey);
 		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
-		item.textEdit = TextEdit.replace(abbreviationRange, expandedAbbr);
+		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedAbbr));
 		item.insertTextFormat = InsertTextFormat.Snippet;
 
 		// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
@@ -361,9 +361,13 @@ export function getExpandOptions(syntax: string, syntaxProfiles?: object, variab
  * @param options 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
-	return expand(abbreviation, options);
+	let expandedText = expand(abbreviation, options);
+	return escapeNonTabStopDollar(expandedText);
 }
 
+function escapeNonTabStopDollar(text: string): string{
+	return text ? text.replace(/(\$)([^\{])/g, '\\$1$2'): text;
+}
 /**
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax 

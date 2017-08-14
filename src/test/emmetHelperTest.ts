@@ -292,7 +292,7 @@ describe('Test completions', () => {
         });
     });
 
-    it('should provide completions for text that are prefix for snippets', () => {
+    it('should provide completions for text that are prefix for snippets, ensure $ doesnt get escaped', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['<div> l </div>', 0, 7]
@@ -309,9 +309,37 @@ describe('Test completions', () => {
                     variables: {}
                 });
 
-                assert.equal(completionList.items.map(x => x.label).indexOf('link') > -1, true);
-                assert.equal(completionList.items.map(x => x.label).indexOf('label') > -1, true);
-                assert.equal(completionList.items.map(x => x.label).indexOf('link:atom') > -1, true);
+                assert.equal(completionList.items.find(x => x.label === 'link').documentation, '<link rel="stylesheet" href="|">');
+                assert.equal(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${1}">');
+                assert.equal(completionList.items.find(x => x.label === 'link:css').documentation, '<link rel="stylesheet" href="style.css">');
+                assert.equal(completionList.items.find(x => x.label === 'link:css').textEdit.newText, '<link rel="stylesheet" href="${2:style}.css">');
+          
+            });
+            return Promise.resolve();
+
+        });
+    });
+
+    it('should provide completions with escaped $', () => {
+        return updateExtensionsPath(null).then(() => {
+            const testCases: [string, number, number][] = [
+                ['bim$hello', 0, 9]
+                 ];
+
+            testCases.forEach(([content, positionLine, positionChar]) => {
+                const document = TextDocument.create('test://test/test.scss', 'scss', 0, content);
+                const position = Position.create(positionLine, positionChar);
+                const completionList = doComplete(document, position, 'scss', {
+                    useNewEmmet: true,
+                    showExpandedAbbreviation: 'always',
+                    showAbbreviationSuggestions: false,
+                    syntaxProfiles: {},
+                    variables: {}
+                });
+
+                assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').documentation, 'background-image: $hello;');
+                assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').textEdit.newText, 'background-image: \\$hello;');
+                
             });
             return Promise.resolve();
 
