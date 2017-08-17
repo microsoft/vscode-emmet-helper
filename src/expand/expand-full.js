@@ -5316,7 +5316,8 @@ var xsl$1 = {
     "proc": "xsl:processing-instruction[name]",
     "sort": "xsl:sort[select order]",
     "choose": "xsl:choose>xsl:when+xsl:otherwise",
-    "xsl": "!!!+xsl:stylesheet[version=1.0 xmlns:xsl=http://www.w3.org/1999/XSL/Transform]>{\n|}"
+	"xsl": "!!!+xsl:stylesheet[version=1.0 xmlns:xsl=http://www.w3.org/1999/XSL/Transform]>{\n|}",
+	"!!!": "{<?xml version=\"1.0\" encoding=\"UTF-8\"?>}"
 };
 
 var index$7 = { html: html$1, css: css$1, xsl: xsl$1 };
