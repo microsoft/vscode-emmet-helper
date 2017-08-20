@@ -270,7 +270,9 @@ describe('Test completions', () => {
             const testCases: [string, number, number, string, string][] = [
                 ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'], // One of the commonly used tags
                 ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'], // Valid abbreviation
-                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'] //Valid abbreviation with grouping
+                ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'], //Valid abbreviation with grouping
+                ['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>'], // custom tag with -
+                ['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>'] // custom tag with -
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
@@ -381,7 +383,10 @@ describe('Test completions', () => {
                 ['<div>abc</div>', 0, 8], // Simple word
                 ['<div>abc12</div>', 0, 10], // Simple word with numbers
                 ['<div>abc.</div>', 0, 9], // Word ending with period
-                ['<div>(div)</div>', 0, 10] // Word inside brackets
+                ['<div>(div)</div>', 0, 10], // Word inside brackets
+                ['<div>ul::l</div>', 0, 10], // Word with : is valid, but not more than once
+                ['<div>u:l:l</div>', 0, 10], // Word with : is valid, but not more than once
+                ['<div>u-l-z</div>', 0, 10] // Word with - is valid, but not more than once
             ];
 
             testCases.forEach(([content, positionLine, positionChar]) => {

@@ -18,7 +18,7 @@ const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'script', 'section', 'canvas',
-	'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'aside', 'table', 'blockquote', 'pre', 'sup', 'sub', 'title',
+	'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'aside', 'table', 'tr', 'th', 'td', 'blockquote', 'pre', 'sup', 'sub', 'title',
 	'plaintext', 'noscript', 'legend', 'u', 'code', 'comment', 'caption', 'colgroup', 'button', 'big', 'applet', 'address', 'strong', 'small'];
 const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
@@ -314,6 +314,11 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	}
 
 	if (commonlyUsedTags.indexOf(abbreviation) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
+		return false;
+	}
+
+	// Check for custom tag with : or -
+	if (/^[a-z,A-Z,\d]+[-,:][a-z,A-Z,\d]+$/.test(abbreviation)) {
 		return false;
 	}
 
