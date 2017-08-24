@@ -313,7 +313,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 		return expandedText === `${abbreviation}: \${1};`
 	}
 
-	if (commonlyUsedTags.indexOf(abbreviation) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
+	if (commonlyUsedTags.indexOf(abbreviation.toLowerCase()) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
 		return false;
 	}
 
@@ -329,8 +329,8 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	}
 
 	// Unresolved html abbreviations get expanded as if it were a tag
-	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed 
-	return expandedText === `<${abbreviation}>\${1}</${abbreviation}>`;
+	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
+	return expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`;
 }
 
 /**

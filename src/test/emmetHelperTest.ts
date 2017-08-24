@@ -269,6 +269,7 @@ describe('Test completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number, string, string][] = [
                 ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'], // One of the commonly used tags
+                ['<div>UL</div>', 0, 7, 'UL', '<UL>|</UL>'], // One of the commonly used tags with upper case
                 ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'], // Valid abbreviation
                 ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'], //Valid abbreviation with grouping
                 ['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>'], // custom tag with -
@@ -381,6 +382,7 @@ describe('Test completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['<div>abc</div>', 0, 8], // Simple word
+                ['<div>Abc</div>', 0, 8], // Simple word with mixed casing
                 ['<div>abc12</div>', 0, 10], // Simple word with numbers
                 ['<div>abc.</div>', 0, 9], // Word ending with period
                 ['<div>(div)</div>', 0, 10], // Word inside brackets
