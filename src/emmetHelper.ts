@@ -459,7 +459,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 	let snippetsPromise = new Promise<void>((resolve, reject) => {
 		fs.readFile(snippetsPath, (err, snippetsData) => {
 			if (err) {
-				return resolve();
+				return reject(`Error while fetching the file ${snippetsPath}`);
 			}
 			try {
 				let snippetsJson = JSON.parse(snippetsData.toString());
@@ -484,7 +484,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 					snippetKeyCache.set(syntax, snippetKeys);
 				});
 			} catch (e) {
-
+				return reject(`Error while parsing the file ${snippetsPath}`);
 			}
 			return resolve();
 		});
