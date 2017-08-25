@@ -126,7 +126,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 	}
 	let snippetCompletions = [];
 	snippets.forEach(snippetKey => {
-		if (!snippetKey.startsWith(prefix) || snippetKey === prefix) {
+		if (!snippetKey.startsWith(prefix.toLowerCase()) || snippetKey === prefix.toLowerCase()) {
 			return;
 		}
 
@@ -138,7 +138,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 
 		}
 
-		let item = CompletionItem.create(snippetKey);
+		let item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
 		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedAbbr));

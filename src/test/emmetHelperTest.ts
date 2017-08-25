@@ -273,7 +273,9 @@ describe('Test completions', () => {
                 ['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'], // Valid abbreviation
                 ['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'], //Valid abbreviation with grouping
                 ['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>'], // custom tag with -
-                ['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>'] // custom tag with -
+                ['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>'], // custom tag with -
+                ['<div>sp</div>', 0, 7, 'span', '<span>|</span>'], // Prefix of a common tag
+                ['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>'] // Prefix of a common tag in upper case
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
