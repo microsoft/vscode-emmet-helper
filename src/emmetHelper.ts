@@ -444,12 +444,17 @@ function getVariables(variablesFromSettings: object): any {
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
 export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void> {
-	if (!emmetExtensionsPath || !emmetExtensionsPath.trim() || !path.isAbsolute(emmetExtensionsPath.trim()) || !dirExists(emmetExtensionsPath.trim())) {
-		customSnippetRegistry = {};
-		snippetKeyCache.clear();
-		profilesFromFile = {};
-		variablesFromFile = {};
+	if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
+		resetSettingsFromFile();
 		return Promise.resolve();
+	}
+	if (!path.isAbsolute(emmetExtensionsPath.trim())) {
+		resetSettingsFromFile();
+		return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
+	}
+	if (!dirExists(emmetExtensionsPath.trim())) {
+		resetSettingsFromFile();
+		return Promise.reject(`The directory ${emmetExtensionsPath.trim()} doesnt exist. Update emmet.extensionsPath setting`);
 	}
 
 	let dirPath = emmetExtensionsPath.trim();
@@ -514,6 +519,13 @@ function dirExists(dirPath: string): boolean {
 	} catch (e) {
 		return false;
 	}
+}
+
+function resetSettingsFromFile(){
+	customSnippetRegistry = {};
+	snippetKeyCache.clear();
+	profilesFromFile = {};
+	variablesFromFile = {};
 }
 
 /**
