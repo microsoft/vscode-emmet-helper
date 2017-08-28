@@ -348,7 +348,9 @@ describe('Test completions', () => {
                 ['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>'], // custom tag with -
                 ['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>'], // custom tag with -
                 ['<div>sp</div>', 0, 7, 'span', '<span>|</span>'], // Prefix of a common tag
-                ['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>'] // Prefix of a common tag in upper case
+                ['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>'], // Prefix of a common tag in upper case
+                ['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>'], // Word with : is valid
+                ['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>'] // Word with - is valid
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
@@ -461,9 +463,7 @@ describe('Test completions', () => {
                 ['<div>abc12</div>', 0, 10], // Simple word with numbers
                 ['<div>abc.</div>', 0, 9], // Word ending with period
                 ['<div>(div)</div>', 0, 10], // Word inside brackets
-                ['<div>ul::l</div>', 0, 10], // Word with : is valid, but not more than once
-                ['<div>u:l:l</div>', 0, 10], // Word with : is valid, but not more than once
-                ['<div>u-l-z</div>', 0, 10] // Word with - is valid, but not more than once
+                ['<div>ul::l</div>', 0, 10] // Word with : is valid, but not consecutive
             ];
 
             testCases.forEach(([content, positionLine, positionChar]) => {

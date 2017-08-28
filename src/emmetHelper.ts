@@ -320,8 +320,8 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 		return false;
 	}
 
-	// Check for custom tag with : or -
-	if (/^[a-z,A-Z,\d]+[-,:][a-z,A-Z,\d]+$/.test(abbreviation)) {
+	// Custom tags can have - or :
+	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation)) {
 		return false;
 	}
 
