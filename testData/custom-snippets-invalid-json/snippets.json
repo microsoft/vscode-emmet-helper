@@ -1,0 +1,13 @@
+{
+    "scss": {
+        "snippets": {
+			"ch": "color:hsl(${1:0}, ${2:100}%, ${3:50}%);"
+         }
+    }
+
+    "xml": {
+        "snippets": {
+            "hey": "ul>li*2>span.hello"
+        }
+    }
+}

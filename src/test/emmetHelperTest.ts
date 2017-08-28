@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';
 
-const extensionsPath = path.join(path.normalize(path.join(__dirname, '../..')), 'testData');
+const extensionsPath = path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-profile');
 
 describe('Validate Abbreviations', () => {
     it('should return true for valid abbreivations', () => {
@@ -227,12 +227,32 @@ describe('Test variables settings', () => {
 });
 
 describe('Test custom snippets', () => {
-    it('should use custom snippets from extensionsPath', () => {
+    it('should use custom snippets for given syntax from extensionsPath', () => {
         const customSnippetKey = 'ch';
-
-
         return updateExtensionsPath(null).then(() => {
             const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
+            assert(!expandOptionsWithoutCustomSnippets.snippets);
+
+            // Use custom snippets from extensionsPath
+            return updateExtensionsPath(extensionsPath).then(() => {
+                let foundCustomSnippet = false;
+                const expandOptionsWithCustomSnippets = getExpandOptions('css');
+                expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
+                    if (snippet.key === customSnippetKey) {
+                        foundCustomSnippet = true;
+                    }
+                });
+                assert.equal(foundCustomSnippet, true);
+                return Promise.resolve();
+            });
+        });
+    });
+
+    it('should use custom snippets inherited from base syntax from extensionsPath', () => {
+        const customSnippetKey = 'ch';
+
+        return updateExtensionsPath(null).then(() => {
+            const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
             assert(!expandOptionsWithoutCustomSnippets.snippets);
 
             // Use custom snippets from extensionsPath
@@ -259,6 +279,59 @@ describe('Test custom snippets', () => {
                 assert.equal(foundCustomSnippetInInhertitedSyntax, true);
 
                 return Promise.resolve();
+            });
+        });
+    });
+
+    it('should use custom snippets for given syntax in the absence of base syntax from extensionsPath', () => {
+        const customSnippetKey = 'ch';
+        return updateExtensionsPath(null).then(() => {
+            const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
+            assert(!expandOptionsWithoutCustomSnippets.snippets);
+
+            // Use custom snippets from extensionsPath
+            return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
+                let foundCustomSnippet = false;
+                const expandOptionsWithCustomSnippets = getExpandOptions('scss');
+                expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
+                    if (snippet.key === customSnippetKey) {
+                        foundCustomSnippet = true;
+                    }
+                });
+                assert.equal(foundCustomSnippet, true);
+                return Promise.resolve();
+            });
+        });
+    });
+
+    it('should throw error when snippets file from extensionsPath has invalid json', () => {
+        // Use invalid snippets.json
+        return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-invalid-json')).then(() => {
+            assert.ok(false, 'updateExtensionsPath method should have failed for invalid json but it didnt');
+            return Promise.resolve();
+        }, (e) => {
+            assert.ok(e);
+            return Promise.resolve();
+        });
+    });
+
+    it('should reset custom snippets when no extensionsPath is given', () => {
+        const customSnippetKey = 'ch';
+        return updateExtensionsPath(extensionsPath).then(() => {
+            let foundCustomSnippet = false;
+            getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
+                if (snippet.key === customSnippetKey) {
+                    foundCustomSnippet = true;
+                }
+            });
+            assert.equal(foundCustomSnippet, true);
+
+            // Use invalid snippets.json
+            return updateExtensionsPath(null).then(() => {
+                assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
+                return Promise.resolve();
+            }, (e) => {
+                assert.ok(!e, 'When extensionsPath is not given, there shouldnt be any error.');
             });
         });
     });
@@ -301,7 +374,7 @@ describe('Test completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['<div> l </div>', 0, 7]
-                 ];
+            ];
 
             testCases.forEach(([content, positionLine, positionChar]) => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
@@ -318,7 +391,7 @@ describe('Test completions', () => {
                 assert.equal(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${1}">');
                 assert.equal(completionList.items.find(x => x.label === 'link:css').documentation, '<link rel="stylesheet" href="style.css">');
                 assert.equal(completionList.items.find(x => x.label === 'link:css').textEdit.newText, '<link rel="stylesheet" href="${2:style}.css">');
-          
+
             });
             return Promise.resolve();
 
@@ -329,7 +402,7 @@ describe('Test completions', () => {
         return updateExtensionsPath(null).then(() => {
             const testCases: [string, number, number][] = [
                 ['bim$hello', 0, 9]
-                 ];
+            ];
 
             testCases.forEach(([content, positionLine, positionChar]) => {
                 const document = TextDocument.create('test://test/test.scss', 'scss', 0, content);
@@ -344,7 +417,7 @@ describe('Test completions', () => {
 
                 assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').documentation, 'background-image: $hello;');
                 assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').textEdit.newText, 'background-image: \\$hello;');
-                
+
             });
             return Promise.resolve();
 

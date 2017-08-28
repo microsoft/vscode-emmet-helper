@@ -480,7 +480,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 					}
 					let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 					let customSnippets = snippetsJson[syntax]['snippets'];
-					if (snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
+					if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
 						customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
 					}
 					if (!isStyleSheet(syntax)) {
