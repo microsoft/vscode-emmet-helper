@@ -137,6 +137,9 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		} catch (e) {
 
 		}
+		if (!expandedAbbr) {
+			return;
+		}
 
 		let item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
 		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
@@ -168,7 +171,7 @@ function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation
 
 function getCurrentWord(document: TextDocument, position: Position): string {
 	let currentLine = getCurrentLine(document, position);
-	let currentLineTillPosition = currentLine.substr(0, position.character); 
+	let currentLineTillPosition = currentLine.substr(0, position.character);
 	if (currentLineTillPosition) {
 		let matches = currentLineTillPosition.match(/[\w,:]*$/);
 		if (matches) {
@@ -479,6 +482,17 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 					let customSnippets = snippetsJson[syntax]['snippets'];
 					if (snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
 						customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
+					}
+					if (!isStyleSheet(syntax)) {
+						// In Emmet 2.0 all snippets should be valid abbreviations
+						// Convert old snippets that do not follow this format to new format
+						for (let snippetKey in customSnippets) {
+							if (customSnippets.hasOwnProperty(snippetKey)
+								&& customSnippets[snippetKey].startsWith('<')
+								&& customSnippets[snippetKey].endsWith('>')) {
+								customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
+							}
+						}
 					}
 
 					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
