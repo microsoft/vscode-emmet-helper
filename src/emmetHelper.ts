@@ -302,7 +302,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return false;
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
-	if (abbreviation.startsWith('(') && abbreviation.endsWith(')') && !/^\(.+[>,+,*].+\)$/.test(abbreviation)) {
+	if (/^[a-z,A-Z,\d,-,:,\(,\),\.]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
 

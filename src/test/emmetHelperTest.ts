@@ -17,7 +17,7 @@ describe('Validate Abbreviations', () => {
         });
     });
     it('should return false for invalid abbreivations', () => {
-        const htmlAbbreviations = ['!ul!', '(hello)'];
+        const htmlAbbreviations = ['!ul!', '(hello)', 'super(hello)', 'console.log(hello)'];
         const cssAbbreviations = ['123'];
         htmlAbbreviations.forEach(abbr => {
             assert(!isAbbreviationValid('html', abbr));
@@ -214,14 +214,20 @@ describe('Test variables settings', () => {
 
     it('should use variables from extensionsPath', () => {
         updateExtensionsPath(extensionsPath).then(() => {
+            const expandOptions = getExpandOptions('html', {});
+            assert.equal(expandOptions.variables['lang'], 'fr');
+        });
+    });
+
+    it('should use given variables that override ones from extensionsPath', () => {
+        updateExtensionsPath(extensionsPath).then(() => {
             const variables = {
                 lang: 'en',
                 charset: 'UTF-8'
             }
 
             const expandOptions = getExpandOptions('html', {}, variables);
-            assert.equal(expandOptions.variables['lang'], 'fr');
-            assert.equal(variables['lang'], 'en');
+            assert.equal(expandOptions.variables['lang'], variables['lang']);
         });
     });
 });
