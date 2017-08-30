@@ -23,6 +23,7 @@ const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'o
 const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
+const commentFilterSuffix = 'c';
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -61,8 +62,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (!extractedValue) {
 		return CompletionList.create([], true);
 	}
-	let { abbreviationRange, abbreviation, filters } = extractedValue;
-	let expandOptions = getExpandOptions(syntax, emmetConfig, filters);
+	let { abbreviationRange, abbreviation, filter } = extractedValue;
+	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
@@ -81,8 +82,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
-			if (filters.indexOf('bem') > -1) {
-				expandedAbbr.label = abbreviation + filterDelimitor + bemFilterSuffix;
+			if (filter === 'bem' || filter === 'c') {
+				expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
 			}
 			if (isStyleSheet(syntax)) {
 				let expandedTextWithoutTabStops = removeTabStops(expandedText);
@@ -223,7 +224,7 @@ export function isStyleSheet(syntax): boolean {
  * Extracts abbreviation from the given position in the given document
  */
 export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
-	let filters = [];
+	let filter;
 	let pos = position.character;
 	let currentLine = getCurrentLine(document, position);
 	let currentLineTillPosition = currentLine.substr(0, position.character);
@@ -231,7 +232,11 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 	if (currentLineTillPosition.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
 		lengthOccupiedByFilter = 4;
 		pos -= lengthOccupiedByFilter;
-		filters.push(bemFilterSuffix)
+		filter = bemFilterSuffix;
+	} else if (currentLineTillPosition.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
+		lengthOccupiedByFilter = 2;
+		pos -= lengthOccupiedByFilter;
+		filter = commentFilterSuffix;
 	}
 	let result;
 	try {
@@ -246,25 +251,28 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 	return {
 		abbreviationRange: rangeToReplace,
 		abbreviation: result.abbreviation,
-		filters
+		filter
 	};
 }
 
 export function extractAbbreviationFromText(text: string): any {
-	let filters = [];
+	let filter;
 	if (!text) {
 		return {
 			abbreviation: '',
-			filters
+			filter
 		}
 	}
 	let pos = text.length;
 	if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
 		pos -= bemFilterSuffix.length + 1;
-		filters.push(bemFilterSuffix)
+		filter = bemFilterSuffix;
 	} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`)) {
 		pos -= trimFilterSuffix.length + 1;
-		filters.push(trimFilterSuffix)
+		filter = trimFilterSuffix;
+	} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
+		pos -= commentFilterSuffix.length + 1;
+		filter = commentFilterSuffix;
 	}
 	let result;
 	try {
@@ -277,7 +285,7 @@ export function extractAbbreviationFromText(text: string): any {
 	}
 	return {
 		abbreviation: result.abbreviation,
-		filters
+		filter
 	};
 }
 
@@ -341,19 +349,23 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, emmetConfig?: object, filters?: string[], ) {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string, ) {
 	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
 	}
 	let addons = {};
-	if (filters && filters.indexOf('bem') > -1) {
+	if (filter && filter === 'bem') {
 		addons['bem'] = { element: '__' };
 	}
 	if (syntax === 'jsx') {
 		addons['jsx'] = true;
 	}
 	emmetConfig = emmetConfig || {};
+	let formatters = getFormatters(syntax, emmetConfig['preferences']);
+	if (filter && filter === 'c') {
+		formatters['comment']['enabled'] = true;
+	}
 	return {
 		field: emmetSnippetField,
 		syntax: syntax,
@@ -361,7 +373,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filters?:
 		addons: addons,
 		variables: getVariables(emmetConfig['variables']),
 		snippets: customSnippetRegistry[syntax],
-		format: getFormatters(syntax, emmetConfig['preferences'])
+		format: formatters
 	};
 }
 
@@ -375,8 +387,8 @@ export function expandAbbreviation(abbreviation: string, options: any) {
 	return escapeNonTabStopDollar(expandedText);
 }
 
-function escapeNonTabStopDollar(text: string): string{
-	return text ? text.replace(/(\$)([^\{])/g, '\\$1$2'): text;
+function escapeNonTabStopDollar(text: string): string {
+	return text ? text.replace(/(\$)([^\{])/g, '\\$1$2') : text;
 }
 /**
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
@@ -446,17 +458,40 @@ function getVariables(variablesFromSettings: object): any {
 }
 
 function getFormatters(syntax: string, preferences: object) {
-	if (!isStyleSheet(syntax) || !preferences) {
+	if (!preferences) {
 		return {};
 	}
-	let formatter = {};
+
+	if (!isStyleSheet(syntax)) {
+		let commentFormatter = {};
+		for (let key in preferences) {
+			switch (key) {
+				case 'filter.commentAfter':
+					commentFormatter['after'] = preferences[key];
+					break;
+				case 'filter.commentBefore':
+					commentFormatter['before'] = preferences[key];
+					break;
+				case 'filter.commentTrigger':
+					commentFormatter['trigger'] = preferences[key];
+					break;
+				default:
+					break;
+			}
+		}
+		return {
+			comment: commentFormatter
+		};
+	}
+
+	let stylesheetFormatter = {};
 	for (let key in preferences) {
 		switch (key) {
 			case 'css.floatUnit':
-				formatter['floatUnit'] = preferences[key];
+				stylesheetFormatter['floatUnit'] = preferences[key];
 				break;
 			case 'css.intUnit':
-				formatter['intUnit'] = preferences[key];
+				stylesheetFormatter['intUnit'] = preferences[key];
 				break;
 			case 'css.unitAliases':
 				let unitAliases = {};
@@ -471,20 +506,20 @@ function getFormatters(syntax: string, preferences: object) {
 					}
 					unitAliases[aliasName.trim()] = aliasValue;
 				});
-				formatter['unitAliases'] = unitAliases;
+				stylesheetFormatter['unitAliases'] = unitAliases;
 				break;
 			case `${syntax}.valueSeparator`:
-				formatter['between'] = preferences[key];
+				stylesheetFormatter['between'] = preferences[key];
 				break;
 			case `${syntax}.propertyEnd`:
-				formatter['after'] = preferences[key];
+				stylesheetFormatter['after'] = preferences[key];
 				break;
 			default:
 				break;
 		}
 	}
 	return {
-		stylesheet: formatter
+		stylesheet: stylesheetFormatter
 	};
 }
 
@@ -580,7 +615,7 @@ function dirExists(dirPath: string): boolean {
 	}
 }
 
-function resetSettingsFromFile(){
+function resetSettingsFromFile() {
 	customSnippetRegistry = {};
 	snippetKeyCache.clear();
 	profilesFromFile = {};

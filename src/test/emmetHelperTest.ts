@@ -36,48 +36,42 @@ describe('Validate Abbreviations', () => {
 
 describe('Extract Abbreviations', () => {
     it('should extract abbreviations from document', () => {
-        const testCases: [string, number, number, string, number, number, number, number, string[]][] = [
-            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7, []],
-            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10, []],
-            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, []],
-            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, []],
-            ['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, ['bem']]
+        const testCases: [string, number, number, string, number, number, number, number, string][] = [
+            ['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7, undefined],
+            ['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10, undefined],
+            ['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, undefined],
+            ['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, undefined],
+            ['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, 'bem']
         ]
 
-        testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilters]) => {
+        testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilter]) => {
             const document = TextDocument.create('test://test/test.html', 'html', 0, content);
             const position = Position.create(positionLine, positionChar);
-            const { abbreviationRange, abbreviation, filters } = extractAbbreviation(document, position);
+            const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position);
 
             assert.equal(expectedAbbr, abbreviation);
             assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
             assert.equal(expectedRangeStartChar, abbreviationRange.start.character);
             assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
             assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
-            assert.equal(filters.length, expectedFilters.length);
-            for (let i = 0; i < filters.length; i++) {
-                assert.equal(filters[i], expectedFilters[i]);
-            }
+            assert.equal(filter, expectedFilter);
         });
     });
 
     it('should extract abbreviations from text', () => {
-        const testCases: [string, string, string[]][] = [
-            ['ul', 'ul', []],
-            ['ul>li', 'ul>li', []],
-            ['ul>li*3', 'ul>li*3', []],
-            ['ul>li|bem', 'ul>li', ['bem']],
-            ['ul>li|t', 'ul>li', ['t']]
+        const testCases: [string, string, string][] = [
+            ['ul', 'ul', undefined],
+            ['ul>li', 'ul>li', undefined],
+            ['ul>li*3', 'ul>li*3', undefined],
+            ['ul>li|bem', 'ul>li', 'bem'],
+            ['ul>li|t', 'ul>li', 't']
         ]
 
-        testCases.forEach(([content, expectedAbbr, expectedFilters]) => {
-            const { abbreviation, filters } = extractAbbreviationFromText(content);
+        testCases.forEach(([content, expectedAbbr, expectedFilter]) => {
+            const { abbreviation, filter } = extractAbbreviationFromText(content);
 
             assert.equal(expectedAbbr, abbreviation);
-            assert.equal(filters.length, expectedFilters.length);
-            for (let i = 0; i < filters.length; i++) {
-                assert.equal(filters[i], expectedFilters[i]);
-            }
+            assert.equal(filter, expectedFilter);
 
         });
     });
@@ -105,7 +99,7 @@ describe('Test addons in Expand Options', () => {
 
     it('should add bem as addon when bem filter is provided', () => {
         const syntax = 'anythingreally';
-        let expandOptions = getExpandOptions(syntax, {}, ['bem']);
+        let expandOptions = getExpandOptions(syntax, {}, 'bem');
 
         assert.equal(Object.keys(expandOptions.addons).length, 1);
         assert.equal(expandOptions.addons['bem']['element'], '__');
@@ -113,7 +107,7 @@ describe('Test addons in Expand Options', () => {
 
     it('should add bem before jsx as addon when bem filter is provided', () => {
         const syntax = 'jsx';
-        let expandOptions = getExpandOptions(syntax, {}, ['bem']);
+        let expandOptions = getExpandOptions(syntax, {}, 'bem');
 
         assert.equal(Object.keys(expandOptions.addons).length, 2);
         assert.equal(Object.keys(expandOptions.addons)[0], 'bem');
@@ -357,6 +351,20 @@ describe('Test emmet preferences', () => {
 describe('Test completions', () => {
     it('should provide completions', () => {
         return updateExtensionsPath(null).then(() => {
+            const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large|bem';
+            const expectedBemFilterOutput =
+                `<ul class="search-form search-form_wide">
+	<li class="search-form__querystring">|</li>
+	<li class="search-form__btn search-form__btn_large">|</li>
+</ul>`;
+            const commentFilterExample = 'ul.nav>li#item|c';
+            const expectedCommentFilterOutput =
+                `<ul class="nav">
+	<li id="item">|</li>
+	<!-- /#item -->
+</ul>
+<!-- /.nav -->`;
+
             const testCases: [string, number, number, string, string][] = [
                 ['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'], // One of the commonly used tags
                 ['<div>UL</div>', 0, 7, 'UL', '<UL>|</UL>'], // One of the commonly used tags with upper case
@@ -367,7 +375,9 @@ describe('Test completions', () => {
                 ['<div>sp</div>', 0, 7, 'span', '<span>|</span>'], // Prefix of a common tag
                 ['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>'], // Prefix of a common tag in upper case
                 ['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>'], // Word with : is valid
-                ['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>'] // Word with - is valid
+                ['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>'], // Word with - is valid
+                [bemFilterExample, 0, bemFilterExample.length, bemFilterExample, expectedBemFilterOutput],
+                [commentFilterExample, 0, commentFilterExample.length, commentFilterExample, expectedCommentFilterOutput]
             ];
 
             testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
