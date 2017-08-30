@@ -13,6 +13,7 @@ import * as fs from 'fs';
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
 let markupSnippetKeysRegex: RegExp[];
+const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
@@ -96,19 +97,18 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 				expandedAbbr.filterText = expandedTextWithoutTabStops;
 				expandedAbbr.sortText = expandedTextWithoutTabStops;
 				expandedAbbr.label = expandedTextWithoutTabStops;
-				return CompletionList.create([expandedAbbr], true);
 			}
 		}
 	}
 
 	let completionItems: CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
+	let currentWord = getCurrentWord(document, position);
 	if (!isStyleSheet(syntax)) {
 		if (expandedAbbr) {
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			expandedAbbr.sortText = '0' + expandedAbbr.label;
 		}
 
-		let currentWord = getCurrentWord(document, position);
 		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
@@ -117,17 +117,26 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			completionItems = completionItems.concat(abbreviationSuggestions);
 		}
 
+	} else {
+		// Custom css snippets can get filtered out if the user hasnt named the snippet to be fuzzy matched with the snippet value
+		// In this case, form new completion item by comparing the current word and available snippets
+		let filterRegex = new RegExp(abbreviation.split('').join('.*'));
+		if (!filterRegex.test(expandedAbbr.filterText) && currentWord) {
+			let snippetKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+			let abbreviationSuggestions = makeSnippetSuggestion(snippetKeys || [], currentWord, abbreviation, abbreviationRange, expandOptions, false);
+			completionItems = completionItems.concat(abbreviationSuggestions);
+		}
 	}
 	return CompletionList.create(completionItems, true);
 }
 
-function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any): CompletionItem[] {
+function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any, skipFullMatch: boolean = true): CompletionItem[] {
 	if (!prefix) {
 		return [];
 	}
 	let snippetCompletions = [];
 	snippets.forEach(snippetKey => {
-		if (!snippetKey.startsWith(prefix.toLowerCase()) || snippetKey === prefix.toLowerCase()) {
+		if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
 			return;
 		}
 
@@ -573,6 +582,8 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 								customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
 							}
 						}
+					} else {
+						stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
 					}
 
 					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
@@ -618,6 +629,7 @@ function dirExists(dirPath: string): boolean {
 function resetSettingsFromFile() {
 	customSnippetRegistry = {};
 	snippetKeyCache.clear();
+	stylesheetCustomSnippetsKeyCache.clear();
 	profilesFromFile = {};
 	variablesFromFile = {};
 }
