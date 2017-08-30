@@ -65,6 +65,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 	let { abbreviationRange, abbreviation, filter } = extractedValue;
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
+	let currentWord = getCurrentWord(document, position);
+	let stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
@@ -86,23 +88,26 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			if (filter === 'bem' || filter === 'c') {
 				expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
 			}
-			if (isStyleSheet(syntax)) {
-				let expandedTextWithoutTabStops = removeTabStops(expandedText);
 
-				// See https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
-				// Due to this we set filterText, sortText and label to expanded abbreviation
-				// - Label makes it clear to the user what their choice is
-				// - FilterText fixes the issue when user types in propertyname and emmet uses it to match with abbreviations
-				// - SortText will sort the choice in a way that is intutive to the user
-				expandedAbbr.filterText = expandedTextWithoutTabStops;
-				expandedAbbr.sortText = expandedTextWithoutTabStops;
-				expandedAbbr.label = expandedTextWithoutTabStops;
+			if (isStyleSheet(syntax)) {
+				let customSnippetSuggestions = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, false);
+				let matchFoundInCustomSnippets = customSnippetSuggestions.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText);
+				if (matchFoundInCustomSnippets) {
+					// If the expanded abbreviation is one of the custom snippets, update the label
+					// Say there is a custom snippet with name xyz, and user types x, then the suggestion should have the label xyz
+					expandedAbbr.label = matchFoundInCustomSnippets.label;
+					expandedAbbr.detail = 'Emmet Custom Snippet';
+				} else {
+					// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
+					// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
+					// Updating the label will update the filterText used by VS Code, thus filtering out such cases
+					expandedAbbr.label = removeTabStops(expandedText);
+				}
 			}
 		}
 	}
 
 	let completionItems: CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
-	let currentWord = getCurrentWord(document, position);
 	if (!isStyleSheet(syntax)) {
 		if (expandedAbbr) {
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
@@ -117,21 +122,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			completionItems = completionItems.concat(abbreviationSuggestions);
 		}
 
-	} else {
-		// Custom css snippets can get filtered out if the user hasnt named the snippet to be fuzzy matched with the snippet value
-		// In this case, form new completion item by comparing the current word and available snippets
-		let filterRegex = new RegExp(abbreviation.split('').join('.*'));
-		if (!filterRegex.test(expandedAbbr.filterText) && currentWord) {
-			let snippetKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-			let abbreviationSuggestions = makeSnippetSuggestion(snippetKeys || [], currentWord, abbreviation, abbreviationRange, expandOptions, false);
-			completionItems = completionItems.concat(abbreviationSuggestions);
-		}
 	}
 	return CompletionList.create(completionItems, true);
 }
 
 function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any, skipFullMatch: boolean = true): CompletionItem[] {
-	if (!prefix) {
+	if (!prefix || !snippets) {
 		return [];
 	}
 	let snippetCompletions = [];
