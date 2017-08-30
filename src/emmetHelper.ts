@@ -25,6 +25,12 @@ const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
+const defaultUnitAliases = {
+	e: 'em',
+	p: '%',
+	x: 'ex',
+	r: 'rem'
+}
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -57,7 +63,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		}
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
-	
+
 	let extractedValue = extractAbbreviation(document, position);
 	if (!extractedValue) {
 		return CompletionList.create([], true);
@@ -109,6 +115,25 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
 			// Updating the label will update the filterText used by VS Code, thus filtering out such cases
 			expandedAbbr.label = removeTabStops(expandedText);
+
+			// Fix for https://github.com/Microsoft/vscode/issues/32277#issuecomment-321836737
+			let m = abbreviation.match(/(\d+)([a-z])$/);
+			if (m) {
+				let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
+				let unitName = m[2];
+				let unitValue = defaultUnitAliases[unitName];
+				const formatter = getFormatters(syntax, emmetConfig.preferences);
+				if (formatter && formatter['stylesheet']) {
+					after = formatter['stylesheet']['after'] || after;
+					if (formatter['stylesheet']['unitAliases'] && formatter['stylesheet']['unitAliases'][unitName]) {
+						unitValue = formatter['stylesheet']['unitAliases'][unitName];
+					}
+				}
+				if (unitValue && expandedText.endsWith(m[1] + unitValue + after)) {
+					expandedAbbr.filterText = abbreviation;
+				}
+			}
+
 		}
 		return CompletionList.create(completionItems, true);
 	}

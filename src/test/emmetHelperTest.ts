@@ -482,18 +482,23 @@ describe('Test completions', () => {
         });
     });
 
-    it('should provide completions using custom snippets css', () => {
+    it('should provide completions using custom snippets css and unit aliases', () => {
         return updateExtensionsPath(extensionsPath).then(() => {
-            const testCases: [string, number, number, string, string][] = [
-                ['hel', 0, 3, 'hello', 'margin: 10px;'],
-                ['hello', 0, 5, 'hello', 'margin: 10px;']
+            const testCases: [string, number, number, string, string, string][] = [
+                ['hel', 0, 3, 'hello', 'margin: 10px;', undefined], // Partial match with custom snippet
+                ['hello', 0, 5, 'hello', 'margin: 10px;', undefined], // Full match with custom snippet
+                ['m10p', 0, 4, 'margin: 10%;', 'margin: 10%;', 'm10p'], // p is a unit alias with default value
+                ['m10e', 0, 4, 'margin: 10hi;', 'margin: 10hi;', 'm10e'], // e is a unit alias with custom value
+                ['m10h', 0, 4, 'margin: 10hello;', 'margin: 10hello;', 'm10h'] // h is a custom unit alias with custom value
             ];
 
-            testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
+            testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion, expectedFilterText]) => {
                 const document = TextDocument.create('test://test/test.css', 'css', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'css', {
-                    preferences: {},
+                    preferences: {
+                        'css.unitAliases': 'e:hi,h:hello'
+                    },
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: false,
                     syntaxProfiles: {},
@@ -502,6 +507,7 @@ describe('Test completions', () => {
 
                 assert.equal(completionList.items[0].label, expectedAbbr);
                 assert.equal(completionList.items[0].documentation, expectedExpansion);
+                assert.equal(completionList.items[0].filterText, expectedFilterText);
             });
             return Promise.resolve();
 
