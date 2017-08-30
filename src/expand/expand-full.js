@@ -1,4 +1,3 @@
-// This UMD model has been generated from https://github.com/emmetio/expand-abbreviation/tree/v0.5.8
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -4495,11 +4494,16 @@ const unitlessProperties = [
     'z-index', 'line-height', 'opacity', 'font-weight', 'zoom',
     'flex', 'flex-grow', 'flex-shrink'
 ];
-const unitAliases = {
-    e :'em',
-    p: '%',
-    x: 'ex',
-    r: 'rem'
+
+const defaultFormat = {
+	intUnit: 'px',
+	floatUnit: 'em',
+	unitAliases: {
+		e :'em',
+		p: '%',
+		x: 'ex',
+		r: 'rem'
+	}
 };
 
 /**
@@ -4510,9 +4514,14 @@ const unitAliases = {
  * keyword values.
  */
 
-var index$5 = function(tree, registry) {
+var index$5 = function(tree, registry, formatOptions) {
 	const snippets = convertToCSSSnippets(registry);
-	tree.walk(node => resolveNode$1(node, snippets));
+	formatOptions = {
+		intUnit: (formatOptions && formatOptions.intUnit) || defaultFormat.intUnit,
+		floatUnit: (formatOptions && formatOptions.floatUnit) || defaultFormat.floatUnit,
+		unitAliases: Object.assign({}, defaultFormat.unitAliases, formatOptions && formatOptions.unitAliases)
+	};
+	tree.walk(node => resolveNode$1(node, snippets, formatOptions));
 	return tree;
 };
 
@@ -4525,9 +4534,10 @@ function convertToCSSSnippets(registry) {
  * keyword aliases from node value
  * @param  {Node} node
  * @param  {CSSSnippet[]} snippets
+ * @param  {Object} formatOptions
  * @return {Node}
  */
-function resolveNode$1(node, snippets) {
+function resolveNode$1(node, snippets, formatOptions) {
 	const snippet = findBestMatch(node.name, snippets, 'key');
 
 	if (!snippet) {
@@ -4536,7 +4546,7 @@ function resolveNode$1(node, snippets) {
 	}
 
 	return snippet.property
-		? resolveAsProperty(node, snippet)
+		? resolveAsProperty(node, snippet, formatOptions)
 		: resolveAsSnippet(node, snippet);
 }
 
@@ -4544,9 +4554,10 @@ function resolveNode$1(node, snippets) {
  * Resolves given parsed abbreviation node as CSS propery
  * @param {Node} node
  * @param {CSSSnippet} snippet
+ * @param  {Object} formatOptions
  * @return {Node}
  */
-function resolveAsProperty(node, snippet) {
+function resolveAsProperty(node, snippet, formatOptions) {
     const abbr = node.name;
 	node.name = snippet.property;
 
@@ -4583,7 +4594,7 @@ function resolveAsProperty(node, snippet) {
 						|| findBestMatch(token.value, globalKeywords)
 						|| token;
 				} else if (isNumericValue(token)) {
-                    token = resolveNumericValue(node.name, token);
+                    token = resolveNumericValue(node.name, token, formatOptions);
                 }
 
                 node.value.value[i] = token;
@@ -4702,15 +4713,16 @@ function tokenTypeOf(token, type) {
  * Resolves numeric value for given CSS property
  * @param  {String} property    CSS property name
  * @param  {NumericValue} token CSS numeric value token
+ * @param  {Object} formatOptions Formatting options for units
  * @return {NumericValue}
  */
-function resolveNumericValue(property, token) {
+function resolveNumericValue(property, token, formatOptions) {
     if (token.unit) {
-        token.unit = unitAliases[token.unit] || token.unit;
+        token.unit = formatOptions.unitAliases[token.unit] || token.unit;
     } else if (token.value !== 0 && unitlessProperties.indexOf(property) === -1) {
         // use `px` for integers, `em` for floats
         // NB: num|0 is a quick alternative to Math.round(0)
-        token.unit = token.value === (token.value|0) ? 'px' : 'em';
+        token.unit = token.value === (token.value|0) ? formatOptions.intUnit : formatOptions.floatUnit;
     }
 
     return token;
@@ -4895,7 +4907,7 @@ function getFormat(syntax, options) {
 		format = syntaxFormat[format];
 	}
 
-	return Object.assign({}, format, options && options.format);
+	return Object.assign({}, format, options && options.stylesheet);
 }
 
 /**
@@ -4926,7 +4938,7 @@ function parse$5(abbr, options) {
 		abbr = index$4(abbr);
 	}
 
-	return abbr.use(index$5, options.snippets);
+	return abbr.use(index$5, options.snippets, options.format ? options.format.stylesheet : {});
 }
 
 var html$1 = {
@@ -5316,8 +5328,8 @@ var xsl$1 = {
     "proc": "xsl:processing-instruction[name]",
     "sort": "xsl:sort[select order]",
     "choose": "xsl:choose>xsl:when+xsl:otherwise",
-	"xsl": "!!!+xsl:stylesheet[version=1.0 xmlns:xsl=http://www.w3.org/1999/XSL/Transform]>{\n|}",
-	"!!!": "{<?xml version=\"1.0\" encoding=\"UTF-8\"?>}"
+    "xsl": "!!!+xsl:stylesheet[version=1.0 xmlns:xsl=http://www.w3.org/1999/XSL/Transform]>{\n|}",
+    "!!!": "{<?xml version=\"1.0\" encoding=\"UTF-8\"?>}"
 };
 
 var index$7 = { html: html$1, css: css$1, xsl: xsl$1 };

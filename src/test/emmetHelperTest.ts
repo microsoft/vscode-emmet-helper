@@ -1,5 +1,5 @@
 import { TextDocument, Position } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete } from '../emmetHelper';
+import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../emmetHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -105,7 +105,7 @@ describe('Test addons in Expand Options', () => {
 
     it('should add bem as addon when bem filter is provided', () => {
         const syntax = 'anythingreally';
-        let expandOptions = getExpandOptions(syntax, {}, {}, ['bem']);
+        let expandOptions = getExpandOptions(syntax, {}, ['bem']);
 
         assert.equal(Object.keys(expandOptions.addons).length, 1);
         assert.equal(expandOptions.addons['bem']['element'], '__');
@@ -113,7 +113,7 @@ describe('Test addons in Expand Options', () => {
 
     it('should add bem before jsx as addon when bem filter is provided', () => {
         const syntax = 'jsx';
-        let expandOptions = getExpandOptions(syntax, {}, {}, ['bem']);
+        let expandOptions = getExpandOptions(syntax, {}, ['bem']);
 
         assert.equal(Object.keys(expandOptions.addons).length, 2);
         assert.equal(Object.keys(expandOptions.addons)[0], 'bem');
@@ -134,7 +134,7 @@ describe('Test output profile settings', () => {
             self_closing_tag: 'xhtml'
         }
 
-        const expandOptions = getExpandOptions('html', { html: profile });
+        const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 
         assert.equal(profile['tag_case'], expandOptions.profile['tagCase']);
         assert.equal(profile['attr_case'], expandOptions.profile['attributeCase']);
@@ -149,7 +149,7 @@ describe('Test output profile settings', () => {
         const expectedValue = ['xml', 'html', 'xhtml'];
 
         for (let i = 0; i < testCases.length; i++) {
-            const expandOptions = getExpandOptions('html', { html: { self_closing_tag: testCases[i] } });
+            const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { self_closing_tag: testCases[i] } } });
             assert.equal(expandOptions.profile['selfClosingStyle'], expectedValue[i]);
         }
     });
@@ -159,7 +159,7 @@ describe('Test output profile settings', () => {
         const expectedValue = [true, false, true];
 
         for (let i = 0; i < testCases.length; i++) {
-            const expandOptions = getExpandOptions('html', { html: { tag_nl: testCases[i] } });
+            const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { tag_nl: testCases[i] } } });
             assert.equal(expandOptions.profile['format'], expectedValue[i]);
         }
     });
@@ -174,7 +174,7 @@ describe('Test output profile settings', () => {
             selfClosingStyle: 'xhtml'
         };
 
-        const expandOptions = getExpandOptions('html', { html: profile });
+        const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
         Object.keys(profile).forEach(key => {
             assert.equal(expandOptions.profile[key], profile[key]);
         });
@@ -191,7 +191,7 @@ describe('Test output profile settings', () => {
                 self_closing_tag: 'xhtml'
             }
 
-            const expandOptions = getExpandOptions('html', { html: profile });
+            const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
             assert.equal(expandOptions.profile['tagCase'], 'lower');
             assert.equal(profile['tag_case'], 'lower');
             return Promise.resolve();
@@ -206,7 +206,7 @@ describe('Test variables settings', () => {
             charset: 'UTF-8'
         }
 
-        const expandOptions = getExpandOptions('html', {}, variables);
+        const expandOptions = getExpandOptions('html', { variables });
         Object.keys(variables).forEach(key => {
             assert.equal(expandOptions.variables[key], variables[key]);
         });
@@ -226,7 +226,7 @@ describe('Test variables settings', () => {
                 charset: 'UTF-8'
             }
 
-            const expandOptions = getExpandOptions('html', {}, variables);
+            const expandOptions = getExpandOptions('html', { variables });
             assert.equal(expandOptions.variables['lang'], variables['lang']);
         });
     });
@@ -343,6 +343,17 @@ describe('Test custom snippets', () => {
     });
 });
 
+describe('Test emmet preferences', () => {
+    it('should use stylesheet preferences', () => {
+        assert.equal(expandAbbreviation('m10', getExpandOptions('css', { preferences: { 'css.propertyEnd': ';;' } })), 'margin: 10px;;');
+        assert.equal(expandAbbreviation('m10', getExpandOptions('scss', { preferences: { 'scss.valueSeparator': '::' } })), 'margin::10px;');
+        assert.equal(expandAbbreviation('m10', getExpandOptions('less', { preferences: { 'css.intUnit': 'pt' } })), 'margin: 10pt;');
+        assert.equal(expandAbbreviation('m10.2', getExpandOptions('css', { preferences: { 'css.floatUnit': 'ex' } })), 'margin: 10.2ex;');
+        assert.equal(expandAbbreviation('m10r', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10 /rem;');
+        assert.equal(expandAbbreviation('m10p', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10%;');
+    });
+});
+
 describe('Test completions', () => {
     it('should provide completions', () => {
         return updateExtensionsPath(null).then(() => {
@@ -363,7 +374,7 @@ describe('Test completions', () => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'html', {
-                    useNewEmmet: true,
+                    preferences: {},
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: false,
                     syntaxProfiles: {},
@@ -388,7 +399,7 @@ describe('Test completions', () => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'html', {
-                    useNewEmmet: true,
+                    preferences: {},
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: true,
                     syntaxProfiles: {},
@@ -416,7 +427,7 @@ describe('Test completions', () => {
                 const document = TextDocument.create('test://test/test.scss', 'scss', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'scss', {
-                    useNewEmmet: true,
+                    preferences: {},
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: false,
                     syntaxProfiles: {},
@@ -442,7 +453,7 @@ describe('Test completions', () => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'html', {
-                    useNewEmmet: true,
+                    preferences: {},
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: false,
                     syntaxProfiles: {
@@ -476,7 +487,7 @@ describe('Test completions', () => {
                 const document = TextDocument.create('test://test/test.html', 'html', 0, content);
                 const position = Position.create(positionLine, positionChar);
                 const completionList = doComplete(document, position, 'html', {
-                    useNewEmmet: true,
+                    preferences: {},
                     showExpandedAbbreviation: 'always',
                     showAbbreviationSuggestions: false,
                     syntaxProfiles: {},
@@ -497,7 +508,7 @@ describe('Test completions', () => {
             const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem10.item');
             const position = Position.create(0, 12);
             const completionList = doComplete(document, position, 'html', {
-                useNewEmmet: true,
+                preferences: {},
                 showExpandedAbbreviation: 'always',
                 showAbbreviationSuggestions: false,
                 syntaxProfiles: {},

@@ -25,16 +25,16 @@ const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 
 export interface EmmetConfiguration {
-	useNewEmmet: boolean;
 	showExpandedAbbreviation: string;
 	showAbbreviationSuggestions: boolean;
 	syntaxProfiles: object;
 	variables: object;
+	preferences: object;
 }
 
 export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: EmmetConfiguration): CompletionList {
 
-	if (!emmetConfig.useNewEmmet || emmetConfig.showExpandedAbbreviation === 'never' || emmetModes.indexOf(syntax) === -1) {
+	if (emmetConfig.showExpandedAbbreviation === 'never' || emmetModes.indexOf(syntax) === -1) {
 		return;
 	}
 
@@ -62,7 +62,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return CompletionList.create([], true);
 	}
 	let { abbreviationRange, abbreviation, filters } = extractedValue;
-	let expandOptions = getExpandOptions(syntax, emmetConfig.syntaxProfiles, emmetConfig.variables, filters);
+	let expandOptions = getExpandOptions(syntax, emmetConfig, filters);
 
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		let expandedText;
@@ -341,7 +341,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, syntaxProfiles?: object, variables?: object, filters?: string[], ) {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filters?: string[], ) {
 	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
@@ -353,13 +353,15 @@ export function getExpandOptions(syntax: string, syntaxProfiles?: object, variab
 	if (syntax === 'jsx') {
 		addons['jsx'] = true;
 	}
+	emmetConfig = emmetConfig || {};
 	return {
 		field: emmetSnippetField,
 		syntax: syntax,
-		profile: getProfile(syntax, syntaxProfiles),
+		profile: getProfile(syntax, emmetConfig['syntaxProfiles']),
 		addons: addons,
-		variables: getVariables(variables),
-		snippets: customSnippetRegistry[syntax]
+		variables: getVariables(emmetConfig['variables']),
+		snippets: customSnippetRegistry[syntax],
+		format: getFormatters(syntax, emmetConfig['preferences'])
 	};
 }
 
@@ -441,6 +443,49 @@ function getVariables(variablesFromSettings: object): any {
 		return variablesFromFile;
 	}
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
+}
+
+function getFormatters(syntax: string, preferences: object) {
+	if (!isStyleSheet(syntax) || !preferences) {
+		return {};
+	}
+	let formatter = {};
+	for (let key in preferences) {
+		switch (key) {
+			case 'css.floatUnit':
+				formatter['floatUnit'] = preferences[key];
+				break;
+			case 'css.intUnit':
+				formatter['intUnit'] = preferences[key];
+				break;
+			case 'css.unitAliases':
+				let unitAliases = {};
+				preferences[key].split(',').forEach(alias => {
+					if (!alias || !alias.trim() || alias.indexOf(':') === -1) {
+						return;
+					}
+					let aliasName = alias.substr(0, alias.indexOf(':'));
+					let aliasValue = alias.substr(aliasName.length + 1);
+					if (!aliasName.trim() || !aliasValue) {
+						return;
+					}
+					unitAliases[aliasName.trim()] = aliasValue;
+				});
+				formatter['unitAliases'] = unitAliases;
+				break;
+			case `${syntax}.valueSeparator`:
+				formatter['between'] = preferences[key];
+				break;
+			case `${syntax}.propertyEnd`:
+				formatter['after'] = preferences[key];
+				break;
+			default:
+				break;
+		}
+	}
+	return {
+		stylesheet: formatter
+	};
 }
 
 /**
