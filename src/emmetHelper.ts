@@ -57,8 +57,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		}
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
-
-	let expandedAbbr: CompletionItem;
+	
 	let extractedValue = extractAbbreviation(document, position);
 	if (!extractedValue) {
 		return CompletionList.create([], true);
@@ -66,62 +65,65 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	let { abbreviationRange, abbreviation, filter } = extractedValue;
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
 	let currentWord = getCurrentWord(document, position);
-	let stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+	let expandedText;
+	let expandedAbbr: CompletionItem;
+	let completionItems: CompletionItem[] = [];
 
+	// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 	if (isAbbreviationValid(syntax, abbreviation)) {
-		let expandedText;
 		try {
 			expandedText = expand(abbreviation, expandOptions);
 		} catch (e) {
 		}
 
-		if (isExpandedTextNoise(syntax, abbreviation, expandedText)) {
+		if (expandedText && isExpandedTextNoise(syntax, abbreviation, expandedText)) {
 			expandedText = '';
-		}
-
-		if (expandedText) {
-			expandedAbbr = CompletionItem.create(abbreviation);
-			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedText));
-			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
-			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-			expandedAbbr.detail = 'Emmet Abbreviation';
-			if (filter === 'bem' || filter === 'c') {
-				expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
-			}
-
-			if (isStyleSheet(syntax)) {
-				let customSnippetSuggestions = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, false);
-				let matchFoundInCustomSnippets = customSnippetSuggestions.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText);
-				if (matchFoundInCustomSnippets) {
-					// If the expanded abbreviation is one of the custom snippets, update the label
-					// Say there is a custom snippet with name xyz, and user types x, then the suggestion should have the label xyz
-					expandedAbbr.label = matchFoundInCustomSnippets.label;
-					expandedAbbr.detail = 'Emmet Custom Snippet';
-				} else {
-					// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
-					// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
-					// Updating the label will update the filterText used by VS Code, thus filtering out such cases
-					expandedAbbr.label = removeTabStops(expandedText);
-				}
-			}
 		}
 	}
 
-	let completionItems: CompletionItem[] = expandedAbbr ? [expandedAbbr] : [];
-	if (!isStyleSheet(syntax)) {
-		if (expandedAbbr) {
-			// Workaround for the main expanded abbr not appearing before the snippet suggestions
-			expandedAbbr.sortText = '0' + expandedAbbr.label;
+	// Create completion item for expanded abbreviation
+	if (expandedText) {
+		expandedAbbr = CompletionItem.create(abbreviation);
+		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedText));
+		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
+		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
+		expandedAbbr.detail = 'Emmet Abbreviation';
+		if (filter === 'bem' || filter === 'c') {
+			expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
 		}
+		completionItems = [expandedAbbr];
+	}
 
-		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
-		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
-		if (emmetConfig.showAbbreviationSuggestions) {
-			let abbreviationSuggestions = getAbbreviationSuggestions(syntax, currentWord, abbreviation, abbreviationRange, expandOptions);
-			completionItems = completionItems.concat(abbreviationSuggestions);
+	if (isStyleSheet(syntax)) {
+		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+		let customSnippetSuggestions = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, false);
+		let matchFoundInCustomSnippets = customSnippetSuggestions.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText);
+		if (matchFoundInCustomSnippets) {
+			// If the expanded abbreviation is one of the custom snippets, update the label
+			// Say there is a custom snippet with name xyz, and user types x, then the suggestion should have the label xyz
+			expandedAbbr.label = matchFoundInCustomSnippets.label;
+			expandedAbbr.detail = 'Emmet Custom Snippet';
+		} else {
+			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
+			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
+			// Updating the label will update the filterText used by VS Code, thus filtering out such cases
+			expandedAbbr.label = removeTabStops(expandedText);
 		}
+		return CompletionList.create(completionItems, true);
+	}
 
+	if (expandedAbbr) {
+		// Workaround for the main expanded abbr not appearing before the snippet suggestions
+		expandedAbbr.sortText = '0' + expandedAbbr.label;
+	}
+
+	let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
+	completionItems = completionItems.concat(commonlyUsedTagSuggestions);
+
+	if (emmetConfig.showAbbreviationSuggestions) {
+		let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions);
+		completionItems = completionItems.concat(abbreviationSuggestions);
 	}
 	return CompletionList.create(completionItems, true);
 }
@@ -162,17 +164,6 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		snippetCompletions.push(item);
 	});
 	return snippetCompletions;
-}
-
-function getAbbreviationSuggestions(syntax: string, prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: object): CompletionItem[] {
-	if (!prefix || isStyleSheet(syntax)) {
-		return [];
-	}
-
-	let snippetKeys = snippetKeyCache.has(syntax) ? snippetKeyCache.get(syntax) : snippetKeyCache.get('html');
-	let snippetCompletions = [];
-
-	return makeSnippetSuggestion(snippetKeys, prefix, abbreviation, abbreviationRange, expandOptions);;
 }
 
 function getCurrentWord(document: TextDocument, position: Position): string {
