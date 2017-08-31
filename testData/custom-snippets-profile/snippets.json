@@ -2,7 +2,8 @@
     "css": {
         "snippets": {
             "ch": "color:hsl(${1:0}, ${2:100}%, ${3:50}%);",
-            "hello": "margin: 10px"
+            "hello": "margin: 10px",
+            "mrgstart": "margin-start: 10px"
          }
     },
      "variables": {

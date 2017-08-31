@@ -510,7 +510,32 @@ describe('Test completions', () => {
                 assert.equal(completionList.items[0].filterText, expectedFilterText);
             });
             return Promise.resolve();
+        });
+    });
 
+    it('should provide both custom and default snippet completion when partial match with custom snippet', () => {
+        return updateExtensionsPath(extensionsPath).then(() => {
+            const expandOptions = {
+                preferences: {},
+                showExpandedAbbreviation: 'always',
+                showAbbreviationSuggestions: false,
+                syntaxProfiles: {},
+                variables: {}
+            };
+
+            const completionList1 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'm'), Position.create(0, 1), 'css', expandOptions);
+            assert.equal(completionList1.items.findIndex(x => x.label === 'margin: ;') > -1, true);
+            assert.equal(completionList1.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+
+            const completionList2 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mr'), Position.create(0, 2), 'css', expandOptions);
+            assert.equal(completionList2.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
+            assert.equal(completionList2.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+
+            const completionList3 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mrg'), Position.create(0, 3), 'css', expandOptions);
+            assert.equal(completionList3.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
+            assert.equal(completionList3.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+
+            return Promise.resolve();
         });
     });
 
