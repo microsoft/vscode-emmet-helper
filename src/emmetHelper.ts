@@ -371,26 +371,44 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param textToReplace 
  */
 export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string, ) {
+	emmetConfig = emmetConfig || {};
+
+	// Fetch snippet registry
 	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
 	}
+
+	// Fetch Profile
+	let profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
+	let filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
+	filtersFromProfile = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
+
+	// Fetch Add Ons
 	let addons = {};
-	if (filter && filter === 'bem') {
+	if ((filter && filter === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
 	}
 	if (syntax === 'jsx') {
 		addons['jsx'] = true;
 	}
-	emmetConfig = emmetConfig || {};
+
+	// Fetch Formatters
 	let formatters = getFormatters(syntax, emmetConfig['preferences']);
-	if (filter && filter === 'c') {
-		formatters['comment']['enabled'] = true;
+	if ((filter && filter === 'c') || filtersFromProfile.indexOf('c') > -1) {
+		if (!formatters['comment']) {
+			formatters['comment'] = {
+				enabled: true
+			}
+		} else {
+			formatters['comment']['enabled'] = true;
+		}
 	}
+
 	return {
 		field: emmetSnippetField,
 		syntax: syntax,
-		profile: getProfile(syntax, emmetConfig['syntaxProfiles']),
+		profile: profile,
 		addons: addons,
 		variables: getVariables(emmetConfig['variables']),
 		snippets: customSnippetRegistry[syntax],
