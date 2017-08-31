@@ -142,16 +142,23 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return CompletionList.create(completionItems, true);
 	}
 
-	if (expandedAbbr) {
-		// Workaround for the main expanded abbr not appearing before the snippet suggestions
-		expandedAbbr.sortText = '0' + expandedAbbr.label;
-	}
-
 	let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions);
 	completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 	if (emmetConfig.showAbbreviationSuggestions) {
 		let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions);
+
+		// Workaround for the main expanded abbr not appearing before the snippet suggestions
+		if (expandedAbbr && abbreviationSuggestions.length > 0) {
+			expandedAbbr.sortText = '0' + expandedAbbr.label;
+		}
+
+		abbreviationSuggestions.forEach(item => {
+			// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
+			item.filterText = abbreviation
+			// Workaround for the main expanded abbr not appearing before the snippet suggestions
+			item.sortText = '9' + abbreviation;
+		});
 		completionItems = completionItems.concat(abbreviationSuggestions);
 	}
 	return CompletionList.create(completionItems, true);
@@ -183,12 +190,6 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		item.detail = 'Emmet Abbreviation';
 		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedAbbr));
 		item.insertTextFormat = InsertTextFormat.Snippet;
-
-		// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
-		item.filterText = abbreviation;
-
-		// Workaround for the main expanded abbr not appearing before the snippet suggestions
-		item.sortText = '9' + abbreviation;
 
 		snippetCompletions.push(item);
 	});
