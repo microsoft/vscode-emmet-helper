@@ -85,6 +85,10 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText && isExpandedTextNoise(syntax, abbreviation, expandedText)) {
 			expandedText = '';
 		}
+
+		if (isStyleSheet(syntax) && !expandedText) {
+			return CompletionList.create([], true);
+		}
 	}
 
 	// Create completion item for expanded abbreviation
