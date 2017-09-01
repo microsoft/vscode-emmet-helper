@@ -85,10 +85,6 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (expandedText && isExpandedTextNoise(syntax, abbreviation, expandedText)) {
 			expandedText = '';
 		}
-
-		if (isStyleSheet(syntax) && !expandedText) {
-			return CompletionList.create([], true);
-		}
 	}
 
 	// Create completion item for expanded abbreviation
@@ -104,8 +100,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		completionItems = [expandedAbbr];
 	}
 
-
 	if (isStyleSheet(syntax)) {
+		if (!expandedText) {
+			return CompletionList.create([], true);
+		}
+
 		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
