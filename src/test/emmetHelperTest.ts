@@ -531,9 +531,10 @@ describe('Test completions', () => {
 			const testCases: [string, number, number, string, string, string][] = [
 				['hel', 0, 3, 'hello', 'margin: 10px;', undefined], // Partial match with custom snippet
 				['hello', 0, 5, 'hello', 'margin: 10px;', undefined], // Full match with custom snippet
-				['m10p', 0, 4, 'margin: 10%;', 'margin: 10%;', 'm10p'], // p is a unit alias with default value
-				['m10e', 0, 4, 'margin: 10hi;', 'margin: 10hi;', 'm10e'], // e is a unit alias with custom value
-				['m10h', 0, 4, 'margin: 10hello;', 'margin: 10hello;', 'm10h'] // h is a custom unit alias with custom value
+				['m10p', 0, 4, 'margin: 10%;', 'margin: 10%;', 'm10p'], // p is a unit alias with default value. FilterText should contain unit alias
+				['m10e', 0, 4, 'margin: 10hi;', 'margin: 10hi;', 'm10e'], // e is a unit alias with custom value. FilterText should contain unit alias
+				['m10h', 0, 4, 'margin: 10hello;', 'margin: 10hello;', 'm10h'], // h is a custom unit alias with custom value. FilterText should contain unit alias
+				['p10-20', 0, 6, 'padding: 10px 20px;', 'padding: 10px 20px;', 'p10-20'] // The - in the number range will result in filtering this item out, so filter text should match abbreviation
 			];
 
 			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion, expectedFilterText]) => {

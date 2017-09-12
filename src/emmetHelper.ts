@@ -114,9 +114,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			// Updating the label will update the filterText used by VS Code, thus filtering out such cases
 			expandedAbbr.label = removeTabStops(expandedText);
 
-			// Fix for https://github.com/Microsoft/vscode/issues/32277#issuecomment-321836737
+			let abbreviationUsesUnitAliases = false;
+			let abbreviationUsesNumberRange = /(\d+)-(\d+)$/.test(abbreviation);
+
 			let m = abbreviation.match(/(\d+)([a-z])$/);
-			if (m) {
+			if (m && !abbreviationUsesNumberRange) {
 				let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
 				let unitName = m[2];
 				let unitValue = defaultUnitAliases[unitName];
@@ -127,9 +129,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 						unitValue = formatter['stylesheet']['unitAliases'][unitName];
 					}
 				}
-				if (unitValue && expandedText.endsWith(m[1] + unitValue + after)) {
-					expandedAbbr.filterText = abbreviation;
-				}
+				abbreviationUsesUnitAliases = unitValue && expandedText.endsWith(m[1] + unitValue + after)
+			}
+
+			// Fix for https://github.com/Microsoft/vscode/issues/33898 and
+			// https://github.com/Microsoft/vscode/issues/32277#issuecomment-321836737
+			if (abbreviationUsesUnitAliases || abbreviationUsesNumberRange) {
+				expandedAbbr.filterText = abbreviation;
 			}
 			completionItems.push(expandedAbbr);
 		}
