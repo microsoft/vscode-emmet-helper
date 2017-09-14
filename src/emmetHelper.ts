@@ -208,11 +208,15 @@ function getCurrentWord(document: TextDocument, position: Position): string {
 }
 
 function replaceTabStopsWithCursors(expandedWord: string): string {
-	return expandedWord.replace(/\$\{\d+\}/g, '|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
+	return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
 }
 
 function removeTabStops(expandedWord: string): string {
-	return expandedWord.replace(/\$\{\d+\}/g, '').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
+	return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
+}
+
+function escapeNonTabStopDollar(text: string): string {
+	return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
 }
 
 function getCurrentLine(document: TextDocument, position: Position): string {
@@ -431,9 +435,6 @@ export function expandAbbreviation(abbreviation: string, options: any) {
 	return escapeNonTabStopDollar(expandedText);
 }
 
-function escapeNonTabStopDollar(text: string): string {
-	return text ? text.replace(/(\$)([^\{])/g, '\\$1$2') : text;
-}
 /**
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax 

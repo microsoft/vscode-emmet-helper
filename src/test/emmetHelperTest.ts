@@ -471,7 +471,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide completions with escaped $', () => {
+	it('should provide completions with escaped $ in scss', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
 				['bim$hello', 0, 9]
@@ -490,6 +490,33 @@ describe('Test completions', () => {
 
 				assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').documentation, 'background-image: $hello;');
 				assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').textEdit.newText, 'background-image: \\$hello;');
+
+			});
+			return Promise.resolve();
+
+		});
+	});
+
+	it('should provide completions with escaped $ in html', () => {
+		return updateExtensionsPath(null).then(() => {
+			const testCases: [string, number, number, string, string][] = [
+				['span{\\$5}', 0, 9, '<span>\\$5</span>', '<span>\\$5</span>'],
+				['span{$hello}', 0, 12, '<span>\$hello</span>', '<span>\\$hello</span>']
+			];
+
+			testCases.forEach(([content, positionLine, positionChar, expectedDoc, expectedSnippetText]) => {
+				const document = TextDocument.create('test://test/test.html', 'html', 0, content);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'html', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items.find(x => x.label === content).documentation, expectedDoc);
+				assert.equal(completionList.items.find(x => x.label === content).textEdit.newText, expectedSnippetText);
 
 			});
 			return Promise.resolve();
