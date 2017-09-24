@@ -529,7 +529,9 @@ function getFormatters(syntax: string, preferences: object) {
 		};
 	}
 
-	let stylesheetFormatter = {};
+	let stylesheetFormatter = {
+		'fuzzySearchMinScore': 0.3
+	};
 	for (let key in preferences) {
 		switch (key) {
 			case 'css.floatUnit':

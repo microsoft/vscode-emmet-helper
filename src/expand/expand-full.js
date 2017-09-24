@@ -1281,7 +1281,7 @@ var consumeAttributes = function(stream) {
 			// Consumed next word: could be either attribute name or unquoted default value
 			token = stream.current();
 			// In angular attribute names can be surrounded by []
- 			if (token && token[0] === '[' && stream.peek() === ATTR_CLOSE) {
+			if (token && token[0] === '[' && stream.peek() === ATTR_CLOSE) {
 				stream.next();
 				token = stream.current();
 			}
@@ -2144,7 +2144,7 @@ var bem = function(tree, options) {
 	tree.walk(node => expandClassNames(node, options));
 
 	const lookup = createBlockLookup(tree);
-    tree.walk(node => expandShortNotation(node, lookup, options));
+	tree.walk(node => expandShortNotation(node, lookup, options));
 
 	return tree;
 };
@@ -2211,7 +2211,10 @@ function expandShortNotation(node, lookup, options) {
 		return out;
 	}, new Set());
 
-	node.setAttribute('class', Array.from(classNames).join(' '));
+	const arrClassNames = Array.from(classNames).filter(Boolean);
+	if (arrClassNames.length) {
+		node.setAttribute('class', arrClassNames.join(' '));
+	}
 }
 
 /**
@@ -2248,11 +2251,14 @@ function createBlockLookup(tree) {
  */
 function getBlockName(node, lookup, prefix) {
 	let depth = prefix.length > 1 ? prefix.length : 0;
-	while (node.parent && depth--) {
+
+	// NB don’t walk up to root node, stay at first root child in case of
+	// too deep prefix
+	while (node.parent && node.parent.parent && depth--) {
 		node = node.parent;
 	}
 
-	return lookup.get(node);
+	return lookup.get(node) || '';
 }
 
 function find(arr, filter) {
@@ -4500,7 +4506,7 @@ const unitlessProperties = [
     'flex', 'flex-grow', 'flex-shrink'
 ];
 
-const defaultFormat = {
+const defaultOptions$4 = {
 	intUnit: 'px',
 	floatUnit: 'em',
 	unitAliases: {
@@ -4508,7 +4514,8 @@ const defaultFormat = {
 		p: '%',
 		x: 'ex',
 		r: 'rem'
-	}
+	},
+	fuzzySearchMinScore: 0
 };
 
 /**
@@ -4519,14 +4526,15 @@ const defaultFormat = {
  * keyword values.
  */
 
-var index$5 = function(tree, registry, formatOptions) {
+var index$5 = function(tree, registry, options) {
 	const snippets = convertToCSSSnippets(registry);
-	formatOptions = {
-		intUnit: (formatOptions && formatOptions.intUnit) || defaultFormat.intUnit,
-		floatUnit: (formatOptions && formatOptions.floatUnit) || defaultFormat.floatUnit,
-		unitAliases: Object.assign({}, defaultFormat.unitAliases, formatOptions && formatOptions.unitAliases)
+	options = {
+		intUnit: (options && options.intUnit) || defaultOptions$4.intUnit,
+		floatUnit: (options && options.floatUnit) || defaultOptions$4.floatUnit,
+		unitAliases: Object.assign({}, defaultOptions$4.unitAliases, options && options.unitAliases),
+		fuzzySearchMinScore: (options && options.fuzzySearchMinScore) || defaultOptions$4.fuzzySearchMinScore
 	};
-	tree.walk(node => resolveNode$1(node, snippets, formatOptions));
+	tree.walk(node => resolveNode$1(node, snippets, options));
 	return tree;
 };
 
@@ -4539,11 +4547,11 @@ function convertToCSSSnippets(registry) {
  * keyword aliases from node value
  * @param  {Node} node
  * @param  {CSSSnippet[]} snippets
- * @param  {Object} formatOptions
+ * @param  {Object} options
  * @return {Node}
  */
-function resolveNode$1(node, snippets, formatOptions) {
-	const snippet = findBestMatch(node.name, snippets, 'key');
+function resolveNode$1(node, snippets, options) {
+	const snippet = findBestMatch(node.name, snippets, 'key', options.fuzzySearchMinScore);
 
 	if (!snippet) {
 		// Edge case: `!important` snippet
@@ -4551,7 +4559,7 @@ function resolveNode$1(node, snippets, formatOptions) {
 	}
 
 	return snippet.property
-		? resolveAsProperty(node, snippet, formatOptions)
+		? resolveAsProperty(node, snippet, options)
 		: resolveAsSnippet(node, snippet);
 }
 
@@ -4638,15 +4646,17 @@ function setNodeAsText(node, text) {
  * @param {Array}  items List of items for match
  * @param {String} [key] If `items` is a list of objects, use `key` as object
  * property to test against
+ * @param {Number} fuzzySearchMinScore The minimum score the best matched item should have to be a valid match.
  * @return {*}
  */
-function findBestMatch(abbr, items, key) {
+function findBestMatch(abbr, items, key, fuzzySearchMinScore) {
 	if (!abbr) {
 		return null;
 	}
 
 	let matchedItem = null;
 	let maxScore = 0;
+	fuzzySearchMinScore = fuzzySearchMinScore || 0;
 
 	for (let i = 0, item; i < items.length; i++) {
 		item = items[i];
@@ -4663,7 +4673,7 @@ function findBestMatch(abbr, items, key) {
 		}
 	}
 
-	return matchedItem;
+	return maxScore >= fuzzySearchMinScore ? matchedItem : null;
 }
 
 function getScoringPart(item, key) {
@@ -4733,7 +4743,7 @@ function resolveNumericValue(property, token, formatOptions) {
     return token;
 }
 
-const defaultOptions$4 = {
+const defaultOptions$5 = {
 	shortHex: true,
 	format: {
 		between: ': ',
@@ -4750,7 +4760,7 @@ const defaultOptions$4 = {
  * @return {String}
  */
 function css(tree, profile, options) {
-	options = Object.assign({}, defaultOptions$4, options);
+	options = Object.assign({}, defaultOptions$5, options);
 
 	return render(tree, options.field, outNode => {
 		const node = outNode.node;
@@ -4765,7 +4775,7 @@ function css(tree, profile, options) {
 		outNode.afterOpen = options.format.between;
 		outNode.text = outNode.renderFields(value || null);
 
-		if (outNode.open) {
+		if (outNode.open && (!outNode.text || !outNode.text.endsWith(';'))) {
 			outNode.afterText = options.format.after;
 		}
 
@@ -5008,7 +5018,7 @@ var html$1 = {
 	"input": "input[type=${1:text}]/",
 	"inp": "input[name=${1} id=${1}]",
 	"input:h|input:hidden": "input[type=hidden name]",
-	"input:t|input:text": "inp",
+	"input:t|input:text": "inp[type=text]",
 	"input:search": "inp[type=search]",
 	"input:email": "inp[type=email]",
 	"input:url": "inp[type=url]",
@@ -5437,7 +5447,7 @@ var sp = {
 
 const langs = { latin, ru, sp };
 
-const defaultOptions$5 = {
+const defaultOptions$6 = {
 	wordCount: 30,
 	skipCommon: false,
 	lang: 'latin'
@@ -5450,7 +5460,7 @@ const defaultOptions$5 = {
  * @return {Node}
  */
 var index$8 = function(node, options) {
-	options = Object.assign({}, defaultOptions$5, options);
+	options = Object.assign({}, defaultOptions$6, options);
 	const dict = langs[options.lang] || langs.latin;
     const startWithCommon = !options.skipCommon && !isRepeating(node);
 
