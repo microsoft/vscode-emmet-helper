@@ -69,8 +69,17 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return CompletionList.create([], true);
 	}
 	let { abbreviationRange, abbreviation, filter } = extractedValue;
+	let currentLineTillPosition = getCurrentLine(document, position).substr(0, position.character);
+	let currentWord = getCurrentWord(currentLineTillPosition);
+
+	// Dont attempt to expand open tags
+	if (currentWord === abbreviation
+		&& currentLineTillPosition.endsWith(`<${abbreviation}`)
+		&& (syntax === 'html' || syntax === 'xml' || syntax === 'xsl' || syntax === 'jsx')) {
+		return CompletionList.create([], true);
+	}
+
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
-	let currentWord = getCurrentWord(document, position);
 	let expandedText;
 	let expandedAbbr: CompletionItem;
 	let completionItems: CompletionItem[] = [];
@@ -196,11 +205,9 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 	return snippetCompletions;
 }
 
-function getCurrentWord(document: TextDocument, position: Position): string {
-	let currentLine = getCurrentLine(document, position);
-	let currentLineTillPosition = currentLine.substr(0, position.character);
+function getCurrentWord(currentLineTillPosition: string): string {
 	if (currentLineTillPosition) {
-		let matches = currentLineTillPosition.match(/[\w,:]*$/);
+		let matches = currentLineTillPosition.match(/[\w,:,-]*$/);
 		if (matches) {
 			return matches[0];
 		}
