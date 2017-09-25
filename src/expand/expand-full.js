@@ -1356,7 +1356,7 @@ function eatUnquoted(stream) {
 
 function isUnquoted(code) {
 	return !isSpace(code) && !isQuote(code)
-		&& code !== ATTR_CLOSE && code !== EQUALS;
+		 && code !== ATTR_CLOSE && code !== EQUALS;
 }
 
 const HASH    = 35; // #
@@ -4294,6 +4294,9 @@ const DASH$1$1 = 45; // -
  * @return {Number}             Match score
  */
 var stringScore = function(abbr, string) {
+    abbr = abbr.toLowerCase();
+    string = string.toLowerCase();
+    
     if (abbr === string) {
         return 1;
     }
