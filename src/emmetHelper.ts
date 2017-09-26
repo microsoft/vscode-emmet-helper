@@ -404,6 +404,12 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	let addons = {};
 	if ((filter && filter === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
+		if (emmetConfig['preferences'] && emmetConfig['preferences']['bem.elementSeparator']) {
+			addons['bem']['element'] = emmetConfig['preferences']['bem.elementSeparator'];
+		}
+		if (emmetConfig['preferences'] && emmetConfig['preferences']['bem.modifierSeparator']) {
+			addons['bem']['modifier'] = emmetConfig['preferences']['bem.modifierSeparator'];
+		}
 	}
 	if (syntax === 'jsx') {
 		addons['jsx'] = true;
