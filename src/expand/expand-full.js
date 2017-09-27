@@ -5155,7 +5155,7 @@ var css$1 = {
 	"bdrs": "border-radius",
 	"bdrst": "border-right-style",
 	"bdrw": "border-right-width",
-	"bds": "border-style:hidden|dotted|dashed|solid|double|dot-dash|dot-dot-dash|wave|groove|ridge|inset|outset",
+	"bds": "border-style:none|hidden|dotted|dashed|solid|double|dot-dash|dot-dot-dash|wave|groove|ridge|inset|outset",
 	"bdsp": "border-spacing",
 	"bdt": "border-top:${1:1px} ${2:solid} ${3:#000}",
 	"bdtc": "border-top-color:#${1:000}",

@@ -611,7 +611,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should not provide completions as they would noise when typing', () => {
+	it('should not provide completions as they would noise when typing (html)', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
 				['<div>abc</div>', 0, 8], // Simple word
@@ -634,7 +634,33 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0);
+				assert.equal(completionList.items.length, 0, completionList.items.length > 0 ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+			});
+			return Promise.resolve();
+
+		});
+	});
+
+	it('should not provide completions as they would noise when typing (css)', () => {
+		return updateExtensionsPath(null).then(() => {
+			const testCases: [string, number, number][] = [
+				['background', 0, 10], 
+				['background:u', 0, 12]
+
+			];
+
+			testCases.forEach(([content, positionLine, positionChar]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, content);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items.length, 0, completionList.items.length > 0 ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 

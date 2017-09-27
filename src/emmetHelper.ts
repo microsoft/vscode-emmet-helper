@@ -356,9 +356,10 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 
 function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
 	// Unresolved css abbreviations get expanded to a blank property value
-	// Eg: abc -> abc: ; which is noise if it gets suggested for every word typed
+	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
 	if (isStyleSheet(syntax)) {
-		return expandedText === `${abbreviation}: \${1};`
+		let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
+		return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
 	if (commonlyUsedTags.indexOf(abbreviation.toLowerCase()) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
