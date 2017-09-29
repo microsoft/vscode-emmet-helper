@@ -2159,10 +2159,12 @@ var bem = function(tree, options) {
  */
 function expandClassNames(node, options) {
 	const classNames = node.classList.reduce((out, cl) => {
-		// remove all modifiers from class name to get a base element name
-		const ix = cl.indexOf(options.modifier);
-		if (ix !== -1) {
+		// remove all modifiers and element prefixes from class name to get a base element name
+		const ix = cl.indexOf('_');
+		if (ix > 0 && !cl.startsWith('-')) {
 			out.add(cl.slice(0, ix));
+			out.add(cl.slice(ix));
+			return out;
 		}
 
 		return out.add(cl);
