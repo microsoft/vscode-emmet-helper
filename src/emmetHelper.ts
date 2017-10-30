@@ -364,7 +364,16 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// Unresolved html abbreviations get expanded as if it were a tag
 	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
-	return expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`;
+	if (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`) {
+		return true;
+	}
+
+	let matches = abbreviation.match(/^\((.*)\)$/);
+	if (matches) {
+		return isExpandedTextNoise(syntax, matches[1], expandedText);
+	}
+
+	return false;
 }
 
 /**
