@@ -374,6 +374,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  */
 export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string, ) {
 	emmetConfig = emmetConfig || {};
+	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
 	// Fetch snippet registry
 	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
@@ -386,14 +387,34 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	let filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
 	filtersFromProfile = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
 
+	// Update profile based on preferences
+	if (emmetConfig['preferences']['format.noIndentTags']) {
+		if (Array.isArray(emmetConfig['preferences']['format.noIndentTags'])) {
+			profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'];
+		} else if (typeof emmetConfig['preferences']['format.noIndentTags'] === 'string') {
+			profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'].split(',');
+		}
+		
+	}
+	if (emmetConfig['preferences']['format.forceIndentationForTags']) {
+		if (Array.isArray(emmetConfig['preferences']['format.forceIndentationForTags'])) {
+			profile['formatForce'] = emmetConfig['preferences']['format.forceIndentationForTags'];
+		} else if (typeof emmetConfig['preferences']['format.forceIndentationForTags'] === 'string') {
+			profile['formatForce'] = emmetConfig['preferences']['format.forceIndentationForTags'].split(',');
+		}
+	}
+	if (emmetConfig['preferences']['profile.allowCompactBoolean'] && typeof emmetConfig['preferences']['profile.allowCompactBoolean'] === 'boolean') {
+		profile['compactBooleanAttributes'] = emmetConfig['preferences']['profile.allowCompactBoolean'];
+	}
+
 	// Fetch Add Ons
 	let addons = {};
 	if ((filter && filter === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
-		if (emmetConfig['preferences'] && emmetConfig['preferences']['bem.elementSeparator']) {
+		if (emmetConfig['preferences']['bem.elementSeparator']) {
 			addons['bem']['element'] = emmetConfig['preferences']['bem.elementSeparator'];
 		}
-		if (emmetConfig['preferences'] && emmetConfig['preferences']['bem.modifierSeparator']) {
+		if (emmetConfig['preferences']['bem.modifierSeparator']) {
 			addons['bem']['modifier'] = emmetConfig['preferences']['bem.modifierSeparator'];
 		}
 	}
