@@ -17,7 +17,7 @@ describe('Validate Abbreviations', () => {
 		});
 	});
 	it('should return false for invalid abbreivations', () => {
-		const htmlAbbreviations = ['!ul!', '(hello)', 'super(hello)', 'console.log(hello)'];
+		const htmlAbbreviations = ['!ul!', '(hello)', 'super(hello)', 'console.log(hello)', '()', '[]'];
 		const cssAbbreviations = ['123'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(!isAbbreviationValid('html', abbr));

@@ -17,6 +17,7 @@ const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
+const htmlAbbreviationRegex = /[a-z,A-Z]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'section', 'canvas', 'dl', 'dt', 'dd', 'em',
 	'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'aside', 'table', 'tbody', 'thead', 'tfoot', 'tr', 'th', 'td', 'blockquote', 'pre', 'sup', 'sub', 'title',
@@ -327,15 +328,15 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		}
 		return cssAbbreviationRegex.test(abbreviation);
 	}
-	if (abbreviation.startsWith('!') && /[^!]/.test(abbreviation)) {
-		return false;
+	if (abbreviation.startsWith('!')) {
+		return !/[^!]/.test(abbreviation);
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
 	if (/^[a-z,A-Z,\d,-,:,\(,\),\.]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
 
-	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation));
+	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
 function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
