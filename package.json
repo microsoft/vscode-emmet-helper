@@ -1,6 +1,6 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./out/emmetHelper.js",
   "types": "./out/emmetHelper.d.ts",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.1.1",
+    "@emmetio/stream-reader": "2.2.0",
     "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {

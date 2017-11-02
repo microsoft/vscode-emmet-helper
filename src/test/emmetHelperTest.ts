@@ -5,6 +5,21 @@ import * as assert from 'assert';
 import * as path from 'path';
 
 const extensionsPath = path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-profile');
+const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
+const expectedBemFilterOutput =
+	`<ul class="search-form search-form_wide">
+	<li class="search-form__querystring">\${1}</li>
+	<li class="search-form__btn search-form__btn_large">\${0}</li>
+</ul>`;
+const expectedBemFilterOutputDocs = expectedBemFilterOutput.replace(/\$\{\d+\}/g, '|');
+const commentFilterExample = 'ul.nav>li#item';
+const expectedCommentFilterOutput =
+	`<ul class="nav">
+	<li id="item">\${0}</li>
+	<!-- /#item -->
+</ul>
+<!-- /.nav -->`;
+const expectedCommentFilterOutputDocs = expectedCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
 
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreivations', () => {
@@ -349,19 +364,6 @@ describe('Test emmet preferences', () => {
 });
 
 describe('Test filters (bem and comment)', () => {
-	const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
-	const expectedBemFilterOutput =
-		`<ul class="search-form search-form_wide">
-	<li class="search-form__querystring">\${1}</li>
-	<li class="search-form__btn search-form__btn_large">\${2}</li>
-</ul>`;
-	const commentFilterExample = 'ul.nav>li#item';
-	const expectedCommentFilterOutput =
-		`<ul class="nav">
-	<li id="item">\${1}</li>
-	<!-- /#item -->
-</ul>
-<!-- /.nav -->`;
 
 	it('should use filters from expandOptions', () => {
 		return updateExtensionsPath(null).then(() => {
@@ -395,36 +397,26 @@ describe('Test filters (bem and comment)', () => {
 describe('Test completions', () => {
 	it('should provide completions', () => {
 		return updateExtensionsPath(null).then(() => {
-			const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large|bem';
-			const expectedBemFilterOutput =
-				`<ul class="search-form search-form_wide">
-	<li class="search-form__querystring">|</li>
-	<li class="search-form__btn search-form__btn_large">|</li>
-</ul>`;
-			const commentFilterExample = 'ul.nav>li#item|c';
-			const expectedCommentFilterOutput =
-				`<ul class="nav">
-	<li id="item">|</li>
-	<!-- /#item -->
-</ul>
-<!-- /.nav -->`;
+			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
+			let commentFilterExampleWithInlineFilter = commentFilterExample + '|c';
 
-			const testCases: [string, number, number, string, string][] = [
-				['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>'], // One of the commonly used tags
-				['<div>UL</div>', 0, 7, 'UL', '<UL>|</UL>'], // One of the commonly used tags with upper case
-				['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>'], // Valid abbreviation
-				['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>'], //Valid abbreviation with grouping
-				['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>'], // custom tag with -
-				['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>'], // custom tag with -
-				['<div>sp</div>', 0, 7, 'span', '<span>|</span>'], // Prefix of a common tag
-				['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>'], // Prefix of a common tag in upper case
-				['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>'], // Word with : is valid
-				['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>'], // Word with - is valid
-				[bemFilterExample, 0, bemFilterExample.length, bemFilterExample, expectedBemFilterOutput],
-				[commentFilterExample, 0, commentFilterExample.length, commentFilterExample, expectedCommentFilterOutput]
+			const testCases: [string, number, number, string, string, string][] = [
+				['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>', '<ul>\${0}</ul>'], // One of the commonly used tags
+				['<div>UL</div>', 0, 7, 'UL', '<UL>|</UL>', '<UL>\${0}</UL>'], // One of the commonly used tags with upper case
+				['<div>ul>li*3</div>', 0, 10, 'ul>li', '<ul>\n\t<li>|</li>\n</ul>', '<ul>\n\t<li>\${0}</li>\n</ul>'], // Valid abbreviation
+				['<div>(ul>li)*3</div>', 0, 14, '(ul>li)*3', '<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>\n<ul>\n\t<li>|</li>\n</ul>', '<ul>\n\t<li>\${1}</li>\n</ul>\n<ul>\n\t<li>\${2}</li>\n</ul>\n<ul>\n\t<li>\${0}</li>\n</ul>'], //Valid abbreviation with grouping
+				['<div>custom-tag</div>', 0, 15, 'custom-tag', '<custom-tag>|</custom-tag>', '<custom-tag>\${0}</custom-tag>'], // custom tag with -
+				['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>', '<custom:tag>\${0}</custom:tag>'], // custom tag with -
+				['<div>sp</div>', 0, 7, 'span', '<span>|</span>', '<span>\${0}</span>'], // Prefix of a common tag
+				['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>', '<SPan>\${0}</SPan>'], // Prefix of a common tag in upper case
+				['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>', '<u:l:l>\${0}</u:l:l>'], // Word with : is valid
+				['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>', '<u-l-z>\${0}</u-l-z>'], // Word with - is valid
+				[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],
+				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
+				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'] // No last tab stop gets added as max tab stop is of a placeholder
 			];
 
-			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
+			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansionDocs, expectedExpansion]) => {
 				const document = TextDocument.create('test://test/test.html', 'html', 0, content);
 				const position = Position.create(positionLine, positionChar);
 				const completionList = doComplete(document, position, 'html', {
@@ -434,9 +426,10 @@ describe('Test completions', () => {
 					syntaxProfiles: {},
 					variables: {}
 				});
-
+				
 				assert.equal(completionList.items[0].label, expectedAbbr);
-				assert.equal(completionList.items[0].documentation, expectedExpansion);
+				assert.equal(completionList.items[0].documentation, expectedExpansionDocs);
+				assert.equal(completionList.items[0].textEdit.newText, expectedExpansion);
 			});
 			return Promise.resolve();
 
@@ -461,7 +454,7 @@ describe('Test completions', () => {
 				});
 
 				assert.equal(completionList.items.find(x => x.label === 'link').documentation, '<link rel="stylesheet" href="|">');
-				assert.equal(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${1}">');
+				assert.equal(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${0}">');
 				assert.equal(completionList.items.find(x => x.label === 'link:css').documentation, '<link rel="stylesheet" href="style.css">');
 				assert.equal(completionList.items.find(x => x.label === 'link:css').textEdit.newText, '<link rel="stylesheet" href="${2:style}.css">');
 

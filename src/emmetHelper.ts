@@ -7,6 +7,7 @@
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
 import { expand, createSnippetsRegistry } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
+import * as StreamReader from '@emmetio/stream-reader';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -32,6 +33,11 @@ const defaultUnitAliases = {
 	x: 'ex',
 	r: 'rem'
 }
+const dollarCode = '$'.charCodeAt(0);
+const openCode = '{'.charCodeAt(0);
+const closeCode = '}'.charCodeAt(0);
+const colonCode = ':'.charCodeAt(0);
+const escapeCode = '\\'.charCodeAt(0);
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -100,7 +106,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// Create completion item for expanded abbreviation
 	if (expandedText) {
 		expandedAbbr = CompletionItem.create(abbreviation);
-		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedText));
+		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
 		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 		expandedAbbr.detail = 'Emmet Abbreviation';
@@ -182,7 +188,7 @@ function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation:
 		let item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
 		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = snippetDetail;
-		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(expandedAbbr));
+		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedAbbr)));
 		item.insertTextFormat = InsertTextFormat.Snippet;
 
 		snippetCompletions.push(item);
@@ -209,6 +215,78 @@ function removeTabStops(expandedWord: string): string {
 
 function escapeNonTabStopDollar(text: string): string {
 	return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
+}
+
+function addFinalTabStop(text): string {
+	if (!text || !text.trim()) {
+		return text;
+	}
+
+	const stream = new StreamReader(text);
+	let maxTabStop = -1;
+	let maxTabStopStart = -1;
+	let maxTabStopEnd = -1;
+	let foundLastStop = false;
+	let replaceWithLastStop = false;
+
+	try {
+		while (!stream.eof() && !foundLastStop) {
+			// Look for ${
+			if (stream.next() != dollarCode || stream.next() != openCode) {
+				continue;
+			}
+
+			// Find tabstop
+			let numberStart = -1;
+			let numberEnd = -1;
+			while (!stream.eof() && isNumber(stream.peek())) {
+				numberStart = numberStart < 0 ? stream.pos : numberStart;
+				numberEnd = stream.pos + 1;
+				stream.next();
+			}
+
+			// If ${ was not followed by a number and either } or :, then its not a tabstop
+			if (numberStart === -1 || numberEnd === -1 || stream.eof() || (stream.peek() != closeCode && stream.peek() != colonCode)) {
+				continue;
+			}
+
+			// If ${0} was found, then break
+			const currentTabStop = stream.substring(numberStart, numberEnd);
+			foundLastStop = currentTabStop === '0';
+			if (foundLastStop) {
+				break;
+			}
+
+			const foundPlaceholder = stream.peek() == colonCode;
+			stream.next();
+
+			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
+			if (currentTabStop > maxTabStop) {
+				maxTabStop = currentTabStop;
+				maxTabStopStart = foundPlaceholder ? -1 : numberStart;
+				maxTabStopEnd = foundPlaceholder ? -1 : numberEnd;
+				replaceWithLastStop = !foundPlaceholder;
+			}
+
+			if (foundPlaceholder) {
+				// TODO: Nested placeholders may break here
+				while (!stream.eof() && stream.peek() != closeCode) {
+					stream.next();
+				}
+			}
+		}
+
+		if (replaceWithLastStop && !foundLastStop) {
+			text = text.substr(0, maxTabStopStart) + '0' + text.substr(maxTabStopEnd);
+		}
+	} catch (e) {
+
+	}
+	return text;
+}
+
+function isNumber(code) {
+	return code > 47 && code < 58;
 }
 
 function getCurrentLine(document: TextDocument, position: Position): string {
@@ -461,7 +539,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
 	let expandedText = expand(abbreviation, options);
-	return escapeNonTabStopDollar(expandedText);
+	return escapeNonTabStopDollar(addFinalTabStop(expandedText));
 }
 
 /**
