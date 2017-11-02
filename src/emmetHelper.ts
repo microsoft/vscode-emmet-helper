@@ -257,8 +257,17 @@ function addFinalTabStop(text): string {
 				break;
 			}
 
-			const foundPlaceholder = stream.peek() == colonCode;
-			stream.next();
+			let foundPlaceholder = false;
+			if (stream.next() == colonCode) {
+				// TODO: Nested placeholders may break here
+				while (!stream.eof()) {
+					if (stream.peek() == closeCode) {
+						foundPlaceholder = true;
+						break;
+					}
+					stream.next();
+				}
+			}
 
 			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
 			if (currentTabStop > maxTabStop) {
@@ -266,13 +275,6 @@ function addFinalTabStop(text): string {
 				maxTabStopStart = foundPlaceholder ? -1 : numberStart;
 				maxTabStopEnd = foundPlaceholder ? -1 : numberEnd;
 				replaceWithLastStop = !foundPlaceholder;
-			}
-
-			if (foundPlaceholder) {
-				// TODO: Nested placeholders may break here
-				while (!stream.eof() && stream.peek() != closeCode) {
-					stream.next();
-				}
 			}
 		}
 
