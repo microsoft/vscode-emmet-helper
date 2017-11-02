@@ -404,7 +404,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return !/[^!]/.test(abbreviation);
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
-	if (/^[a-z,A-Z,\d,-,:,\(,\),\.]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
+	if (/^[a-z,A-Z,\d,-,:,\(,\),\.,\$]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
 
@@ -436,16 +436,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// Unresolved html abbreviations get expanded as if it were a tag
 	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
-	if (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`) {
-		return true;
-	}
-
-	let matches = abbreviation.match(/^\((.*)\)$/);
-	if (matches) {
-		return isExpandedTextNoise(syntax, matches[1], expandedText);
-	}
-
-	return false;
+	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`); 
 }
 
 /**

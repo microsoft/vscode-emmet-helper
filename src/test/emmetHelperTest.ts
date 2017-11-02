@@ -613,6 +613,7 @@ describe('Test completions', () => {
 				['<div>abc.</div>', 0, 9], // Word ending with period
 				['<div>(div)</div>', 0, 10], // Word inside brackets
 				['<div>($db)</div>', 0, 10], // Word with symbols inside brackets
+				['<div>($db.)</div>', 0, 11], // Word with symbols inside brackets
 				['<div>ul::l</div>', 0, 10], // Word with : is valid, but not consecutive
 				['<div', 0, 4] // Its an open tag
 			];
