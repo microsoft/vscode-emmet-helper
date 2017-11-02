@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.1.1",
-    "@emmetio/stream-reader": "2.2.0",
     "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {

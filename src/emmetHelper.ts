@@ -7,7 +7,6 @@
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
 import { expand, createSnippetsRegistry } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
-import * as StreamReader from '@emmetio/stream-reader';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -33,11 +32,6 @@ const defaultUnitAliases = {
 	x: 'ex',
 	r: 'rem'
 }
-const dollarCode = '$'.charCodeAt(0);
-const openCode = '{'.charCodeAt(0);
-const closeCode = '}'.charCodeAt(0);
-const colonCode = ':'.charCodeAt(0);
-const escapeCode = '\\'.charCodeAt(0);
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -222,50 +216,51 @@ function addFinalTabStop(text): string {
 		return text;
 	}
 
-	const stream = new StreamReader(text);
 	let maxTabStop = -1;
 	let maxTabStopStart = -1;
 	let maxTabStopEnd = -1;
 	let foundLastStop = false;
 	let replaceWithLastStop = false;
+	let i = 0;
+	let n = text.length;
 
 	try {
-		while (!stream.eof() && !foundLastStop) {
+		while (i < n && !foundLastStop) {
 			// Look for ${
-			if (stream.next() != dollarCode || stream.next() != openCode) {
+			if (text[i++] != '$' || text[i++] != '{') {
 				continue;
 			}
 
 			// Find tabstop
 			let numberStart = -1;
 			let numberEnd = -1;
-			while (!stream.eof() && isNumber(stream.peek())) {
-				numberStart = numberStart < 0 ? stream.pos : numberStart;
-				numberEnd = stream.pos + 1;
-				stream.next();
+			while (i < n && /\d/.test(text[i])) {
+				numberStart = numberStart < 0 ? i : numberStart;
+				numberEnd = i + 1;
+				i++;
 			}
 
 			// If ${ was not followed by a number and either } or :, then its not a tabstop
-			if (numberStart === -1 || numberEnd === -1 || stream.eof() || (stream.peek() != closeCode && stream.peek() != colonCode)) {
+			if (numberStart === -1 || numberEnd === -1 || i >= n || (text[i] != '}' && text[i] != ':')) {
 				continue;
 			}
 
 			// If ${0} was found, then break
-			const currentTabStop = stream.substring(numberStart, numberEnd);
+			const currentTabStop = text.substring(numberStart, numberEnd);
 			foundLastStop = currentTabStop === '0';
 			if (foundLastStop) {
 				break;
 			}
 
 			let foundPlaceholder = false;
-			if (stream.next() == colonCode) {
+			if (text[i++] == ':') {
 				// TODO: Nested placeholders may break here
-				while (!stream.eof()) {
-					if (stream.peek() == closeCode) {
+				while (i < n) {
+					if (text[i] == '}') {
 						foundPlaceholder = true;
 						break;
 					}
-					stream.next();
+					i++;
 				}
 			}
 
@@ -277,18 +272,15 @@ function addFinalTabStop(text): string {
 				replaceWithLastStop = !foundPlaceholder;
 			}
 		}
-
-		if (replaceWithLastStop && !foundLastStop) {
-			text = text.substr(0, maxTabStopStart) + '0' + text.substr(maxTabStopEnd);
-		}
 	} catch (e) {
 
 	}
-	return text;
-}
 
-function isNumber(code) {
-	return code > 47 && code < 58;
+	if (replaceWithLastStop && !foundLastStop) {
+		text = text.substr(0, maxTabStopStart) + '0' + text.substr(maxTabStopEnd);
+	}
+
+	return text;
 }
 
 function getCurrentLine(document: TextDocument, position: Position): string {
