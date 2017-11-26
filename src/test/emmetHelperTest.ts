@@ -1,5 +1,6 @@
 import { TextDocument, Position } from 'vscode-languageserver-types'
 import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../emmetHelper';
+import { updateCssExtensionsPath } from '../emmetCssHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -244,12 +245,12 @@ describe('Test variables settings', () => {
 describe('Test custom snippets', () => {
 	it('should use custom snippets for given syntax from extensionsPath', () => {
 		const customSnippetKey = 'ch';
-		return updateExtensionsPath(null).then(() => {
+		return updateCssExtensionsPath(null).then(() => {
 			const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
 			assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 			// Use custom snippets from extensionsPath
-			return updateExtensionsPath(extensionsPath).then(() => {
+			return updateCssExtensionsPath(extensionsPath).then(() => {
 				let foundCustomSnippet = false;
 				const expandOptionsWithCustomSnippets = getExpandOptions('css');
 				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
@@ -266,12 +267,12 @@ describe('Test custom snippets', () => {
 	it('should use custom snippets inherited from base syntax from extensionsPath', () => {
 		const customSnippetKey = 'ch';
 
-		return updateExtensionsPath(null).then(() => {
+		return updateCssExtensionsPath(null).then(() => {
 			const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
 			assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 			// Use custom snippets from extensionsPath
-			return updateExtensionsPath(extensionsPath).then(() => {
+			return updateCssExtensionsPath(extensionsPath).then(() => {
 				let foundCustomSnippet = false;
 				let foundCustomSnippetInInhertitedSyntax = false;
 
@@ -300,12 +301,12 @@ describe('Test custom snippets', () => {
 
 	it('should use custom snippets for given syntax in the absence of base syntax from extensionsPath', () => {
 		const customSnippetKey = 'ch';
-		return updateExtensionsPath(null).then(() => {
+		return updateCssExtensionsPath(null).then(() => {
 			const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
 			assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 			// Use custom snippets from extensionsPath
-			return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
+			return updateCssExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
 				let foundCustomSnippet = false;
 				const expandOptionsWithCustomSnippets = getExpandOptions('scss');
 				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
@@ -332,7 +333,7 @@ describe('Test custom snippets', () => {
 
 	it('should reset custom snippets when no extensionsPath is given', () => {
 		const customSnippetKey = 'ch';
-		return updateExtensionsPath(extensionsPath).then(() => {
+		return updateCssExtensionsPath(extensionsPath).then(() => {
 			let foundCustomSnippet = false;
 			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
 				if (snippet.key === customSnippetKey) {
@@ -342,7 +343,7 @@ describe('Test custom snippets', () => {
 			assert.equal(foundCustomSnippet, true);
 
 			// Use invalid snippets.json
-			return updateExtensionsPath(null).then(() => {
+			return updateCssExtensionsPath(null).then(() => {
 				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
 				return Promise.resolve();
 			}, (e) => {
@@ -547,7 +548,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions using custom snippets css and unit aliases', () => {
-		return updateExtensionsPath(extensionsPath).then(() => {
+		return updateCssExtensionsPath(extensionsPath).then(() => {
 			const testCases: [string, number, number, string, string, string][] = [
 				['hel', 0, 3, 'hello', 'margin: 10px;', undefined], // Partial match with custom snippet
 				['hello', 0, 5, 'hello', 'margin: 10px;', undefined], // Full match with custom snippet
@@ -579,7 +580,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide both custom and default snippet completion when partial match with custom snippet', () => {
-		return updateExtensionsPath(extensionsPath).then(() => {
+		return updateCssExtensionsPath(extensionsPath).then(() => {
 			const expandOptions = {
 				preferences: {},
 				showExpandedAbbreviation: 'always',

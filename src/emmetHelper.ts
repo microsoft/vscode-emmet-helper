@@ -5,7 +5,8 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry } from './expand/expand-full';
+import { expand, createSnippetsRegistry, isStylesheet } from './expand/expand-full';
+import { doComplete as doCssComplete, isCssAbbreviationValid, getCssExpandOptions, updateCssExtensionsPath } from './emmetCssHelper';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -13,10 +14,8 @@ import * as fs from 'fs';
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
 let markupSnippetKeysRegex: RegExp[];
-const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
-const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'section', 'canvas', 'dl', 'dt', 'dd', 'em',
@@ -26,12 +25,6 @@ const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
-const defaultUnitAliases = {
-	e: 'em',
-	p: '%',
-	x: 'ex',
-	r: 'rem'
-}
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -47,23 +40,26 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return;
 	}
 
-	if (!isStyleSheet(syntax)) {
-		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
-			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
-
-			if (!snippetKeyCache.has(syntax)) {
-				snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
-					return snippet.key;
-				}));
-			}
-
-			markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
-				return snippet.key;
-			});
-
-		}
-		markupSnippetKeys = snippetKeyCache.get(syntax);
+	if (isStyleSheet(syntax)) {
+		return doCssComplete(document, position, syntax, emmetConfig);
 	}
+
+
+	if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
+		let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
+
+		if (!snippetKeyCache.has(syntax)) {
+			snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
+				return snippet.key;
+			}));
+		}
+
+		markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
+			return snippet.key;
+		});
+
+	}
+	markupSnippetKeys = snippetKeyCache.get(syntax);
 
 	let extractedValue = extractAbbreviation(document, position);
 	if (!extractedValue) {
@@ -108,32 +104,6 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
 		}
 		completionItems = [expandedAbbr];
-	}
-
-	if (isStyleSheet(syntax)) {
-		if (!expandedText) {
-			return CompletionList.create([], true);
-		}
-
-		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
-
-		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
-
-			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
-			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
-			// Updating the label will update the filterText used by VS Code, thus filtering out such cases
-			expandedAbbr.label = removeTabStops(expandedText);
-
-			// Fix for https://github.com/Microsoft/vscode/issues/33898 and
-			// https://github.com/Microsoft/vscode/issues/32277#issuecomment-321836737
-			if (/\d/.test(abbreviation)) {
-				expandedAbbr.filterText = abbreviation;
-			}
-
-			completionItems.push(expandedAbbr);
-		}
-		return CompletionList.create(completionItems, true);
 	}
 
 	let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
@@ -394,11 +364,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return false;
 	}
 	if (isStyleSheet(syntax)) {
-		// Fix for https://github.com/Microsoft/vscode/issues/1623 in new emmet
-		if (abbreviation.endsWith(':')) {
-			return false;
-		}
-		return cssAbbreviationRegex.test(abbreviation);
+		return isCssAbbreviationValid(syntax, abbreviation);
 	}
 	if (abbreviation.startsWith('!')) {
 		return !/[^!]/.test(abbreviation);
@@ -412,12 +378,6 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 }
 
 function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
-	// Unresolved css abbreviations get expanded to a blank property value
-	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
-	if (isStyleSheet(syntax)) {
-		let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
-		return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
-	}
 
 	if (commonlyUsedTags.indexOf(abbreviation.toLowerCase()) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
 		return false;
@@ -436,7 +396,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// Unresolved html abbreviations get expanded as if it were a tag
 	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
-	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`); 
+	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`);
 }
 
 /**
@@ -444,7 +404,10 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string, ) {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string) {
+	if (isStylesheet(syntax)) {
+		return getCssExpandOptions(syntax, emmetConfig);
+	}
 	emmetConfig = emmetConfig || {};
 	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
@@ -466,7 +429,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 		} else if (typeof emmetConfig['preferences']['format.noIndentTags'] === 'string') {
 			profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'].split(',');
 		}
-		
+
 	}
 	if (emmetConfig['preferences']['format.forceIndentationForTags']) {
 		if (Array.isArray(emmetConfig['preferences']['format.forceIndentationForTags'])) {
@@ -599,66 +562,24 @@ function getFormatters(syntax: string, preferences: object) {
 		return {};
 	}
 
-	if (!isStyleSheet(syntax)) {
-		let commentFormatter = {};
-		for (let key in preferences) {
-			switch (key) {
-				case 'filter.commentAfter':
-					commentFormatter['after'] = preferences[key];
-					break;
-				case 'filter.commentBefore':
-					commentFormatter['before'] = preferences[key];
-					break;
-				case 'filter.commentTrigger':
-					commentFormatter['trigger'] = preferences[key];
-					break;
-				default:
-					break;
-			}
-		}
-		return {
-			comment: commentFormatter
-		};
-	}
-
-	let stylesheetFormatter = {
-		'fuzzySearchMinScore': 0.3
-	};
+	let commentFormatter = {};
 	for (let key in preferences) {
 		switch (key) {
-			case 'css.floatUnit':
-				stylesheetFormatter['floatUnit'] = preferences[key];
+			case 'filter.commentAfter':
+				commentFormatter['after'] = preferences[key];
 				break;
-			case 'css.intUnit':
-				stylesheetFormatter['intUnit'] = preferences[key];
+			case 'filter.commentBefore':
+				commentFormatter['before'] = preferences[key];
 				break;
-			case 'css.unitAliases':
-				let unitAliases = {};
-				preferences[key].split(',').forEach(alias => {
-					if (!alias || !alias.trim() || alias.indexOf(':') === -1) {
-						return;
-					}
-					let aliasName = alias.substr(0, alias.indexOf(':'));
-					let aliasValue = alias.substr(aliasName.length + 1);
-					if (!aliasName.trim() || !aliasValue) {
-						return;
-					}
-					unitAliases[aliasName.trim()] = aliasValue;
-				});
-				stylesheetFormatter['unitAliases'] = unitAliases;
-				break;
-			case `${syntax}.valueSeparator`:
-				stylesheetFormatter['between'] = preferences[key];
-				break;
-			case `${syntax}.propertyEnd`:
-				stylesheetFormatter['after'] = preferences[key];
+			case 'filter.commentTrigger':
+				commentFormatter['trigger'] = preferences[key];
 				break;
 			default:
 				break;
 		}
 	}
 	return {
-		stylesheet: stylesheetFormatter
+		comment: commentFormatter
 	};
 }
 
@@ -683,6 +604,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 	let snippetsPath = path.join(dirPath, 'snippets.json');
 	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
 
+	let cssSnippetsPromise = updateCssExtensionsPath(emmetExtensionsPath);
 	let snippetsPromise = new Promise<void>((resolve, reject) => {
 		fs.readFile(snippetsPath, (err, snippetsData) => {
 			if (err) {
@@ -694,26 +616,23 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 				customSnippetRegistry = {};
 				snippetKeyCache.clear();
 				Object.keys(snippetsJson).forEach(syntax => {
-					if (!snippetsJson[syntax]['snippets']) {
+					if (!snippetsJson[syntax]['snippets'] || isStyleSheet(syntax)) {
 						return;
 					}
-					let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+					let baseSyntax = 'html';
 					let customSnippets = snippetsJson[syntax]['snippets'];
 					if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
 						customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
 					}
-					if (!isStyleSheet(syntax)) {
-						// In Emmet 2.0 all snippets should be valid abbreviations
-						// Convert old snippets that do not follow this format to new format
-						for (let snippetKey in customSnippets) {
-							if (customSnippets.hasOwnProperty(snippetKey)
-								&& customSnippets[snippetKey].startsWith('<')
-								&& customSnippets[snippetKey].endsWith('>')) {
-								customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
-							}
+
+					// In Emmet 2.0 all snippets should be valid abbreviations
+					// Convert old snippets that do not follow this format to new format
+					for (let snippetKey in customSnippets) {
+						if (customSnippets.hasOwnProperty(snippetKey)
+							&& customSnippets[snippetKey].startsWith('<')
+							&& customSnippets[snippetKey].endsWith('>')) {
+							customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
 						}
-					} else {
-						stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
 					}
 
 					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
@@ -730,7 +649,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 		});
 	});
 
-	let variablesPromise = new Promise<void>((resolve, reject) => {
+	let profilesPromise = new Promise<void>((resolve, reject) => {
 		fs.readFile(profilesPath, (err, profilesData) => {
 			try {
 				if (!err) {
@@ -743,7 +662,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 		});
 	});
 
-	return Promise.all([snippetsPromise, variablesFromFile]).then(() => Promise.resolve());
+	return Promise.all([cssSnippetsPromise, snippetsPromise, profilesPromise]).then(() => Promise.resolve());
 
 }
 
@@ -759,7 +678,6 @@ function dirExists(dirPath: string): boolean {
 function resetSettingsFromFile() {
 	customSnippetRegistry = {};
 	snippetKeyCache.clear();
-	stylesheetCustomSnippetsKeyCache.clear();
 	profilesFromFile = {};
 	variablesFromFile = {};
 }
