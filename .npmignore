@@ -3,3 +3,4 @@ node_modules
 src
 .gitignore
 out/test
+testData
