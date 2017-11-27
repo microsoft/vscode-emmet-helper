@@ -114,6 +114,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (!expandedText) {
 			return CompletionList.create([], true);
 		}
+		expandedAbbr.label = removeTabStops(expandedText);
+		expandedAbbr.filterText = abbreviation;
 
 		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
@@ -121,17 +123,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
 
 			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
-			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: fantasy
-			// Updating the label will update the filterText used by VS Code, thus filtering out such cases
-			expandedAbbr.label = removeTabStops(expandedText);
-
-			// Fix for https://github.com/Microsoft/vscode/issues/33898 and
-			// https://github.com/Microsoft/vscode/issues/32277#issuecomment-321836737
-			if (/\d/.test(abbreviation)) {
-				expandedAbbr.filterText = abbreviation;
+			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
+			// Filter out those cases here.
+			const abbrRegex = new RegExp('.*' + abbreviation.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+			if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
+				completionItems.push(expandedAbbr);
 			}
-
-			completionItems.push(expandedAbbr);
 		}
 		return CompletionList.create(completionItems, true);
 	}
@@ -436,7 +433,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// Unresolved html abbreviations get expanded as if it were a tag
 	// Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
-	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`); 
+	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`);
 }
 
 /**
@@ -466,7 +463,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 		} else if (typeof emmetConfig['preferences']['format.noIndentTags'] === 'string') {
 			profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'].split(',');
 		}
-		
+
 	}
 	if (emmetConfig['preferences']['format.forceIndentationForTags']) {
 		if (Array.isArray(emmetConfig['preferences']['format.forceIndentationForTags'])) {

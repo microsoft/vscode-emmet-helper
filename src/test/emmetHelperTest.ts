@@ -395,7 +395,7 @@ describe('Test filters (bem and comment)', () => {
 });
 
 describe('Test completions', () => {
-	it('should provide completions', () => {
+	it('should provide completions html', () => {
 		return updateExtensionsPath(null).then(() => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
 			let commentFilterExampleWithInlineFilter = commentFilterExample + '|c';
@@ -426,10 +426,64 @@ describe('Test completions', () => {
 					syntaxProfiles: {},
 					variables: {}
 				});
-				
+
 				assert.equal(completionList.items[0].label, expectedAbbr);
 				assert.equal(completionList.items[0].documentation, expectedExpansionDocs);
 				assert.equal(completionList.items[0].textEdit.newText, expectedExpansion);
+			});
+			return Promise.resolve();
+
+		});
+	});
+
+	it('should provide completions css', () => {
+		return updateExtensionsPath(null).then(() => {
+
+			const testCases: [string, number, number, string][] = [
+				['trf', 0, 3, 'transform: ;'], // Simple case
+				['trf:rx', 0, 6, 'transform: rotateX(angle);'], // using : to delimit property name and value, case insensitve 
+				['trfrx', 0, 5, 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
+			];
+
+			testCases.forEach(([abbreviation, positionLine, positionChar, expected]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items[0].label, expected);
+				assert.equal(completionList.items[0].filterText, abbreviation);
+			});
+			return Promise.resolve();
+
+		});
+	});
+
+	it('should not provide completions for property names css', () => {
+		return updateExtensionsPath(null).then(() => {
+
+			const testCases: [string, number, number][] = [
+				['width', 0, 5],
+				['font-family', 0, 11]
+			];
+
+			testCases.forEach(([abbreviation, positionLine, positionChar]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items.length, 0);
 			});
 			return Promise.resolve();
 
@@ -639,7 +693,7 @@ describe('Test completions', () => {
 	it('should not provide completions as they would noise when typing (css)', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
-				['background', 0, 10], 
+				['background', 0, 10],
 				['background:u', 0, 12]
 
 			];
