@@ -2127,8 +2127,8 @@ const defaultOptions$3 = {
 	modifier: '_'
 };
 
-const reElement  = /^(-+)([a-z0-9]+)/i;
-const reModifier = /^(_+)([a-z0-9]+)/i;
+const reElement  = /^(-+)([a-z0-9]+[a-z0-9-]*)/i;
+const reModifier = /^(_+)([a-z0-9]+[a-z0-9-]*)/i;
 const blockCandidates1 = className => /^[a-z]\-/i.test(className);
 const blockCandidates2 = className => /^[a-z]/i.test(className);
 
