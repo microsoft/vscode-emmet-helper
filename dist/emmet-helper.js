@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.emmet = global.emmet || {})));
-}(this, (function (exports) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('vscode-languageserver-types'), require('path'), require('fs')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'vscode-languageserver-types', 'path', 'fs'], factory) :
+	(factory((global.emmet = global.emmet || {}),global.vscodeLanguageserverTypes,global.path,global.fs));
+}(this, (function (exports,vscodeLanguageserverTypes,path,fs) { 'use strict';
 
 var defaultOptions$1 = {
 	/**
@@ -1249,7 +1249,7 @@ const EQUALS     = 61; // =
 const ATTR_OPEN  = 91; // [
 const ATTR_CLOSE = 93; // ]
 
-const reAttributeName = /^\!?[\w\-:\$@]+\.?$|^\!?\[[\w\-:\$@]+\]\.?$/;
+const reAttributeName = /^\!?[\w\-:\$@]+\.?$/;
 
 /**
  * Consumes attributes defined in square braces from given stream.
@@ -1280,11 +1280,6 @@ var consumeAttributes = function(stream) {
 		} else if (eatUnquoted(stream)) {
 			// Consumed next word: could be either attribute name or unquoted default value
 			token = stream.current();
-			// In angular attribute names can be surrounded by []
-			if (token && token[0] === '[' && stream.peek() === ATTR_CLOSE) {
-				stream.next();
-				token = stream.current();
-			}
 			if (!reAttributeName.test(token)) {
 				// anonymous attribute
 				result.push({ name: null, value: token });
@@ -1356,7 +1351,7 @@ function eatUnquoted(stream) {
 
 function isUnquoted(code) {
 	return !isSpace(code) && !isQuote(code)
-		 && code !== ATTR_CLOSE && code !== EQUALS;
+		&& code !== ATTR_OPEN && code !== ATTR_CLOSE && code !== EQUALS;
 }
 
 const HASH    = 35; // #
@@ -1438,7 +1433,7 @@ const OP_CLIMB    = 94; // ^
  * @param  {String} str Abbreviation to parse
  * @return {Node}
  */
-function parse$2(str) {
+function parse(str) {
 	const stream = new StreamReader(str.trim());
 	const root = new Node();
 	let ctx = root, groupStack = [], ch;
@@ -1520,7 +1515,7 @@ function parse$2(str) {
  * @return {Node}
  */
 var index = function(abbr) {
-	const tree = parse$2(abbr);
+	const tree = parse(abbr);
 	tree.walk(unroll);
 	return tree;
 };
@@ -2159,12 +2154,10 @@ var bem = function(tree, options) {
  */
 function expandClassNames(node, options) {
 	const classNames = node.classList.reduce((out, cl) => {
-		// remove all modifiers and element prefixes from class name to get a base element name
-		const ix = cl.indexOf('_');
-		if (ix > 0 && !cl.startsWith('-')) {
+		// remove all modifiers from class name to get a base element name
+		const ix = cl.indexOf(options.modifier);
+		if (ix !== -1) {
 			out.add(cl.slice(0, ix));
-			out.add(cl.slice(ix));
-			return out;
 		}
 
 		return out.add(cl);
@@ -2470,7 +2463,7 @@ const CLOSE_BRACE = 125; // }
  * @param  {String} string
  * @return {Object}
  */
-function parse$4(string) {
+function parse$2$1(string) {
 	const stream = new StreamReader(string);
 	const fields = [];
 	let cleanString = '', offset = 0, pos = 0;
@@ -2814,7 +2807,7 @@ function run(nodes, formatter, fieldsRenderer) {
  * @return {Object} Field model
  */
 function getFieldsModel(text, fieldState) {
-	const model = typeof text === 'object' ? text : parse$4(text);
+	const model = typeof text === 'object' ? text : parse$2$1(text);
     let largestIndex = -1;
 
     model.fields.forEach(field => {
@@ -2947,7 +2940,7 @@ function handlePseudoSnippet(outNode) {
 	const node = outNode.node; // original abbreviaiton node
 
 	if (isPseudoSnippet(node)) {
-		const fieldsModel = parse$4(node.value);
+		const fieldsModel = parse$2$1(node.value);
 		const field = findLowestIndexField(fieldsModel);
 		if (field) {
 			const parts = splitFieldsModel(fieldsModel, field);
@@ -3098,7 +3091,7 @@ function shouldFormatNode(node, profile) {
 
     if (node.parent.isTextOnly
         && node.parent.children.length === 1
-        && parse$4(node.parent.value).fields.length) {
+        && parse$2$1(node.parent.value).fields.length) {
         // Edge case: do not format the only child of text-only node,
         // but only if parent contains fields
         return false;
@@ -3726,36 +3719,6 @@ var index$3 = function(tree, profile, syntax, options) {
  */
 function supports(syntax) {
 	return !!syntax && syntax in supportedSyntaxed;
-}
-
-/**
- * Expands given abbreviation into code
- * @param  {String|Node} abbr    Abbreviation to parse or already parsed abbreviation
- * @param  {Object} options
- * @return {String}
- */
-function expand$1(abbr, options) {
-	options = options || {};
-
-	if (typeof abbr === 'string') {
-		abbr = parse$1(abbr, options);
-	}
-
-	return index$3(abbr, options.profile, options.syntax, options.format);
-}
-
-/**
- * Parses given Emmet abbreviation into a final abbreviation tree with all
- * required transformations applied
- * @param {String} Abbreviation to parse
- * @param  {Object} options
- * @return {Node}
- */
-function parse$1(abbr, options) {
-	return index(abbr)
-	.use(index$1, options.snippets)
-	.use(replaceVariables, options.variables)
-	.use(index$2, options.text, options.addons);
 }
 
 /**
@@ -4511,7 +4474,7 @@ const unitlessProperties = [
     'flex', 'flex-grow', 'flex-shrink'
 ];
 
-const defaultOptions$4 = {
+const defaultFormat = {
 	intUnit: 'px',
 	floatUnit: 'em',
 	unitAliases: {
@@ -4519,8 +4482,7 @@ const defaultOptions$4 = {
 		p: '%',
 		x: 'ex',
 		r: 'rem'
-	},
-	fuzzySearchMinScore: 0
+	}
 };
 
 /**
@@ -4531,15 +4493,14 @@ const defaultOptions$4 = {
  * keyword values.
  */
 
-var index$5 = function(tree, registry, options) {
+var index$5 = function(tree, registry, formatOptions) {
 	const snippets = convertToCSSSnippets(registry);
-	options = {
-		intUnit: (options && options.intUnit) || defaultOptions$4.intUnit,
-		floatUnit: (options && options.floatUnit) || defaultOptions$4.floatUnit,
-		unitAliases: Object.assign({}, defaultOptions$4.unitAliases, options && options.unitAliases),
-		fuzzySearchMinScore: (options && options.fuzzySearchMinScore) || defaultOptions$4.fuzzySearchMinScore
+	formatOptions = {
+		intUnit: (formatOptions && formatOptions.intUnit) || defaultFormat.intUnit,
+		floatUnit: (formatOptions && formatOptions.floatUnit) || defaultFormat.floatUnit,
+		unitAliases: Object.assign({}, defaultFormat.unitAliases, formatOptions && formatOptions.unitAliases)
 	};
-	tree.walk(node => resolveNode$1(node, snippets, options));
+	tree.walk(node => resolveNode$1(node, snippets, formatOptions));
 	return tree;
 };
 
@@ -4552,11 +4513,11 @@ function convertToCSSSnippets(registry) {
  * keyword aliases from node value
  * @param  {Node} node
  * @param  {CSSSnippet[]} snippets
- * @param  {Object} options
+ * @param  {Object} formatOptions
  * @return {Node}
  */
-function resolveNode$1(node, snippets, options) {
-	const snippet = findBestMatch(node.name, snippets, 'key', options.fuzzySearchMinScore);
+function resolveNode$1(node, snippets, formatOptions) {
+	const snippet = findBestMatch(node.name, snippets, 'key');
 
 	if (!snippet) {
 		// Edge case: `!important` snippet
@@ -4564,7 +4525,7 @@ function resolveNode$1(node, snippets, options) {
 	}
 
 	return snippet.property
-		? resolveAsProperty(node, snippet, options)
+		? resolveAsProperty(node, snippet, formatOptions)
 		: resolveAsSnippet(node, snippet);
 }
 
@@ -4651,17 +4612,15 @@ function setNodeAsText(node, text) {
  * @param {Array}  items List of items for match
  * @param {String} [key] If `items` is a list of objects, use `key` as object
  * property to test against
- * @param {Number} fuzzySearchMinScore The minimum score the best matched item should have to be a valid match.
  * @return {*}
  */
-function findBestMatch(abbr, items, key, fuzzySearchMinScore) {
+function findBestMatch(abbr, items, key) {
 	if (!abbr) {
 		return null;
 	}
 
 	let matchedItem = null;
 	let maxScore = 0;
-	fuzzySearchMinScore = fuzzySearchMinScore || 0;
 
 	for (let i = 0, item; i < items.length; i++) {
 		item = items[i];
@@ -4678,7 +4637,7 @@ function findBestMatch(abbr, items, key, fuzzySearchMinScore) {
 		}
 	}
 
-	return maxScore >= fuzzySearchMinScore ? matchedItem : null;
+	return matchedItem;
 }
 
 function getScoringPart(item, key) {
@@ -4748,7 +4707,7 @@ function resolveNumericValue(property, token, formatOptions) {
     return token;
 }
 
-const defaultOptions$5 = {
+const defaultOptions$4 = {
 	shortHex: true,
 	format: {
 		between: ': ',
@@ -4765,7 +4724,7 @@ const defaultOptions$5 = {
  * @return {String}
  */
 function css(tree, profile, options) {
-	options = Object.assign({}, defaultOptions$5, options);
+	options = Object.assign({}, defaultOptions$4, options);
 
 	return render(tree, options.field, outNode => {
 		const node = outNode.node;
@@ -4802,7 +4761,7 @@ function css(tree, profile, options) {
  * @return {FieldString}
  */
 function injectFields(string, values) {
-	const fieldsModel = parse$4(string);
+	const fieldsModel = parse$2$1(string);
 	const fieldsAmount = fieldsModel.fields.length;
 
 	if (fieldsAmount) {
@@ -4928,37 +4887,6 @@ function getFormat(syntax, options) {
 	}
 
 	return Object.assign({}, format, options && options.stylesheet);
-}
-
-/**
- * Expands given abbreviation into code
- * @param  {String|Node} abbr    Abbreviation to parse or already parsed abbreviation
- * @param  {Object} options
- * @return {String}
- */
-function expand$2(abbr, options) {
-	options = options || {};
-
-	if (typeof abbr === 'string') {
-		abbr = parse$5(abbr, options);
-	}
-
-	return index$6(abbr, options.profile, options.syntax, options.format);
-}
-
-/**
- * Parses given Emmet abbreviation into a final abbreviation tree with all
- * required transformations applied
- * @param {String|Node} Abbreviation to parse or already parsed abbreviation
- * @param  {Object} options
- * @return {Node}
- */
-function parse$5(abbr, options) {
-	if (typeof abbr === 'string') {
-		abbr = index$4(abbr);
-	}
-
-	return abbr.use(index$5, options.snippets, options.format ? options.format.stylesheet : {});
 }
 
 var html$1 = {
@@ -5157,7 +5085,7 @@ var css$1 = {
 	"bdrs": "border-radius",
 	"bdrst": "border-right-style",
 	"bdrw": "border-right-width",
-	"bds": "border-style:none|hidden|dotted|dashed|solid|double|dot-dash|dot-dot-dash|wave|groove|ridge|inset|outset",
+	"bds": "border-style:hidden|dotted|dashed|solid|double|dot-dash|dot-dot-dash|wave|groove|ridge|inset|outset",
 	"bdsp": "border-spacing",
 	"bdt": "border-top:${1:1px} ${2:solid} ${3:#000}",
 	"bdtc": "border-top-color:#${1:000}",
@@ -5452,7 +5380,7 @@ var sp = {
 
 const langs = { latin, ru, sp };
 
-const defaultOptions$6 = {
+const defaultOptions$5 = {
 	wordCount: 30,
 	skipCommon: false,
 	lang: 'latin'
@@ -5465,7 +5393,7 @@ const defaultOptions$6 = {
  * @return {Node}
  */
 var index$8 = function(node, options) {
-	options = Object.assign({}, defaultOptions$6, options);
+	options = Object.assign({}, defaultOptions$5, options);
 	const dict = langs[options.lang] || langs.latin;
     const startWithCommon = !options.skipCommon && !isRepeating(node);
 
@@ -5609,6 +5537,67 @@ function isRepeating(node) {
     return false;
 }
 
+/**
+ * Expands given abbreviation into code
+ * @param  {String|Node} abbr    Abbreviation to parse or already parsed abbreviation
+ * @param  {Object} options
+ * @return {String}
+ */
+function expand$1(abbr, options) {
+	options = options || {};
+
+	if (typeof abbr === 'string') {
+		abbr = parse$1(abbr, options);
+	}
+
+	return index$3(abbr, options.profile, options.syntax, options.format);
+}
+
+/**
+ * Parses given Emmet abbreviation into a final abbreviation tree with all
+ * required transformations applied
+ * @param {String} Abbreviation to parse
+ * @param  {Object} options
+ * @return {Node}
+ */
+function parse$1(abbr, options) {
+	return index(abbr)
+	.use(index$1, options.snippets)
+	.use(replaceVariables, options.variables)
+	.use(index$2, options.text, options.addons);
+}
+
+/**
+ * Expands given abbreviation into code
+ * @param  {String|Node} abbr    Abbreviation to parse or already parsed abbreviation
+ * @param  {Object} options
+ * @return {String}
+ */
+function expand$2(abbr, options) {
+	options = options || {};
+
+	if (typeof abbr === 'string') {
+		abbr = parse$2(abbr, options);
+	}
+
+	return index$6(abbr, options.profile, options.syntax, options.format);
+}
+
+/**
+ * Parses given Emmet abbreviation into a final abbreviation tree with all
+ * required transformations applied
+ * @param {String|Node} Abbreviation to parse or already parsed abbreviation
+ * @param  {Object} options
+ * @return {Node}
+ */
+function parse$2(abbr, options) {
+	if (typeof abbr === 'string') {
+		abbr = index$4(abbr);
+	}
+
+	return abbr.use(index$5, options.snippets);
+}
+
 const reLorem = /^lorem([a-z]*)(\d*)$/;
 
 /**
@@ -5690,7 +5679,7 @@ const defaultOptions = {
 	 * @param  {String} [placeholder] Field placeholder
 	 * @return {String}
 	 */
-	field: (index, placeholder) => placeholder || '',
+	field: (index$$1, placeholder) => placeholder || '',
 
 	/**
 	 * Insert given text string(s) into expanded abbreviation
@@ -5765,22 +5754,6 @@ function expand$$1(abbr, options) {
 }
 
 /**
- * Parses given abbreviation into AST tree. This tree can be later formatted to
- * string with `expand` function
- * @param  {String} abbr             Abbreviation to parse
- * @param  {String|Object} [options] Parsing and formatting options (object) or
- * abbreviation syntax (string)
- * @return {Node}
- */
-function parse$$1(abbr, options) {
-	options = createOptions(options);
-
-	return isStylesheet(options.syntax)
-		? parse$5(abbr, options)
-		: parse$1(abbr, options);
-}
-
-/**
  * Creates snippets registry for given syntax and additional `snippets`
  * @param  {String} syntax   Snippets syntax, used for retreiving predefined snippets
  * @param  {SnippetsRegistry|Object|Object[]} [snippets] Additional snippets
@@ -5829,12 +5802,1071 @@ function createProfile(options) {
 		: new Profile(options.profile);
 }
 
-exports.expand = expand$$1;
-exports.parse = parse$$1;
-exports.createSnippetsRegistry = createSnippetsRegistry;
-exports.createOptions = createOptions;
-exports.isStylesheet = isStylesheet;
-exports.createProfile = createProfile;
+/**
+ * Minimalistic backwards stream reader
+ */
+class StreamReader$2 {
+	constructor(string) {
+		this.string = string;
+		this.pos = this.string.length;
+	}
+
+	sol() {
+		return this.pos === 0;
+	}
+
+	peek(offset) {
+		return this.string.charCodeAt(this.pos - 1 + (offset || 0));
+	}
+
+	prev() {
+		if (!this.sol()) {
+			return this.string.charCodeAt(--this.pos);
+		}
+	}
+
+	eat(match) {
+		const ok = typeof match === 'function'
+			? match(this.peek())
+			: match === this.peek();
+
+		if (ok) {
+			this.pos--;
+		}
+
+		return ok;
+	}
+
+	eatWhile(match) {
+		const start = this.pos;
+		while (this.eat(match)) {}
+		return this.pos < start;
+	}
+}
+
+/**
+ * Quotes-related utilities
+ */
+
+const SINGLE_QUOTE$1 = 39; // '
+const DOUBLE_QUOTE$1 = 34; // "
+const ESCAPE$1       = 92; // \
+
+/**
+ * Check if given character code is a quote
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isQuote$1(c) {
+	return c === SINGLE_QUOTE$1 || c === DOUBLE_QUOTE$1;
+}
+
+/**
+ * Consumes quoted value, if possible
+ * @param  {StreamReader} stream
+ * @return {Boolean}      Returns `true` is value was consumed
+ */
+function eatQuoted$1(stream) {
+	const start = stream.pos;
+	const quote = stream.prev();
+
+	if (isQuote$1(quote)) {
+		while (!stream.sol()) {
+			if (stream.prev() === quote && stream.peek() !== ESCAPE$1) {
+				return true;
+			}
+		}
+	}
+
+	stream.pos = start;
+	return false;
+}
+
+const TAB         = 9;
+const SPACE       = 32;
+const DASH$2$1        = 45; // -
+const SLASH$1       = 47; // /
+const COLON$2       = 58; // :
+const EQUALS$1      = 61; // =
+const ANGLE_LEFT  = 60; // <
+const ANGLE_RIGHT = 62; // >
+
+/**
+ * Check if given reader’s current position points at the end of HTML tag
+ * @param  {StreamReader} stream
+ * @return {Boolean}
+ */
+var isAtHTMLTag = function(stream) {
+	const start = stream.pos;
+
+	if (!stream.eat(ANGLE_RIGHT)) {
+		return false;
+	}
+
+	let ok = false;
+	stream.eat(SLASH$1); // possibly self-closed element
+
+	while (!stream.sol()) {
+		stream.eatWhile(isWhiteSpace$1);
+
+		if (eatIdent(stream)) {
+			// ate identifier: could be a tag name, boolean attribute or unquoted
+			// attribute value
+			if (stream.eat(SLASH$1)) {
+				// either closing tag or invalid tag
+				ok = stream.eat(ANGLE_LEFT);
+				break;
+			} else if (stream.eat(ANGLE_LEFT)) {
+				// opening tag
+				ok = true;
+				break;
+			} else if (stream.eat(isWhiteSpace$1)) {
+				// boolean attribute
+				continue;
+			} else if (stream.eat(EQUALS$1)) {
+				// simple unquoted value or invalid attribute
+				ok = eatIdent(stream);
+				break;
+			} else if (eatAttributeWithUnquotedValue(stream)) {
+				// identifier was a part of unquoted value
+				ok = true;
+				break;
+			}
+
+			// invalid tag
+			break;
+		}
+
+		if (eatAttribute(stream)) {
+			continue;
+		}
+
+		break;
+	}
+
+	stream.pos = start;
+	return ok;
+};
+
+/**
+ * Eats HTML attribute from given string.
+ * @param  {StreamReader} state
+ * @return {Boolean}       `true` if attribute was consumed.
+ */
+function eatAttribute(stream) {
+	return eatAttributeWithQuotedValue(stream) || eatAttributeWithUnquotedValue(stream);
+}
+
+/**
+ * @param  {StreamReader} stream
+ * @return {Boolean}
+ */
+function eatAttributeWithQuotedValue(stream) {
+	const start = stream.pos;
+	if (eatQuoted$1(stream) && stream.eat(EQUALS$1) && eatIdent(stream)) {
+		return true;
+	}
+
+	stream.pos = start;
+	return false;
+}
+
+/**
+ * @param  {StreamReader} stream
+ * @return {Boolean}
+ */
+function eatAttributeWithUnquotedValue(stream) {
+	const start = stream.pos;
+	if (stream.eatWhile(isUnquotedValue) && stream.eat(EQUALS$1) && eatIdent(stream)) {
+		return true;
+	}
+
+	stream.pos = start;
+	return false;
+}
+
+/**
+ * Eats HTML identifier from stream
+ * @param  {StreamReader} stream
+ * @return {Boolean}
+ */
+function eatIdent(stream) {
+	return stream.eatWhile(isIdent$1);
+}
+
+/**
+ * Check if given character code belongs to HTML identifier
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isIdent$1(c) {
+	return c === COLON$2 || c === DASH$2$1 || isAlpha$1(c) || isNumber$1(c);
+}
+
+/**
+ * Check if given character code is alpha code (letter though A to Z)
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isAlpha$1(c) {
+	c &= ~32; // quick hack to convert any char code to uppercase char code
+	return c >= 65 && c <= 90; // A-Z
+}
+
+/**
+ * Check if given code is a number
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isNumber$1(c) {
+	return c > 47 && c < 58;
+}
+
+/**
+ * Check if given code is a whitespace
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isWhiteSpace$1(c) {
+	return c === SPACE || c === TAB;
+}
+
+/**
+ * Check if given code may belong to unquoted attribute value
+ * @param  {Number}  c
+ * @return {Boolean}
+ */
+function isUnquotedValue(c) {
+	return c && c !== EQUALS$1 && !isWhiteSpace$1(c) && !isQuote$1(c);
+}
+
+const code = ch => ch.charCodeAt(0);
+const SQUARE_BRACE_L = code('[');
+const SQUARE_BRACE_R = code(']');
+const ROUND_BRACE_L  = code('(');
+const ROUND_BRACE_R  = code(')');
+const CURLY_BRACE_L  = code('{');
+const CURLY_BRACE_R  = code('}');
+
+const specialChars = new Set('#.*:$-_!@%^+>/'.split('').map(code));
+const bracePairs = new Map()
+.set(SQUARE_BRACE_L, SQUARE_BRACE_R)
+.set(ROUND_BRACE_L,  ROUND_BRACE_R)
+.set(CURLY_BRACE_L,  CURLY_BRACE_R);
+
+/**
+ * Extracts Emmet abbreviation from given string.
+ * The goal of this module is to extract abbreviation from current editor’s line,
+ * e.g. like this: `<span>.foo[title=bar|]</span>` -> `.foo[title=bar]`, where
+ * `|` is a current caret position.
+ * @param {String}  line A text line where abbreviation should be expanded
+ * @param {Number}  [pos] Caret position in line. If not given, uses end-of-line
+ * @param {Boolean} [lookAhead] Allow parser to look ahead of `pos` index for
+ * searching of missing abbreviation parts. Most editors automatically inserts
+ * closing braces for `[`, `{` and `(`, which will most likely be right after
+ * current caret position. So in order to properly expand abbreviation, user
+ * must explicitly move caret right after auto-inserted braces. Whith this option
+ * enabled, parser will search for closing braces right after `pos`. Default is `true`
+ * @return {Object} Object with `abbreviation` and its `location` in given line
+ * if abbreviation can be extracted, `null` otherwise
+ */
+function extractAbbreviation$1(line, pos, lookAhead) {
+	// make sure `pos` is within line range
+	pos = Math.min(line.length, Math.max(0, pos == null ? line.length : pos));
+
+	if (lookAhead == null || lookAhead === true) {
+		pos = offsetPastAutoClosed(line, pos);
+	}
+
+	let c;
+	const stream = new StreamReader$2(line);
+	stream.pos = pos;
+	const stack = [];
+
+	while (!stream.sol()) {
+		c = stream.peek();
+
+		if (isCloseBrace(c)) {
+			stack.push(c);
+		} else if (isOpenBrace(c)) {
+			if (stack.pop() !== bracePairs.get(c)) {
+				// unexpected brace
+				break;
+			}
+		} else if (has(stack, SQUARE_BRACE_R) || has(stack, CURLY_BRACE_R)) {
+			// respect all characters inside attribute sets or text nodes
+			stream.pos--;
+			continue;
+		} else if (isAtHTMLTag(stream) || !isAbbreviation(c)) {
+			break;
+		}
+
+		stream.pos--;
+	}
+
+	if (!stack.length && stream.pos !== pos) {
+		// found something, remove some invalid symbols from the
+		// beginning and return abbreviation
+		const abbreviation = line.slice(stream.pos, pos).replace(/^[\*\+\>\^]+/, '');
+		return {
+			abbreviation,
+			location: pos - abbreviation.length
+		};
+	}
+}
+
+/**
+ * Returns new `line` index which is right after characters beyound `pos` that
+ * edditor will likely automatically close, e.g. }, ], and quotes
+ * @param {String} line
+ * @param {Number} pos
+ * @return {Number}
+ */
+function offsetPastAutoClosed(line, pos) {
+	// closing quote is allowed only as a next character
+	if (isQuote$1(line.charCodeAt(pos))) {
+		pos++;
+	}
+
+	// offset pointer until non-autoclosed character is found
+	while (isCloseBrace(line.charCodeAt(pos))) {
+		pos++;
+	}
+
+	return pos;
+}
+
+function has(arr, value) {
+	return arr.indexOf(value) !== -1;
+}
+
+function isAbbreviation(c) {
+	return (c > 64 && c < 91)   // uppercase letter
+		|| (c > 96 && c < 123)  // lowercase letter
+		|| (c > 47 && c < 58)   // number
+		|| specialChars.has(c); // special character
+}
+
+function isOpenBrace(c) {
+	return c === SQUARE_BRACE_L || c === ROUND_BRACE_L || c === CURLY_BRACE_L;
+}
+
+function isCloseBrace(c) {
+	return c === SQUARE_BRACE_R || c === ROUND_BRACE_R || c === CURLY_BRACE_R;
+}
+
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+const snippetKeyCache = new Map();
+let markupSnippetKeys;
+let markupSnippetKeysRegex;
+const stylesheetCustomSnippetsKeyCache = new Map();
+const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
+const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
+const htmlAbbreviationRegex = /[a-z,A-Z]/;
+const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
+const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'section', 'canvas', 'dl', 'dt', 'dd', 'em', 'main',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'aside', 'table', 'tbody', 'thead', 'tfoot', 'tr', 'th', 'td', 'blockquote', 'pre', 'sup', 'sub', 'title',
+    'plaintext', 'noscript', 'legend', 'u', 'code', 'comment', 'caption', 'colgroup', 'button', 'big', 'applet', 'address', 'strong', 'small', 'lorem'];
+const bemFilterSuffix = 'bem';
+const filterDelimitor = '|';
+const trimFilterSuffix = 't';
+const commentFilterSuffix = 'c';
+function doComplete(document, position, syntax, emmetConfig) {
+    if (emmetConfig.showExpandedAbbreviation === 'never' || emmetModes.indexOf(syntax) === -1) {
+        return;
+    }
+    if (!isStyleSheet(syntax)) {
+        if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
+            let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
+            if (!snippetKeyCache.has(syntax)) {
+                snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
+                    return snippet.key;
+                }));
+            }
+            markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
+                return snippet.key;
+            });
+        }
+        markupSnippetKeys = snippetKeyCache.get(syntax);
+    }
+    let extractedValue = extractAbbreviation(document, position);
+    if (!extractedValue) {
+        return vscodeLanguageserverTypes.CompletionList.create([], true);
+    }
+    let { abbreviationRange, abbreviation, filter } = extractedValue;
+    let currentLineTillPosition = getCurrentLine(document, position).substr(0, position.character);
+    let currentWord = getCurrentWord(currentLineTillPosition);
+    // Dont attempt to expand open tags
+    if (currentWord === abbreviation
+        && currentLineTillPosition.endsWith(`<${abbreviation}`)
+        && (syntax === 'html' || syntax === 'xml' || syntax === 'xsl' || syntax === 'jsx')) {
+        return vscodeLanguageserverTypes.CompletionList.create([], true);
+    }
+    let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
+    let expandedText;
+    let expandedAbbr;
+    let completionItems = [];
+    // If abbreviation is valid, then expand it and ensure the expanded value is not noise
+    if (isAbbreviationValid(syntax, abbreviation)) {
+        try {
+            expandedText = expand$$1(abbreviation, expandOptions);
+        }
+        catch (e) {
+        }
+        if (expandedText && isExpandedTextNoise(syntax, abbreviation, expandedText)) {
+            expandedText = '';
+        }
+    }
+    // Create completion item for expanded abbreviation
+    if (expandedText) {
+        expandedAbbr = vscodeLanguageserverTypes.CompletionItem.create(abbreviation);
+        expandedAbbr.textEdit = vscodeLanguageserverTypes.TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
+        expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
+        expandedAbbr.insertTextFormat = vscodeLanguageserverTypes.InsertTextFormat.Snippet;
+        expandedAbbr.detail = 'Emmet Abbreviation';
+        if (filter === 'bem' || filter === 'c') {
+            expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
+        }
+        completionItems = [expandedAbbr];
+    }
+    if (isStyleSheet(syntax)) {
+        if (!expandedText) {
+            return vscodeLanguageserverTypes.CompletionList.create([], true);
+        }
+        expandedAbbr.label = removeTabStops(expandedText);
+        expandedAbbr.filterText = abbreviation;
+        const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+        completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
+        if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
+            // Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
+            // When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
+            // Filter out those cases here.
+            const abbrRegex = new RegExp('.*' + abbreviation.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+            if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
+                completionItems.push(expandedAbbr);
+            }
+        }
+        return vscodeLanguageserverTypes.CompletionList.create(completionItems, true);
+    }
+    let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+    completionItems = completionItems.concat(commonlyUsedTagSuggestions);
+    if (emmetConfig.showAbbreviationSuggestions) {
+        let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+        // Workaround for the main expanded abbr not appearing before the snippet suggestions
+        if (expandedAbbr && abbreviationSuggestions.length > 0) {
+            expandedAbbr.sortText = '0' + expandedAbbr.label;
+        }
+        abbreviationSuggestions.forEach(item => {
+            // Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
+            item.filterText = abbreviation;
+            // Workaround for the main expanded abbr not appearing before the snippet suggestions
+            item.sortText = '9' + abbreviation;
+        });
+        completionItems = completionItems.concat(abbreviationSuggestions);
+    }
+    return vscodeLanguageserverTypes.CompletionList.create(completionItems, true);
+}
+function makeSnippetSuggestion(snippets, prefix, abbreviation, abbreviationRange, expandOptions, snippetDetail, skipFullMatch = true) {
+    if (!prefix || !snippets) {
+        return [];
+    }
+    let snippetCompletions = [];
+    snippets.forEach(snippetKey => {
+        if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
+            return;
+        }
+        let currentAbbr = abbreviation + snippetKey.substr(prefix.length);
+        let expandedAbbr;
+        try {
+            expandedAbbr = expand$$1(currentAbbr, expandOptions);
+        }
+        catch (e) {
+        }
+        if (!expandedAbbr) {
+            return;
+        }
+        let item = vscodeLanguageserverTypes.CompletionItem.create(prefix + snippetKey.substr(prefix.length));
+        item.documentation = replaceTabStopsWithCursors(expandedAbbr);
+        item.detail = snippetDetail;
+        item.textEdit = vscodeLanguageserverTypes.TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedAbbr)));
+        item.insertTextFormat = vscodeLanguageserverTypes.InsertTextFormat.Snippet;
+        snippetCompletions.push(item);
+    });
+    return snippetCompletions;
+}
+function getCurrentWord(currentLineTillPosition) {
+    if (currentLineTillPosition) {
+        let matches = currentLineTillPosition.match(/[\w,:,-]*$/);
+        if (matches) {
+            return matches[0];
+        }
+    }
+}
+function replaceTabStopsWithCursors(expandedWord) {
+    return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
+}
+function removeTabStops(expandedWord) {
+    return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
+}
+function escapeNonTabStopDollar(text) {
+    return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
+}
+function addFinalTabStop(text) {
+    if (!text || !text.trim()) {
+        return text;
+    }
+    let maxTabStop = -1;
+    let maxTabStopStart = -1;
+    let maxTabStopEnd = -1;
+    let foundLastStop = false;
+    let replaceWithLastStop = false;
+    let i = 0;
+    let n = text.length;
+    try {
+        while (i < n && !foundLastStop) {
+            // Look for ${
+            if (text[i++] != '$' || text[i++] != '{') {
+                continue;
+            }
+            // Find tabstop
+            let numberStart = -1;
+            let numberEnd = -1;
+            while (i < n && /\d/.test(text[i])) {
+                numberStart = numberStart < 0 ? i : numberStart;
+                numberEnd = i + 1;
+                i++;
+            }
+            // If ${ was not followed by a number and either } or :, then its not a tabstop
+            if (numberStart === -1 || numberEnd === -1 || i >= n || (text[i] != '}' && text[i] != ':')) {
+                continue;
+            }
+            // If ${0} was found, then break
+            const currentTabStop = text.substring(numberStart, numberEnd);
+            foundLastStop = currentTabStop === '0';
+            if (foundLastStop) {
+                break;
+            }
+            let foundPlaceholder = false;
+            if (text[i++] == ':') {
+                // TODO: Nested placeholders may break here
+                while (i < n) {
+                    if (text[i] == '}') {
+                        foundPlaceholder = true;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            // Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
+            if (currentTabStop > maxTabStop) {
+                maxTabStop = currentTabStop;
+                maxTabStopStart = foundPlaceholder ? -1 : numberStart;
+                maxTabStopEnd = foundPlaceholder ? -1 : numberEnd;
+                replaceWithLastStop = !foundPlaceholder;
+            }
+        }
+    }
+    catch (e) {
+    }
+    if (replaceWithLastStop && !foundLastStop) {
+        text = text.substr(0, maxTabStopStart) + '0' + text.substr(maxTabStopEnd);
+    }
+    return text;
+}
+function getCurrentLine(document, position) {
+    let offset = document.offsetAt(position);
+    let text = document.getText();
+    let start = 0;
+    let end = text.length;
+    for (let i = offset - 1; i >= 0; i--) {
+        if (text[i] === '\n') {
+            start = i + 1;
+            break;
+        }
+    }
+    for (let i = offset; i < text.length; i++) {
+        if (text[i] === '\n') {
+            end = i;
+            break;
+        }
+    }
+    return text.substring(start, end);
+}
+let customSnippetRegistry = {};
+let variablesFromFile = {};
+let profilesFromFile = {};
+const emmetSnippetField = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
+function isStyleSheet(syntax) {
+    let stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
+    return (stylesheetSyntaxes.indexOf(syntax) > -1);
+}
+/**
+ * Extracts abbreviation from the given position in the given document
+ */
+function extractAbbreviation(document, position, lookAhead = true) {
+    let filter;
+    let pos = position.character;
+    let currentLine = getCurrentLine(document, position);
+    let currentLineTillPosition = currentLine.substr(0, position.character);
+    let lengthOccupiedByFilter = 0;
+    if (currentLineTillPosition.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
+        lengthOccupiedByFilter = 4;
+        pos -= lengthOccupiedByFilter;
+        filter = bemFilterSuffix;
+    }
+    else if (currentLineTillPosition.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
+        lengthOccupiedByFilter = 2;
+        pos -= lengthOccupiedByFilter;
+        filter = commentFilterSuffix;
+    }
+    let result;
+    try {
+        result = extractAbbreviation$1(currentLine, pos, lookAhead);
+    }
+    catch (e) {
+    }
+    if (!result) {
+        return null;
+    }
+    let rangeToReplace = vscodeLanguageserverTypes.Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
+    return {
+        abbreviationRange: rangeToReplace,
+        abbreviation: result.abbreviation,
+        filter
+    };
+}
+function extractAbbreviationFromText(text) {
+    let filter;
+    if (!text) {
+        return {
+            abbreviation: '',
+            filter
+        };
+    }
+    let pos = text.length;
+    if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
+        pos -= bemFilterSuffix.length + 1;
+        filter = bemFilterSuffix;
+    }
+    else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`)) {
+        pos -= trimFilterSuffix.length + 1;
+        filter = trimFilterSuffix;
+    }
+    else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
+        pos -= commentFilterSuffix.length + 1;
+        filter = commentFilterSuffix;
+    }
+    let result;
+    try {
+        result = extractAbbreviation$1(text, pos, true);
+    }
+    catch (e) {
+    }
+    if (!result) {
+        return null;
+    }
+    return {
+        abbreviation: result.abbreviation,
+        filter
+    };
+}
+/**
+ * Returns a boolean denoting validity of given abbreviation in the context of given syntax
+ * Not needed once https://github.com/emmetio/atom-plugin/issues/22 is fixed
+ * @param syntax string
+ * @param abbreviation string
+ */
+function isAbbreviationValid(syntax, abbreviation) {
+    if (!abbreviation) {
+        return false;
+    }
+    if (isStyleSheet(syntax)) {
+        // Fix for https://github.com/Microsoft/vscode/issues/1623 in new emmet
+        if (abbreviation.endsWith(':')) {
+            return false;
+        }
+        return cssAbbreviationRegex.test(abbreviation);
+    }
+    if (abbreviation.startsWith('!')) {
+        return !/[^!]/.test(abbreviation);
+    }
+    // Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
+    if (/^[a-z,A-Z,\d,-,:,\(,\),\.,\$]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
+        return false;
+    }
+    return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
+}
+function isExpandedTextNoise(syntax, abbreviation, expandedText) {
+    // Unresolved css abbreviations get expanded to a blank property value
+    // Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
+    if (isStyleSheet(syntax)) {
+        let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
+        return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
+    }
+    if (commonlyUsedTags.indexOf(abbreviation.toLowerCase()) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
+        return false;
+    }
+    // Custom tags can have - or :
+    if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation)) {
+        return false;
+    }
+    // Its common for users to type some text and end it with period, this should not be treated as an abbreviation
+    // Else it becomes noise.
+    if (/^[a-z,A-Z,\d]*\.$/.test(abbreviation)) {
+        return true;
+    }
+    // Unresolved html abbreviations get expanded as if it were a tag
+    // Eg: abc -> <abc></abc> which is noise if it gets suggested for every word typed
+    return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`);
+}
+/**
+ * Returns options to be used by the expand module
+ * @param syntax
+ * @param textToReplace
+ */
+function getExpandOptions(syntax, emmetConfig, filter) {
+    emmetConfig = emmetConfig || {};
+    emmetConfig['preferences'] = emmetConfig['preferences'] || {};
+    // Fetch snippet registry
+    let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+    if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
+        customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
+    }
+    // Fetch Profile
+    let profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
+    let filtersFromProfile = (profile && profile['filters']) ? profile['filters'].split(',') : [];
+    filtersFromProfile = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
+    // Update profile based on preferences
+    if (emmetConfig['preferences']['format.noIndentTags']) {
+        if (Array.isArray(emmetConfig['preferences']['format.noIndentTags'])) {
+            profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'];
+        }
+        else if (typeof emmetConfig['preferences']['format.noIndentTags'] === 'string') {
+            profile['formatSkip'] = emmetConfig['preferences']['format.noIndentTags'].split(',');
+        }
+    }
+    if (emmetConfig['preferences']['format.forceIndentationForTags']) {
+        if (Array.isArray(emmetConfig['preferences']['format.forceIndentationForTags'])) {
+            profile['formatForce'] = emmetConfig['preferences']['format.forceIndentationForTags'];
+        }
+        else if (typeof emmetConfig['preferences']['format.forceIndentationForTags'] === 'string') {
+            profile['formatForce'] = emmetConfig['preferences']['format.forceIndentationForTags'].split(',');
+        }
+    }
+    if (emmetConfig['preferences']['profile.allowCompactBoolean'] && typeof emmetConfig['preferences']['profile.allowCompactBoolean'] === 'boolean') {
+        profile['compactBooleanAttributes'] = emmetConfig['preferences']['profile.allowCompactBoolean'];
+    }
+    // Fetch Add Ons
+    let addons = {};
+    if ((filter && filter === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
+        addons['bem'] = { element: '__' };
+        if (emmetConfig['preferences']['bem.elementSeparator']) {
+            addons['bem']['element'] = emmetConfig['preferences']['bem.elementSeparator'];
+        }
+        if (emmetConfig['preferences']['bem.modifierSeparator']) {
+            addons['bem']['modifier'] = emmetConfig['preferences']['bem.modifierSeparator'];
+        }
+    }
+    if (syntax === 'jsx') {
+        addons['jsx'] = true;
+    }
+    // Fetch Formatters
+    let formatters = getFormatters(syntax, emmetConfig['preferences']);
+    if ((filter && filter === 'c') || filtersFromProfile.indexOf('c') > -1) {
+        if (!formatters['comment']) {
+            formatters['comment'] = {
+                enabled: true
+            };
+        }
+        else {
+            formatters['comment']['enabled'] = true;
+        }
+    }
+    return {
+        field: emmetSnippetField,
+        syntax: syntax,
+        profile: profile,
+        addons: addons,
+        variables: getVariables(emmetConfig['variables']),
+        snippets: customSnippetRegistry[syntax],
+        format: formatters
+    };
+}
+/**
+ * Expands given abbreviation using given options
+ * @param abbreviation string
+ * @param options
+ */
+function expandAbbreviation(abbreviation, options) {
+    let expandedText = expand$$1(abbreviation, options);
+    return escapeNonTabStopDollar(addFinalTabStop(expandedText));
+}
+/**
+ * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
+ * @param syntax
+ */
+function getProfile(syntax, profilesFromSettings) {
+    if (!profilesFromSettings) {
+        profilesFromSettings = {};
+    }
+    let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
+    let options = profilesConfig[syntax];
+    if (!options || typeof options === 'string') {
+        if (options === 'xhtml') {
+            return {
+                selfClosingStyle: 'xhtml'
+            };
+        }
+        return {};
+    }
+    let newOptions = {};
+    for (let key in options) {
+        switch (key) {
+            case 'tag_case':
+                newOptions['tagCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
+                break;
+            case 'attr_case':
+                newOptions['attributeCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
+                break;
+            case 'attr_quotes':
+                newOptions['attributeQuotes'] = options[key];
+                break;
+            case 'tag_nl':
+                newOptions['format'] = (options[key] === true || options[key] === false) ? options[key] : true;
+                break;
+            case 'inline_break':
+                newOptions['inlineBreak'] = options[key];
+                break;
+            case 'self_closing_tag':
+                if (options[key] === true) {
+                    newOptions['selfClosingStyle'] = 'xml';
+                    break;
+                }
+                if (options[key] === false) {
+                    newOptions['selfClosingStyle'] = 'html';
+                    break;
+                }
+                newOptions['selfClosingStyle'] = options[key];
+                break;
+            case 'compact_bool':
+                newOptions['compactBooleanAttributes'] = options[key];
+                break;
+            default:
+                newOptions[key] = options[key];
+                break;
+        }
+    }
+    return newOptions;
+}
+/**
+ * Returns variables to be used while expanding snippets
+ */
+function getVariables(variablesFromSettings) {
+    if (!variablesFromSettings) {
+        return variablesFromFile;
+    }
+    return Object.assign({}, variablesFromFile, variablesFromSettings);
+}
+function getFormatters(syntax, preferences) {
+    if (!preferences) {
+        return {};
+    }
+    if (!isStyleSheet(syntax)) {
+        let commentFormatter = {};
+        for (let key in preferences) {
+            switch (key) {
+                case 'filter.commentAfter':
+                    commentFormatter['after'] = preferences[key];
+                    break;
+                case 'filter.commentBefore':
+                    commentFormatter['before'] = preferences[key];
+                    break;
+                case 'filter.commentTrigger':
+                    commentFormatter['trigger'] = preferences[key];
+                    break;
+                default:
+                    break;
+            }
+        }
+        return {
+            comment: commentFormatter
+        };
+    }
+    let stylesheetFormatter = {
+        'fuzzySearchMinScore': 0.3
+    };
+    for (let key in preferences) {
+        switch (key) {
+            case 'css.floatUnit':
+                stylesheetFormatter['floatUnit'] = preferences[key];
+                break;
+            case 'css.intUnit':
+                stylesheetFormatter['intUnit'] = preferences[key];
+                break;
+            case 'css.unitAliases':
+                let unitAliases = {};
+                preferences[key].split(',').forEach(alias => {
+                    if (!alias || !alias.trim() || alias.indexOf(':') === -1) {
+                        return;
+                    }
+                    let aliasName = alias.substr(0, alias.indexOf(':'));
+                    let aliasValue = alias.substr(aliasName.length + 1);
+                    if (!aliasName.trim() || !aliasValue) {
+                        return;
+                    }
+                    unitAliases[aliasName.trim()] = aliasValue;
+                });
+                stylesheetFormatter['unitAliases'] = unitAliases;
+                break;
+            case `${syntax}.valueSeparator`:
+                stylesheetFormatter['between'] = preferences[key];
+                break;
+            case `${syntax}.propertyEnd`:
+                stylesheetFormatter['after'] = preferences[key];
+                break;
+            default:
+                break;
+        }
+    }
+    return {
+        stylesheet: stylesheetFormatter
+    };
+}
+/**
+ * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
+ */
+function updateExtensionsPath(emmetExtensionsPath) {
+    if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
+        resetSettingsFromFile();
+        return Promise.resolve();
+    }
+    if (!path.isAbsolute(emmetExtensionsPath.trim())) {
+        resetSettingsFromFile();
+        return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
+    }
+    if (!dirExists(emmetExtensionsPath.trim())) {
+        resetSettingsFromFile();
+        return Promise.reject(`The directory ${emmetExtensionsPath.trim()} doesnt exist. Update emmet.extensionsPath setting`);
+    }
+    let dirPath = emmetExtensionsPath.trim();
+    let snippetsPath = path.join(dirPath, 'snippets.json');
+    let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+    let snippetsPromise = new Promise((resolve, reject) => {
+        fs.readFile(snippetsPath, (err, snippetsData) => {
+            if (err) {
+                return reject(`Error while fetching the file ${snippetsPath}`);
+            }
+            try {
+                let snippetsJson = JSON.parse(snippetsData.toString());
+                variablesFromFile = snippetsJson['variables'];
+                customSnippetRegistry = {};
+                snippetKeyCache.clear();
+                Object.keys(snippetsJson).forEach(syntax => {
+                    if (!snippetsJson[syntax]['snippets']) {
+                        return;
+                    }
+                    let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+                    let customSnippets = snippetsJson[syntax]['snippets'];
+                    if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
+                        customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets']);
+                    }
+                    if (!isStyleSheet(syntax)) {
+                        // In Emmet 2.0 all snippets should be valid abbreviations
+                        // Convert old snippets that do not follow this format to new format
+                        for (let snippetKey in customSnippets) {
+                            if (customSnippets.hasOwnProperty(snippetKey)
+                                && customSnippets[snippetKey].startsWith('<')
+                                && customSnippets[snippetKey].endsWith('>')) {
+                                customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`;
+                            }
+                        }
+                    }
+                    else {
+                        stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
+                    }
+                    customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
+                    let snippetKeys = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
+                        return snippet.key;
+                    });
+                    snippetKeyCache.set(syntax, snippetKeys);
+                });
+            }
+            catch (e) {
+                return reject(`Error while parsing the file ${snippetsPath}`);
+            }
+            return resolve();
+        });
+    });
+    let variablesPromise = new Promise((resolve, reject) => {
+        fs.readFile(profilesPath, (err, profilesData) => {
+            try {
+                if (!err) {
+                    profilesFromFile = JSON.parse(profilesData.toString());
+                }
+            }
+            catch (e) {
+            }
+            return resolve();
+        });
+    });
+    return Promise.all([snippetsPromise, variablesFromFile]).then(() => Promise.resolve());
+}
+function dirExists(dirPath) {
+    try {
+        return fs.statSync(dirPath).isDirectory();
+    }
+    catch (e) {
+        return false;
+    }
+}
+function resetSettingsFromFile() {
+    customSnippetRegistry = {};
+    snippetKeyCache.clear();
+    stylesheetCustomSnippetsKeyCache.clear();
+    profilesFromFile = {};
+    variablesFromFile = {};
+}
+/**
+* Get the corresponding emmet mode for given vscode language mode
+* Eg: jsx for typescriptreact/javascriptreact or pug for jade
+* If the language is not supported by emmet or has been exlcuded via `exlcudeLanguages` setting,
+* then nothing is returned
+*
+* @param language
+* @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
+*/
+function getEmmetMode(language, excludedLanguages) {
+    if (!language || excludedLanguages.indexOf(language) > -1) {
+        return;
+    }
+    if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) {
+        return 'jsx';
+    }
+    if (language === 'sass-indented') {
+        return 'sass';
+    }
+    if (language === 'jade') {
+        return 'pug';
+    }
+    if (emmetModes.indexOf(language) > -1) {
+        return language;
+    }
+}
+
+exports.doComplete = doComplete;
+exports.emmetSnippetField = emmetSnippetField;
+exports.isStyleSheet = isStyleSheet;
+exports.extractAbbreviation = extractAbbreviation;
+exports.extractAbbreviationFromText = extractAbbreviationFromText;
+exports.isAbbreviationValid = isAbbreviationValid;
+exports.getExpandOptions = getExpandOptions;
+exports.expandAbbreviation = expandAbbreviation;
+exports.updateExtensionsPath = updateExtensionsPath;
+exports.getEmmetMode = getEmmetMode;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
