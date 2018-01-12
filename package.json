@@ -17,15 +17,19 @@
     "@types/node": "^6.0.46",
     "typescript": "^2.1.5",
     "mocha": "3.4.2",
-    "cpy-cli": "^1.0.1"
+    "rollup": "^0.41.4",
+    "rollup-plugin-node-resolve": "^2.0.0",
+    "rollup-plugin-typescript": "0.8.1"
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.1.1",
+    "@emmetio/expand-abbreviation": "^0.5.8",
     "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {
-    "prepublish": "npm run compile && npm run test",
-    "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand",
-    "test": "mocha out/test"
+    "prepublish": "npm run compile && npm run rollup && npm run test",
+    "compile": "tsc -p ./",
+    "test": "mocha out/test",
+    "rollup": "rollup -c"
   }
 }

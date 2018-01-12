@@ -5,10 +5,12 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry } from './expand/expand-full';
-import * as extract from '@emmetio/extract-abbreviation';
-import * as path from 'path';
+import { expand, createSnippetsRegistry } from '@emmetio/expand-abbreviation';
+import * as extract_ from '@emmetio/extract-abbreviation';
 import * as fs from 'fs';
+
+// Workaround to enable rolling up of extract module and make it availble for tests
+let extract: any = (<any>extract_).default || extract_;
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -591,7 +593,7 @@ function getVariables(variablesFromSettings: object): any {
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
-function getFormatters(syntax: string, preferences: object) {
+function getFormatters(syntax: string, preferences: any) {
 	if (!preferences) {
 		return {};
 	}
@@ -663,22 +665,20 @@ function getFormatters(syntax: string, preferences: object) {
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
 export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void> {
-	if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
+	let dirPath = emmetExtensionsPath ? emmetExtensionsPath.trim() : emmetExtensionsPath;
+	if (!dirPath) {
 		resetSettingsFromFile();
 		return Promise.resolve();
 	}
-	if (!path.isAbsolute(emmetExtensionsPath.trim())) {
+	if (!dirExists(dirPath)) {
 		resetSettingsFromFile();
-		return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
+		return Promise.reject(`The directory ${dirPath} doesnt exist. Update emmet.extensionsPath setting`);
 	}
-	if (!dirExists(emmetExtensionsPath.trim())) {
-		resetSettingsFromFile();
-		return Promise.reject(`The directory ${emmetExtensionsPath.trim()} doesnt exist. Update emmet.extensionsPath setting`);
+	if (dirPath.endsWith('/') || dirPath.endsWith('\\')) {
+		dirPath = dirPath.substr(0, dirPath.length - 1);
 	}
-
-	let dirPath = emmetExtensionsPath.trim();
-	let snippetsPath = path.join(dirPath, 'snippets.json');
-	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+	let snippetsPath = dirPath + '/snippets.json';
+	let profilesPath = dirPath + '/syntaxProfiles.json';
 
 	let snippetsPromise = new Promise<void>((resolve, reject) => {
 		fs.readFile(snippetsPath, (err, snippetsData) => {
