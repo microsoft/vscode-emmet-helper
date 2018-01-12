@@ -1249,7 +1249,7 @@ const EQUALS     = 61; // =
 const ATTR_OPEN  = 91; // [
 const ATTR_CLOSE = 93; // ]
 
-const reAttributeName = /^\!?[\w\-:\$@]+\.?$/;
+const reAttributeName = /^\!?[\w\-:\$@]+\.?$|^\!?\[[\w\-:\$@]+\]\.?$/;
 
 /**
  * Consumes attributes defined in square braces from given stream.
@@ -1280,6 +1280,11 @@ var consumeAttributes = function(stream) {
 		} else if (eatUnquoted(stream)) {
 			// Consumed next word: could be either attribute name or unquoted default value
 			token = stream.current();
+			// In angular attribute names can be surrounded by []
+			if (token && token[0] === '[' && stream.peek() === ATTR_CLOSE) {
+				stream.next();
+				token = stream.current();
+			}
 			if (!reAttributeName.test(token)) {
 				// anonymous attribute
 				result.push({ name: null, value: token });
@@ -1351,7 +1356,7 @@ function eatUnquoted(stream) {
 
 function isUnquoted(code) {
 	return !isSpace(code) && !isQuote(code)
-		&& code !== ATTR_OPEN && code !== ATTR_CLOSE && code !== EQUALS;
+		&& code !== ATTR_CLOSE && code !== EQUALS;
 }
 
 const HASH    = 35; // #
