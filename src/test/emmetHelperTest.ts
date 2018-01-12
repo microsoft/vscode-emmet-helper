@@ -1,5 +1,5 @@
 import { TextDocument, Position } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../../dist/emmet-Helper';
+import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../emmetHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
 import * as path from 'path';

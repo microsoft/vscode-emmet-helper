@@ -6161,10 +6161,18 @@ function isCloseBrace(c) {
 	return c === SQUARE_BRACE_R || c === ROUND_BRACE_R || c === CURLY_BRACE_R;
 }
 
+
+
+
+var extract_ = Object.freeze({
+	default: extractAbbreviation$1
+});
+
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+let extract = extractAbbreviation$1 || extract_;
 const snippetKeyCache = new Map();
 let markupSnippetKeys;
 let markupSnippetKeysRegex;
@@ -6431,7 +6439,7 @@ function extractAbbreviation(document, position, lookAhead = true) {
     }
     let result;
     try {
-        result = extractAbbreviation$1(currentLine, pos, lookAhead);
+        result = extract(currentLine, pos, lookAhead);
     }
     catch (e) {
     }
@@ -6468,7 +6476,7 @@ function extractAbbreviationFromText(text) {
     }
     let result;
     try {
-        result = extractAbbreviation$1(text, pos, true);
+        result = extract(text, pos, true);
     }
     catch (e) {
     }

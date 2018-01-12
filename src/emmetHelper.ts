@@ -6,9 +6,11 @@
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
 import { expand, createSnippetsRegistry } from '@emmetio/expand-abbreviation';
-import extract from '@emmetio/extract-abbreviation';
+import * as extract_ from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
+
+let extract: any = (<any>extract_).default || extract_;
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -591,7 +593,7 @@ function getVariables(variablesFromSettings: object): any {
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
-function getFormatters(syntax: string, preferences: object) {
+function getFormatters(syntax: string, preferences: any) {
 	if (!preferences) {
 		return {};
 	}
