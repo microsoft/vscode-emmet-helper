@@ -1,8 +1,8 @@
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('vscode-languageserver-types'), require('path'), require('fs')) :
-	typeof define === 'function' && define.amd ? define(['exports', 'vscode-languageserver-types', 'path', 'fs'], factory) :
-	(factory((global.emmet = global.emmet || {}),global['vscode-languageserver-types'],global.path,global.fs));
-}(this, (function (exports,vscodeLanguageserverTypes,path,fs) { 'use strict';
+	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('vscode-languageserver-types'), require('fs')) :
+	typeof define === 'function' && define.amd ? define(['exports', 'vscode-languageserver-types', 'fs'], factory) :
+	(factory((global.emmet = global.emmet || {}),global['vscode-languageserver-types'],global.fs));
+}(this, (function (exports,vscodeLanguageserverTypes,fs) { 'use strict';
 
 var defaultOptions$1 = {
 	/**
@@ -6754,21 +6754,20 @@ function getFormatters(syntax, preferences) {
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
 function updateExtensionsPath(emmetExtensionsPath) {
-    if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
+    let dirPath = emmetExtensionsPath ? emmetExtensionsPath.trim() : emmetExtensionsPath;
+    if (!dirPath) {
         resetSettingsFromFile();
         return Promise.resolve();
     }
-    if (!path.isAbsolute(emmetExtensionsPath.trim())) {
+    if (!dirExists(dirPath)) {
         resetSettingsFromFile();
-        return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
+        return Promise.reject(`The directory ${dirPath} doesnt exist. Update emmet.extensionsPath setting`);
     }
-    if (!dirExists(emmetExtensionsPath.trim())) {
-        resetSettingsFromFile();
-        return Promise.reject(`The directory ${emmetExtensionsPath.trim()} doesnt exist. Update emmet.extensionsPath setting`);
+    if (dirPath.endsWith('/') || dirPath.endsWith('\\')) {
+        dirPath = dirPath.substr(0, dirPath.length - 1);
     }
-    let dirPath = emmetExtensionsPath.trim();
-    let snippetsPath = path.join(dirPath, 'snippets.json');
-    let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+    let snippetsPath = dirPath + '/snippets.json';
+    let profilesPath = dirPath + '/syntaxProfiles.json';
     let snippetsPromise = new Promise((resolve, reject) => {
         fs.readFile(snippetsPath, (err, snippetsData) => {
             if (err) {

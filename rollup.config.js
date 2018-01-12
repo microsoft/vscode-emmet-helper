@@ -13,12 +13,10 @@ export default {
     dest: 'dist/emmet-helper.js',
     moduleName: 'emmet',
     external: [
-        'path',
         'fs',
         'vscode-languageserver-types'
     ],
     globals: {
-        path: 'path',
         fs: 'fs',
         'vscode-languageserver-types': 'vscode-languageserver-types'
     }
