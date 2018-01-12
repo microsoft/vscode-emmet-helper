@@ -1,7 +1,7 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('vscode-languageserver-types'), require('path'), require('fs')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'vscode-languageserver-types', 'path', 'fs'], factory) :
-	(factory((global.emmet = global.emmet || {}),global.vscodeLanguageserverTypes,global.path,global.fs));
+	(factory((global.emmet = global.emmet || {}),global['vscode-languageserver-types'],global.path,global.fs));
 }(this, (function (exports,vscodeLanguageserverTypes,path,fs) { 'use strict';
 
 var defaultOptions$1 = {

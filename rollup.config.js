@@ -16,7 +16,12 @@ export default {
         'path',
         'fs',
         'vscode-languageserver-types'
-    ]
+    ],
+    globals: {
+        path: 'path',
+        fs: 'fs',
+        'vscode-languageserver-types': 'vscode-languageserver-types'
+    }
 };
 
 
