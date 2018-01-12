@@ -9,6 +9,7 @@ import { expand, createSnippetsRegistry } from '@emmetio/expand-abbreviation';
 import * as extract_ from '@emmetio/extract-abbreviation';
 import * as fs from 'fs';
 
+// Workaround to enable rolling up of extract module and make it availble for tests
 let extract: any = (<any>extract_).default || extract_;
 
 const snippetKeyCache = new Map<string, string[]>();
