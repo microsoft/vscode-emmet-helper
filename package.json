@@ -25,6 +25,7 @@
   },
   "scripts": {
     "prepublish": "npm run compile && npm run test",
+    "watch": "tsc -watch -p ./",
     "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand",
     "test": "mocha out/test"
   }

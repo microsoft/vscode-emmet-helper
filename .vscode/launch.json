@@ -16,7 +16,11 @@
                 "999999",
                 "--colors",
                 "${workspaceRoot}/out/test/emmetHelperTest.js"
-            ]
+            ],
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+			]
         }
     ]
 }
