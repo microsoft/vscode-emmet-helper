@@ -4965,6 +4965,7 @@ var html$1 = {
 	"a": "a[href]",
 	"a:link": "a[href='http://${0}']",
 	"a:mail": "a[href='mailto:${0}']",
+	"a:tel": "a[href='tel:+${0}']",
 	"abbr": "abbr[title]",
 	"acr|acronym": "acronym[title]",
 	"base": "base[href]/",
