@@ -9,6 +9,7 @@ import { expand, createSnippetsRegistry } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as JSONC from 'jsonc-parser';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -691,7 +692,11 @@ export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>
 				return reject(`Error while fetching the file ${snippetsPath}`);
 			}
 			try {
-				let snippetsJson = JSON.parse(snippetsData.toString());
+				let errors = [];
+				let snippetsJson = JSONC.parse(snippetsData.toString(), errors);
+				if (errors.length > 0) {
+					return reject(`Found error ${JSONC.ScanError[errors[0].error]} while parsing the file ${snippetsPath} at offset ${errors[0].offset}`);
+				}
 				variablesFromFile = snippetsJson['variables'];
 				customSnippetRegistry = {};
 				snippetKeyCache.clear();

@@ -22,7 +22,7 @@ const expectedCommentFilterOutput =
 const expectedCommentFilterOutputDocs = expectedCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
 
 describe('Validate Abbreviations', () => {
-	it('should return true for valid abbreivations', () => {
+	it('should return true for valid abbreviations', () => {
 		const htmlAbbreviations = ['ul>li', 'ul', 'h1', 'ul>li*3', '(ul>li)+div', '.hello', '!', '#hello', '.item[id=ok]'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('html', abbr));
@@ -31,7 +31,7 @@ describe('Validate Abbreviations', () => {
 			assert(isAbbreviationValid('haml', abbr));
 		});
 	});
-	it('should return false for invalid abbreivations', () => {
+	it('should return false for invalid abbreviations', () => {
 		const htmlAbbreviations = ['!ul!', '(hello)', 'super(hello)', 'console.log(hello)', '()', '[]'];
 		const cssAbbreviations = ['123'];
 		htmlAbbreviations.forEach(abbr => {

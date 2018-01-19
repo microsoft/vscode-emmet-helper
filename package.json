@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.1.1",
+    "jsonc-parser": "^1.0.0",
     "vscode-languageserver-types": "^3.0.3"
   },
   "scripts": {
