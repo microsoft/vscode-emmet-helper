@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat } from 'vscode-languageserver-types'
+import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
 import { expand, createSnippetsRegistry } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
@@ -39,11 +39,13 @@ export interface EmmetConfiguration {
 	syntaxProfiles: object;
 	variables: object;
 	preferences: object;
+	excludeLanguages?: string[];
+	showSuggestionsAsSnippets?: boolean;
 }
 
 export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: EmmetConfiguration): CompletionList {
 
-	if (emmetConfig.showExpandedAbbreviation === 'never' || emmetModes.indexOf(syntax) === -1) {
+	if (emmetConfig.showExpandedAbbreviation === 'never' || !getEmmetMode(syntax, emmetConfig.excludeLanguages)) {
 		return;
 	}
 
@@ -130,27 +132,30 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 				completionItems.push(expandedAbbr);
 			}
 		}
-		return CompletionList.create(completionItems, true);
+	} else {
+		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
+
+		if (emmetConfig.showAbbreviationSuggestions === true) {
+			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+
+			// Workaround for the main expanded abbr not appearing before the snippet suggestions
+			if (expandedAbbr && abbreviationSuggestions.length > 0) {
+				expandedAbbr.sortText = '0' + expandedAbbr.label;
+			}
+
+			abbreviationSuggestions.forEach(item => {
+				// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
+				item.filterText = abbreviation
+				// Workaround for the main expanded abbr not appearing before the snippet suggestions
+				item.sortText = '9' + abbreviation;
+			});
+			completionItems = completionItems.concat(abbreviationSuggestions);
+		}
 	}
 
-	let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
-	completionItems = completionItems.concat(commonlyUsedTagSuggestions);
-
-	if (emmetConfig.showAbbreviationSuggestions) {
-		let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
-
-		// Workaround for the main expanded abbr not appearing before the snippet suggestions
-		if (expandedAbbr && abbreviationSuggestions.length > 0) {
-			expandedAbbr.sortText = '0' + expandedAbbr.label;
-		}
-
-		abbreviationSuggestions.forEach(item => {
-			// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
-			item.filterText = abbreviation
-			// Workaround for the main expanded abbr not appearing before the snippet suggestions
-			item.sortText = '9' + abbreviation;
-		});
-		completionItems = completionItems.concat(abbreviationSuggestions);
+	if (emmetConfig.showSuggestionsAsSnippets === true) {
+		completionItems.forEach(x => x.kind = CompletionItemKind.Snippet);
 	}
 	return CompletionList.create(completionItems, true);
 }
@@ -770,7 +775,7 @@ function resetSettingsFromFile() {
 * @param language 
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
-export function getEmmetMode(language: string, excludedLanguages: string[]): string {
+export function getEmmetMode(language: string, excludedLanguages: string[] = []): string {
 	if (!language || excludedLanguages.indexOf(language) > -1) {
 		return;
 	}
