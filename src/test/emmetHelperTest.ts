@@ -1,4 +1,4 @@
-import { TextDocument, Position } from 'vscode-languageserver-types'
+import { TextDocument, Position, CompletionItemKind } from 'vscode-languageserver-types'
 import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../emmetHelper';
 import { describe, it } from 'mocha';
 import * as assert from 'assert';
@@ -742,4 +742,35 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should not provide completions for exlcudedLanguages', () => {
+		return updateExtensionsPath(null).then(() => { 
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
+			const position = Position.create(0, 5);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {},
+				excludeLanguages: ['html']
+			});
+			assert.equal(!completionList, true);
+		});
+	});
+
+	it('should provide completions with kind snippet when showSuggestionsAsSnippets is enabled', () => {
+		return updateExtensionsPath(null).then(() => { 
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
+			const position = Position.create(0, 5);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {},
+				showSuggestionsAsSnippets: true
+			});
+			assert.equal(completionList.items[0].kind, CompletionItemKind.Snippet);
+		});
+	});
 })
