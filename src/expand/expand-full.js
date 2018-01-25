@@ -1144,57 +1144,6 @@ function isSpace(code) {
 		|| code === 13; /* CR */
 }
 
-const defaultOptions$1$1 = {
-	escape: 92,   // \ character
-	throws: false
-};
-
-/**
- * Eats paired characters substring, for example `(foo)` or `[bar]`
- * @param  {StreamReader} stream
- * @param  {Number} open      Character code of pair openinig
- * @param  {Number} close     Character code of pair closing
- * @param  {Object} [options]
- * @return {Boolean}       Returns `true` if chacarter pair was successfully
- *                         consumed, it’s content will be available as `stream.current()`
- */
-function eatPair(stream, open, close, options) {
-	options = options ? Object.assign({}, defaultOptions$1$1, options) : defaultOptions$1$1;
-	const start = stream.pos;
-
-	if (stream.eat(open)) {
-		let stack = 1, ch;
-
-		while (!stream.eof()) {
-			if (eatQuoted(stream, options)) {
-				continue;
-			}
-
-			ch = stream.next();
-			if (ch === open) {
-				stack++;
-			} else if (ch === close) {
-				stack--;
-				if (!stack) {
-					stream.start = start;
-					return true;
-				}
-			} else if (ch === options.escape) {
-				stream.next();
-			}
-		}
-
-		// If we’re here then paired character can’t be consumed
-		stream.pos = start;
-
-		if (options.throws) {
-			throw stream.error(`Unable to find matching pair for ${String.fromCharCode(open)}`);
-		}
-	}
-
-	return false;
-}
-
 const ASTERISK = 42; // *
 
 /**
@@ -1227,21 +1176,52 @@ var consumeQuoted = function(stream) {
 	}
 };
 
-const LCURLY = 123; // {
-const RCURLY = 125; // }
-
-const opt$1 = { throws: true };
+const TEXT_START = 123; // {
+const TEXT_END = 125; // }
+const ESCAPE =  92; // \ character
 
 /**
- * Consumes text node, e.g. contents of `{...}` and returns its inner value
- * @param  {StringReader} stream
- * @return {String} Consumed text content or `null` otherwise
+ * Consumes text node `{...}` from stream
+ * @param  {StreamReader} stream
+ * @return {String} Returns consumed text value (without surrounding braces) or
+ * `null` if there’s no text at starting position
  */
-var consumeTextNode = function(stream) {
-	return eatPair(stream, LCURLY, RCURLY, opt$1)
-		? stream.current().slice(1, -1)
-		: null;
-};
+function consumeText(stream) {
+	// NB using own implementation instead of `eatPair()` from @emmetio/stream-reader-utils
+	// to disable quoted value consuming
+	const start = stream.pos;
+
+	if (stream.eat(TEXT_START)) {
+		let stack = 1, ch;
+		let result = '';
+		let offset = stream.pos;
+
+		while (!stream.eof()) {
+			ch = stream.next();
+			if (ch === TEXT_START) {
+				stack++;
+			} else if (ch === TEXT_END) {
+				stack--;
+				if (!stack) {
+					stream.start = start;
+					return result + stream.substring(offset, stream.pos - 1);
+				}
+			} else if (ch === ESCAPE) {
+				ch = stream.next();
+				if (ch === TEXT_START || ch === TEXT_END) {
+					result += stream.substring(offset, stream.pos - 2) + String.fromCharCode(ch);
+					offset = stream.pos;
+				}
+			}
+		}
+
+		// If we’re here then paired character can’t be consumed
+		stream.pos = start;
+		throw stream.error(`Unable to find closing ${String.fromCharCode(TEXT_END)} for text start`);
+	}
+
+	return null;
+}
 
 const EXCL       = 33; // .
 const DOT$1        = 46; // .
@@ -1298,7 +1278,7 @@ var consumeAttributes = function(stream) {
 					// or React-like expression
 					if ((token = consumeQuoted(stream)) != null) {
 						attr.value = token;
-					} else if ((token = consumeTextNode(stream)) != null) {
+					} else if ((token = consumeText(stream)) != null) {
 						attr.value = token;
 						attr.options = {
 							before: '{',
@@ -1356,7 +1336,7 @@ function eatUnquoted(stream) {
 
 function isUnquoted(code) {
 	return !isSpace(code) && !isQuote(code)
-		 && code !== ATTR_CLOSE && code !== EQUALS;
+		&& code !== ATTR_CLOSE && code !== EQUALS;
 }
 
 const HASH    = 35; // #
@@ -1394,7 +1374,7 @@ var consumeElement = function(stream) {
 			for (let i = 0, il = next.length; i < il; i++) {
 				node.setAttribute(next[i]);
 			}
-		} else if ((next = consumeTextNode(stream)) !== null) {
+		} else if ((next = consumeText(stream)) !== null) {
 			node.value = next;
 		} else if (next = consumeRepeat(stream)) {
 			node.repeat = next;
@@ -1794,16 +1774,23 @@ function replaceRanges(str, ranges, value) {
 
         let offset = 0;
         let offsetLength = 0;
+        let descendingOrder = false;
+
         if (str.substr(r[0] + r[1], 1) === '@'){
-            const matches = str.substr(r[0] + r[1] + 1).match(/^(\d+)/);
+            if (str.substr(r[0] + r[1] + 1, 1) === '-') {
+                descendingOrder = true;
+            } 
+            const matches = str.substr(r[0] + r[1] + 1 + Number(descendingOrder)).match(/^(\d+)/);
             if (matches) {
-                offsetLength = matches[1].length + 1;
+                offsetLength = matches[1].length + 1 + Number(descendingOrder);
                 offset = parseInt(matches[1]) - 1;
+            } else {
+                offsetLength = 2;
             }
         }
 
 		str = str.substring(0, r[0])
-			+ (typeof value === 'function' ? value(str.substr(r[0], r[1]), offset) : value)
+			+ (typeof value === 'function' ? value(str.substr(r[0], r[1]), offset, descendingOrder) : value)
 			+ str.substring(r[0] + r[1] + offsetLength);
 	}
 
@@ -1839,13 +1826,14 @@ function applyNumbering$1(node) {
         // it solves issues with abbreviations like `xsl:if[test=$foo]` where
         // `$foo` is preferred output
         const value = repeater.value;
+        const count = repeater.count;
 
-        node.name = replaceNumbering(node.name, value);
-        node.value = replaceNumbering(node.value, value);
+        node.name = replaceNumbering(node.name, value, count);
+        node.value = replaceNumbering(node.value, value, count);
         node.attributes.forEach(attr => {
             const copy = node.getAttribute(attr.name).clone();
-            copy.name = replaceNumbering(attr.name, value);
-            copy.value = replaceNumbering(attr.value, value);
+            copy.name = replaceNumbering(attr.name, value, count);
+            copy.value = replaceNumbering(attr.value, value, count);
             node.replaceAttribute(attr.name, copy);
         });
     }
@@ -1874,12 +1862,12 @@ function findRepeater(node) {
  * @param  {Number} value
  * @return {String}
  */
-function replaceNumbering(str, value) {
+function replaceNumbering(str, value, count) {
     // replace numbering in strings only: skip explicit wrappers that could
     // contain unescaped numbering tokens
     if (typeof str === 'string') {
         const ranges = getNumberingRanges(str);
-        return replaceNumberingRanges(str, ranges, value);
+        return replaceNumberingRanges(str, ranges, value, count);
     }
 
     return str;
@@ -1914,9 +1902,9 @@ function getNumberingRanges(str) {
  * @param  {Number} value
  * @return {String}
  */
-function replaceNumberingRanges(str, ranges, value) {
-    const replaced = replaceRanges(str, ranges, (token, offset) => {
-        let _value = String(value + offset);
+function replaceNumberingRanges(str, ranges, value, count) {
+    const replaced = replaceRanges(str, ranges, (token, offset, descendingOrder) => {
+    let _value = descendingOrder ? String(offset + count - value + 1) : String(value + offset);
         // pad values for multiple numbering tokens, e.g. 3 for $$$ becomes 003
         while (_value.length < token.length) {
             _value = '0' + _value;
@@ -2163,7 +2151,7 @@ function expandClassNames(node, options) {
 		const ix = cl.indexOf('_');
 		if (ix > 0 && !cl.startsWith('-')) {
 			out.add(cl.slice(0, ix));
-			out.add(cl.slice(ix));
+		    out.add(cl.slice(ix));
 			return out;
 		}
 
@@ -2460,7 +2448,7 @@ function createModel(string) {
 
 const DOLLAR      = 36;  // $
 const COLON       = 58;  // :
-const ESCAPE      = 92;  // \
+const ESCAPE$1      = 92;  // \
 const OPEN_BRACE  = 123; // {
 const CLOSE_BRACE = 125; // }
 
@@ -2480,7 +2468,7 @@ function parse$4(string) {
 		code = stream.peek();
 		pos = stream.pos;
 
-		if (code === ESCAPE) {
+		if (code === ESCAPE$1) {
 			stream.next();
 			stream.next();
 		} else if (field = consumeField(stream, cleanString.length + pos - offset)) {
@@ -4055,7 +4043,7 @@ function isVariableName(code) {
 	return code === 45 /* - */ || isAlphaNumericWord(code);
 }
 
-const opt$1$1 = { throws: true };
+const opt$1 = { throws: true };
 
 /**
  * Consumes 'single' or "double"-quoted string from given string, if possible
@@ -4063,7 +4051,7 @@ const opt$1$1 = { throws: true };
  * @return {String}
  */
 var consumeQuoted$1 = function(stream) {
-	if (eatQuoted(stream, opt$1$1)) {
+	if (eatQuoted(stream, opt$1)) {
 		return new QuotedString(stream.current());
 	}
 };
@@ -5183,7 +5171,7 @@ var css$1 = {
 	"bgpy": "background-position-y",
 	"bgr": "background-repeat:no-repeat|repeat-x|repeat-y|space|round",
 	"bgsz": "background-size:contain|cover",
-	"bxsh": "box-shadow:${1:inset }${2:hoff} ${3:voff} ${4:blur} ${5:color}|none",
+	"bxsh": "box-shadow:${1:inset }${2:hoff} ${3:voff} ${4:blur} #${5:000}|none",
 	"bxsz": "box-sizing:border-box|content-box|border-box",
 	"c": "color:#${1:000}",
 	"cl": "clear:both|left|right|none",
