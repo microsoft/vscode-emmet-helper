@@ -20,7 +20,7 @@
     "cpy-cli": "^1.0.1"
   },
   "dependencies": {
-    "@emmetio/extract-abbreviation": "^0.1.1",
+    "@emmetio/extract-abbreviation": "^0.1.4",
     "jsonc-parser": "^1.0.0",
     "vscode-languageserver-types": "^3.0.3"
   },
