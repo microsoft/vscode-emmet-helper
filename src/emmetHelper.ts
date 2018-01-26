@@ -91,7 +91,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		try {
-			expandedText = expandCSSAbbreviation(abbreviation, expandOptions);
+			expandedText = expandAbbreviationHelper(abbreviation, expandOptions);
 		} catch (e) {
 		}
 
@@ -525,18 +525,18 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	};
 }
 
-function expandCSSAbbreviation(abbreviation: string, options: any) {
+function expandAbbreviationHelper(abbreviation: string, options: any) {
 	let expandedText;
 	let prefixes = ["-webkit-", "-moz-", "-ms-", "-o-"];
 	abbreviation = abbreviation || "";
-	if ( abbreviation[0] !== '-') {
-		expandedText = expand(abbreviation, options);
-	} else {
+	if (isStyleSheet(options.syntax) && abbreviation[0] == '-') {
 		let tmp = expand(abbreviation.substr(1), options);
 		expandedText = tmp;
 		for (let index = 0; index < prefixes.length; index++) {
 			expandedText += "\n" + prefixes[index] + tmp;
 		}
+	} else {
+		expandedText = expand(abbreviation, options);
 	}
 	return expandedText;
 }
@@ -546,7 +546,7 @@ function expandCSSAbbreviation(abbreviation: string, options: any) {
  * @param options 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
-	let expandedText = isStyleSheet(options.syntax) ? expandCSSAbbreviation(abbreviation, options) : expand(abbreviation, options);
+	let expandedText = expandAbbreviationHelper(abbreviation, options);
 	return escapeNonTabStopDollar(addFinalTabStop(expandedText));
 }
 
