@@ -738,7 +738,66 @@ describe('Test completions', () => {
 			assert.equal(matches[1].startsWith('Lorem'), true);
 
 			return Promise.resolve();
+		});
+	});
 
+	it('should provide completions using vendor prefixes', () => {
+		return updateExtensionsPath(extensionsPath).then(() => {
+			const testCases: [string, number, number, string, string, string][] = [
+
+				['brs', 0, 3, 'border-radius: ;', 'border-radius: |;', 'brs'], 
+				['brs5', 0, 4, 'border-radius: 5px;', 'border-radius: 5px;', 'brs5'], 
+				['-brs', 0, 4, 'border-radius: ;\n-webkit-border-radius: ;\n-moz-border-radius: ;\n-ms-border-radius: ;\n-o-border-radius: ;', 
+					'border-radius: |;\n-webkit-border-radius: |;\n-moz-border-radius: |;\n-ms-border-radius: |;\n-o-border-radius: |;', '-brs'], 
+				['-brs10', 0, 6, 'border-radius: 10px;\n-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\n-ms-border-radius: 10px;\n-o-border-radius: 10px;',
+					'border-radius: 10px;\n-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\n-ms-border-radius: 10px;\n-o-border-radius: 10px;', '-brs10'], 
+				['-bdts', 0, 5, 'border-top-style: ;\n-webkit-border-top-style: ;\n-moz-border-top-style: ;\n-ms-border-top-style: ;\n-o-border-top-style: ;',
+					'border-top-style: |;\n-webkit-border-top-style: |;\n-moz-border-top-style: |;\n-ms-border-top-style: |;\n-o-border-top-style: |;', '-bdts'], 
+				['-p', 0, 2, 'padding: ;\n-webkit-padding: ;\n-moz-padding: ;\n-ms-padding: ;\n-o-padding: ;',
+					'padding: |;\n-webkit-padding: |;\n-moz-padding: |;\n-ms-padding: |;\n-o-padding: |;', '-p'], 
+				['-p10', 0, 4, 'padding: 10px;\n-webkit-padding: 10px;\n-moz-padding: 10px;\n-ms-padding: 10px;\n-o-padding: 10px;',
+					'padding: 10px;\n-webkit-padding: 10px;\n-moz-padding: 10px;\n-ms-padding: 10px;\n-o-padding: 10px;', '-p10'], 
+				['-p10-20', 0, 7, 'padding: 10px 20px;\n-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;',
+					'padding: 10px 20px;\n-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;', '-p10-20'], 
+			];
+
+			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion, expectedFilterText]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, content);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items[0].label, expectedAbbr);
+				assert.equal(completionList.items[0].documentation, expectedExpansion);
+				assert.equal(completionList.items[0].filterText, expectedFilterText);
+			});
+			return Promise.resolve();
+		});
+	});
+
+
+	it('should expand with multiple vendor prefixes', () => {
+		return updateExtensionsPath(null).then(() => {
+			assert.equal(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
+			assert.equal(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
+			assert.equal(expandAbbreviation('brs10px', getExpandOptions('css', {})), 'border-radius: 10px;');
+			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', {})), 'border-radius: ${0};\n-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};');
+			assert.equal(expandAbbreviation('-brs10', getExpandOptions('css', {})), 'border-radius: 10px;\n-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\n-ms-border-radius: 10px;\n-o-border-radius: 10px;');
+			assert.equal(expandAbbreviation('-bdts', getExpandOptions('css', {})), 'border-top-style: ${0};\n-webkit-border-top-style: ${0};\n-moz-border-top-style: ${0};\n-ms-border-top-style: ${0};\n-o-border-top-style: ${0};');
+			assert.equal(expandAbbreviation('-bdts2px', getExpandOptions('css', {})), 'border-top-style: 2px;\n-webkit-border-top-style: 2px;\n-moz-border-top-style: 2px;\n-ms-border-top-style: 2px;\n-o-border-top-style: 2px;');
+			assert.equal(expandAbbreviation('-p10-20', getExpandOptions('css', {})), 'padding: 10px 20px;\n-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;');
+			assert.equal(expandAbbreviation('-p10p20', getExpandOptions('css', {})), 'padding: 10% 20px;\n-webkit-padding: 10% 20px;\n-moz-padding: 10% 20px;\n-ms-padding: 10% 20px;\n-o-padding: 10% 20px;');
+			
+			
+			//assert.equal(expandAbbreviation('-bgp', getExpandOptions('css', {})), 'background-position:${1:0} ${2:0};\n-webkit-background-position:${1:0} ${2:0};\n-moz-background-position:${1:0} ${2:0};\n-ms-background-position:${1:0} ${2:0};\n-o-background-position:${1:0} ${2:0};');
+			//assert.equal(expandAbbreviation('bdr', getExpandOptions('css', {})), 'border-right: ${2:1px} ${3:solid} ${4:#000};');
+
+			return Promise.resolve();
 		});
 	});
 

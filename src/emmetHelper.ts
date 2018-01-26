@@ -17,7 +17,7 @@ let markupSnippetKeysRegex: RegExp[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
-const cssAbbreviationRegex = /^[a-z,A-Z,!,@,#]/;
+const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'section', 'canvas', 'dl', 'dt', 'dd', 'em', 'main', 'figure',
@@ -91,7 +91,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		try {
-			expandedText = expand(abbreviation, expandOptions);
+			expandedText = expandAbbreviationWithDash(abbreviation, expandOptions);
 		} catch (e) {
 		}
 
@@ -123,12 +123,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
-		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
-
+		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {	
+			
 			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
 			// Filter out those cases here.
-			const abbrRegex = new RegExp('.*' + abbreviation.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+			let abbreviationWithoutDashPrefix = abbreviation[0] == '-' ? abbreviation.slice(1) : abbreviation;
+			const abbrRegex = new RegExp('.*' + abbreviationWithoutDashPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
 			if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
 				completionItems.push(expandedAbbr);
 			}
@@ -220,8 +221,7 @@ function addFinalTabStop(text): string {
 	}
 
 	let maxTabStop = -1;
-	let maxTabStopStart = -1;
-	let maxTabStopEnd = -1;
+	let maxTabStopRanges = [];
 	let foundLastStop = false;
 	let replaceWithLastStop = false;
 	let i = 0;
@@ -270,9 +270,10 @@ function addFinalTabStop(text): string {
 			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
 			if (currentTabStop > maxTabStop) {
 				maxTabStop = currentTabStop;
-				maxTabStopStart = foundPlaceholder ? -1 : numberStart;
-				maxTabStopEnd = foundPlaceholder ? -1 : numberEnd;
+				maxTabStopRanges = [{ numberStart, numberEnd }];
 				replaceWithLastStop = !foundPlaceholder;
+			} else if (currentTabStop == maxTabStop) {
+				maxTabStopRanges.push({numberStart, numberEnd});
 			}
 		}
 	} catch (e) {
@@ -280,7 +281,11 @@ function addFinalTabStop(text): string {
 	}
 
 	if (replaceWithLastStop && !foundLastStop) {
-		text = text.substr(0, maxTabStopStart) + '0' + text.substr(maxTabStopEnd);
+		for (let i = 0; i < maxTabStopRanges.length; i++) {
+			let rangeStart = maxTabStopRanges[i].numberStart;
+			let rangeEnd = maxTabStopRanges[i].numberEnd;
+			text = text.substr(0, rangeStart) + '0' + text.substr(rangeEnd);	
+		}
 	}
 
 	return text;
@@ -520,13 +525,27 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	};
 }
 
+export function expandAbbreviationWithDash(abbreviation: string, options: any) {
+	let expandedText;
+	let prefixes = ["-webkit-", "-moz-", "-ms-", "-o-"];
+	if (abbreviation[0] !== '-') {
+		expandedText = expand(abbreviation, options);
+	} else {
+		let tmp = expand(abbreviation.substr(1), options);
+		expandedText = tmp;
+		for (let index = 0; index < prefixes.length; index++) {
+			expandedText += "\n" + prefixes[index] + tmp;
+		}
+	}
+	return expandedText;
+}
 /**
  * Expands given abbreviation using given options
  * @param abbreviation string
  * @param options 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
-	let expandedText = expand(abbreviation, options);
+	let expandedText = expandAbbreviationWithDash(abbreviation, options);
 	return escapeNonTabStopDollar(addFinalTabStop(expandedText));
 }
 
