@@ -56,7 +56,11 @@ describe('Extract Abbreviations', () => {
 			['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10, undefined],
 			['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, undefined],
 			['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, undefined],
-			['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, 'bem']
+			['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, 'bem'],
+
+			['div[a="b" c="d"]>md-button', 0, 26, 'div[a="b" c="d"]>md-button', 0, 0, 0, 26, undefined],			
+			['div[a=b c="d"]>md-button', 0, 24, 'div[a=b c="d"]>md-button', 0, 0, 0, 24, undefined],			
+			['div[a=b c=d]>md-button', 0, 22, 'div[a=b c=d]>md-button', 0, 0, 0, 22, undefined]
 		]
 
 		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilter]) => {
