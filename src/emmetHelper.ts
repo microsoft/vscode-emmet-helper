@@ -91,7 +91,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 	if (isAbbreviationValid(syntax, abbreviation)) {
 		try {
-			expandedText = expandAbbreviationWithDash(abbreviation, expandOptions);
+			expandedText = expandCSSAbbreviationWithVendorPrefixes(abbreviation, expandOptions);
 		} catch (e) {
 		}
 
@@ -525,10 +525,10 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	};
 }
 
-export function expandAbbreviationWithDash(abbreviation: string, options: any) {
+export function expandCSSAbbreviationWithVendorPrefixes(abbreviation: string, options: any) {
 	let expandedText;
 	let prefixes = ["-webkit-", "-moz-", "-ms-", "-o-"];
-	if (abbreviation[0] !== '-') {
+	if ( abbreviation[0] !== '-') {
 		expandedText = expand(abbreviation, options);
 	} else {
 		let tmp = expand(abbreviation.substr(1), options);
@@ -545,7 +545,7 @@ export function expandAbbreviationWithDash(abbreviation: string, options: any) {
  * @param options 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
-	let expandedText = expandAbbreviationWithDash(abbreviation, options);
+	let expandedText = isStyleSheet(options.syntax) ? expandCSSAbbreviationWithVendorPrefixes(abbreviation, options) : expand(abbreviation, options);
 	return escapeNonTabStopDollar(addFinalTabStop(expandedText));
 }
 
