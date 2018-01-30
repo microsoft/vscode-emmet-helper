@@ -32,7 +32,8 @@ const defaultUnitAliases = {
 	p: '%',
 	x: 'ex',
 	r: 'rem'
-}
+};
+const vendorPrefixes = { 'w': "webkit", 'm': "moz", 's': "ms", 'o': "o" };
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -84,57 +85,74 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
+	let preferences = expandOptions['preferences'];
+	delete expandOptions['preferences'];
 	let expandedText;
 	let expandedAbbr: CompletionItem;
 	let completionItems: CompletionItem[] = [];
 
-	// If abbreviation is valid, then expand it and ensure the expanded value is not noise
-	if (isAbbreviationValid(syntax, abbreviation)) {
+	// Create completion item for expanded abbreviation
+	let createExpandedAbbr = (abbr) => {
+
 		try {
-			expandedText = expandAbbreviationHelper(abbreviation, expandOptions);
+			expandedText = expand(abbr, expandOptions);
 		} catch (e) {
 		}
 
-		if (expandedText && isExpandedTextNoise(syntax, abbreviation, expandedText)) {
+		if (expandedText && isExpandedTextNoise(syntax, abbr, expandedText)) {
 			expandedText = '';
 		}
-	}
 
-	// Create completion item for expanded abbreviation
-	if (expandedText) {
-		expandedAbbr = CompletionItem.create(abbreviation);
-		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
-		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
-		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-		expandedAbbr.detail = 'Emmet Abbreviation';
-		if (filter === 'bem' || filter === 'c') {
-			expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
+		if (expandedText) {
+			expandedAbbr = CompletionItem.create(abbr);
+			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
+			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
+			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
+			expandedAbbr.detail = 'Emmet Abbreviation';
+			if (filter === 'bem' || filter === 'c') {
+				expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
+			}
+			completionItems = [expandedAbbr];
 		}
-		completionItems = [expandedAbbr];
 	}
 
 	if (isStyleSheet(syntax)) {
-		if (!expandedText) {
+		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
+		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
+		if (isAbbreviationValid(syntax, abbreviation)) {
+			createExpandedAbbr(abbreviationWithoutPrefix);
+		}
+
+		if (expandedAbbr) {
+			let prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
+			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
+			expandedAbbr.documentation = replaceTabStopsWithCursors(prefixedExpandedText);
+		} else {
 			return CompletionList.create([], true);
 		}
+
 		expandedAbbr.label = removeTabStops(expandedText);
 		expandedAbbr.filterText = abbreviation;
 
 		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
-		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {	
-			
+		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
+
 			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
 			// Filter out those cases here.
-			let abbreviationWithoutDashPrefix = abbreviation[0] == '-' ? abbreviation.slice(1) : abbreviation;
-			const abbrRegex = new RegExp('.*' + abbreviationWithoutDashPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+			const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
 			if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
 				completionItems.push(expandedAbbr);
 			}
 		}
 	} else {
+		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
+		if (isAbbreviationValid(syntax, abbreviation)) {
+			createExpandedAbbr(abbreviation);
+		}
+
 		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
@@ -273,7 +291,7 @@ function addFinalTabStop(text): string {
 				maxTabStopRanges = [{ numberStart, numberEnd }];
 				replaceWithLastStop = !foundPlaceholder;
 			} else if (currentTabStop == maxTabStop) {
-				maxTabStopRanges.push({numberStart, numberEnd});
+				maxTabStopRanges.push({ numberStart, numberEnd });
 			}
 		}
 	} catch (e) {
@@ -284,7 +302,7 @@ function addFinalTabStop(text): string {
 		for (let i = 0; i < maxTabStopRanges.length; i++) {
 			let rangeStart = maxTabStopRanges[i].numberStart;
 			let rangeEnd = maxTabStopRanges[i].numberEnd;
-			text = text.substr(0, rangeStart) + '0' + text.substr(rangeEnd);	
+			text = text.substr(0, rangeStart) + '0' + text.substr(rangeEnd);
 		}
 	}
 
@@ -521,32 +539,86 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 		addons: addons,
 		variables: getVariables(emmetConfig['variables']),
 		snippets: customSnippetRegistry[syntax],
-		format: formatters
+		format: formatters,
+		preferences: emmetConfig['preferences']
 	};
 }
 
-function expandAbbreviationHelper(abbreviation: string, options: any) {
-	let expandedText;
-	let prefixes = ["-webkit-", "-moz-", "-ms-", "-o-"];
+function splitVendorPrefix(abbreviation: string): { prefixOptions: string, abbreviationWithoutPrefix: string } {
 	abbreviation = abbreviation || "";
-	if (isStyleSheet(options.syntax) && abbreviation[0] == '-') {
-		let tmp = expand(abbreviation.substr(1), options);
-		expandedText = tmp;
-		for (let index = 0; index < prefixes.length; index++) {
-			expandedText += "\n" + prefixes[index] + tmp;
-		}
+	if (abbreviation[0] != '-') {
+		return {
+			prefixOptions: "",
+			abbreviationWithoutPrefix: abbreviation
+		};
 	} else {
-		expandedText = expand(abbreviation, options);
+		abbreviation = abbreviation.substr(1);
+		let pref = "-";
+		if (/^[wmso]*-./.test(abbreviation)) {
+			let index = abbreviation.indexOf("-");
+			if (index > -1) {
+				pref += abbreviation.substr(0, index + 1);
+				abbreviation = abbreviation.substr(index + 1);
+			}
+		}
+		return {
+			prefixOptions: pref,
+			abbreviationWithoutPrefix: abbreviation
+		};
 	}
-	return expandedText;
 }
+
+function applyVendorPrefixes(expandedProperty: string, vendors: string, preferences: any) {
+	preferences = preferences || {};
+	expandedProperty = expandedProperty || "";
+	vendors = vendors || "";
+
+	if (vendors[0] !== '-') {
+		return expandedProperty;
+	}
+
+	if (vendors == "-") {
+		let defaultVendors = "-";
+		let property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
+		if (!property) {
+			return expandedProperty;
+		}
+
+		for (const v in vendorPrefixes) {
+			let vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
+			if (vendorProperties && vendorProperties.split(',').find(x => x.trim() === property)) defaultVendors += v;
+		}
+
+		// If no vendors specified, add all
+		vendors = defaultVendors == "-" ? "-wmso" : defaultVendors;
+		vendors += '-';
+	}
+	vendors = vendors.substr(1);
+
+	let prefixedProperty = "";
+	for (let index = 0; index < vendors.length - 1; index++) {
+		prefixedProperty += '-' + vendorPrefixes[vendors[index]] + '-' + expandedProperty + "\n";
+	}
+	return prefixedProperty + expandedProperty;
+}
+
+
 /**
  * Expands given abbreviation using given options
  * @param abbreviation string
  * @param options 
  */
 export function expandAbbreviation(abbreviation: string, options: any) {
-	let expandedText = expandAbbreviationHelper(abbreviation, options);
+	let expandedText;
+	let preferences = options['preferences'];
+	delete options['preferences'];
+	if (isStyleSheet(options['syntax'])) {
+		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
+		expandedText = expand(abbreviationWithoutPrefix, options);
+		expandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
+	} else {
+		expandedText = expand(abbreviation, options);
+	}
 	return escapeNonTabStopDollar(addFinalTabStop(expandedText));
 }
 
