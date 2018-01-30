@@ -752,10 +752,10 @@ describe('Test completions', () => {
 				['brs', 0, 3, 'border-radius: ;', 'border-radius: |;', 'brs'], 
 				['brs5', 0, 4, 'border-radius: 5px;', 'border-radius: 5px;', 'brs5'], 
 				
-				['-brs', 0, 4, 'border-radius: ;', '-webkit-border-radius: |;\n-moz-border-radius: |;\n-ms-border-radius: |;\n-o-border-radius: |;\nborder-radius: |;', '-brs'], 
+				['-brs', 0, 4, 'border-radius: ;', '-webkit-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-brs'], 
 				['-mo-brs', 0, 7, 'border-radius: ;', '-moz-border-radius: |;\n-o-border-radius: |;\nborder-radius: |;', '-mo-brs'], 
 				['-om-brs', 0, 7, 'border-radius: ;', '-o-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-om-brs'], 
-				['-brs10', 0, 6, 'border-radius: 10px;', '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\n-ms-border-radius: 10px;\n-o-border-radius: 10px;\nborder-radius: 10px;', '-brs10'],
+				['-brs10', 0, 6, 'border-radius: 10px;', '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\nborder-radius: 10px;', '-brs10'],
 				['-bdts', 0, 5, 'border-top-style: ;', '-webkit-border-top-style: |;\n-moz-border-top-style: |;\n-ms-border-top-style: |;\n-o-border-top-style: |;\nborder-top-style: |;', '-bdts'], 
 				['-p', 0, 2, 'padding: ;', '-webkit-padding: |;\n-moz-padding: |;\n-ms-padding: |;\n-o-padding: |;\npadding: |;', '-p'],
 				['-p10-20p', 0, 8, 'padding: 10px 20%;', '-webkit-padding: 10px 20%;\n-moz-padding: 10px 20%;\n-ms-padding: 10px 20%;\n-o-padding: 10px 20%;\npadding: 10px 20%;', '-p10-20p'],
@@ -779,6 +779,41 @@ describe('Test completions', () => {
 			return Promise.resolve();
 		});
 	});
+	it('should provide completions using vendor prefixes with custom preferences', () => {
+		return updateExtensionsPath(extensionsPath).then(() => {
+			const testCases: [string, number, number, string, string, string][] = [
+
+				['brs', 0, 3, 'border-radius: ;', 'border-radius: |;', 'brs'],
+				['brs5', 0, 4, 'border-radius: 5px;', 'border-radius: 5px;', 'brs5'],
+
+				['-brs', 0, 4, 'border-radius: ;', '-webkit-border-radius: |;\nborder-radius: |;', '-brs'],		// Overriden moz prefix
+				['-mo-brs', 0, 7, 'border-radius: ;', '-moz-border-radius: |;\n-o-border-radius: |;\nborder-radius: |;', '-mo-brs'], // "-mo-" overrides default behaviour
+				['-bdts', 0, 5, 'border-top-style: ;', '-o-border-top-style: |;\nborder-top-style: |;', '-bdts'],
+				['-bdi', 0, 4, 'border-image: url();', '-webkit-border-image: url(|);\n-moz-border-image: url(|);\n-ms-border-image: url(|);\n-o-border-image: url(|);\nborder-image: url(|);', '-bdi']
+			];
+
+			testCases.forEach(([content, positionLine, positionChar, expectedLabel, expectedExpansion, expectedFilterText]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, content);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {
+						'css.webkitProperties': 'foo, bar,padding , border-radius',
+						'css.mozProperties': '',
+						'css.oProperties': 'border-top-style',
+					},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items[0].label, expectedLabel);
+				assert.equal(completionList.items[0].documentation, expectedExpansion);
+				assert.equal(completionList.items[0].filterText, expectedFilterText);
+			});
+			return Promise.resolve();
+		});
+	});
 
 
 	it('should expand with multiple vendor prefixes', () => {
@@ -786,8 +821,8 @@ describe('Test completions', () => {
 			assert.equal(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
 			assert.equal(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
 			assert.equal(expandAbbreviation('brs10px', getExpandOptions('css', {})), 'border-radius: 10px;');
-			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', {})), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
-			assert.equal(expandAbbreviation('-brs10', getExpandOptions('css', {})), '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\n-ms-border-radius: 10px;\n-o-border-radius: 10px;\nborder-radius: 10px;');
+			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', {})), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\nborder-radius: ${0};');
+			assert.equal(expandAbbreviation('-brs10', getExpandOptions('css', {})), '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\nborder-radius: 10px;');
 			assert.equal(expandAbbreviation('-bdts', getExpandOptions('css', {})), '-webkit-border-top-style: ${0};\n-moz-border-top-style: ${0};\n-ms-border-top-style: ${0};\n-o-border-top-style: ${0};\nborder-top-style: ${0};');
 			assert.equal(expandAbbreviation('-bdts2px', getExpandOptions('css', {})), '-webkit-border-top-style: 2px;\n-moz-border-top-style: 2px;\n-ms-border-top-style: 2px;\n-o-border-top-style: 2px;\nborder-top-style: 2px;');
 			assert.equal(expandAbbreviation('-p10-20', getExpandOptions('css', {})), '-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;\npadding: 10px 20px;');
@@ -803,7 +838,7 @@ describe('Test completions', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.equal(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.webkitProperties': 'foo, bar, padding' } })), '-webkit-padding: ${0};\npadding: ${0};');
 			assert.equal(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-padding: ${0};\n-o-padding: ${0};\npadding: ${0};');
-			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
+			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding', 'css.mozProperties': '', 'css.msProperties': '' } })), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
 			assert.equal(expandAbbreviation('-o-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-o-padding: ${0};\npadding: ${0};');
 
 			return Promise.resolve();
