@@ -32,7 +32,8 @@ const defaultUnitAliases = {
 	p: '%',
 	x: 'ex',
 	r: 'rem'
-}
+};
+const vendorPrefixes = { 'w': "webkit", 'm': "moz", 's': "ms", 'o': "o" };
 
 export interface EmmetConfiguration {
 	showExpandedAbbreviation: string;
@@ -568,35 +569,37 @@ function splitVendorPrefix(abbreviation: string): { prefixOptions: string, abbre
 }
 
 function applyVendorPrefixes(expandedProperty: string, vendors: string, preferences: any) {
-	const vendorPrefixes = { 'w': "webkit", 'm': "moz", 's': "ms", 'o': "o" };
+	preferences = preferences || {};
 	expandedProperty = expandedProperty || "";
 	vendors = vendors || "";
-	if (vendors[0] == '-') {
-		if (vendors == "-") {
-			let defaultVendors = "-"
-			preferences = preferences || {};
-			let property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
-			property = property || expandedProperty;
-			for (const v in vendorPrefixes) {
-				let vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
-				if (vendorProperties && vendorProperties.split(',').find(x => x.trim() === property)) defaultVendors += v;
-			}
-			// If no vendors specified.
-			if (defaultVendors == "-") {
-				vendors = "-wmso-";
-			} else {
-				vendors = defaultVendors + '-';
-			}
-		}
-		vendors = vendors.substr(1);
 
-		let prefixedProperty = "";
-		for (let index = 0; index < vendors.length - 1; index++) {
-			prefixedProperty += '-' + vendorPrefixes[vendors[index]] + '-' + expandedProperty + "\n";
-		}
-		return prefixedProperty + expandedProperty;
+	if (vendors[0] !== '-') {
+		return expandedProperty;
 	}
-	return expandedProperty;
+
+	if (vendors == "-") {
+		let defaultVendors = "-";
+		let property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
+		if (!property) {
+			return expandedProperty;
+		}
+
+		for (const v in vendorPrefixes) {
+			let vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
+			if (vendorProperties && vendorProperties.split(',').find(x => x.trim() === property)) defaultVendors += v;
+		}
+
+		// If no vendors specified, add all
+		vendors = defaultVendors == "-" ? "-wmso" : defaultVendors;
+		vendors += '-';
+	}
+	vendors = vendors.substr(1);
+
+	let prefixedProperty = "";
+	for (let index = 0; index < vendors.length - 1; index++) {
+		prefixedProperty += '-' + vendorPrefixes[vendors[index]] + '-' + expandedProperty + "\n";
+	}
+	return prefixedProperty + expandedProperty;
 }
 
 
