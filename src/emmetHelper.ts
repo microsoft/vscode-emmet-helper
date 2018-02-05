@@ -117,15 +117,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			expandedAbbr.label = abbreviation;
-			if (filter && filter.split(',').find(x => x.trim() === 'bem')) {
-				expandedAbbr.label += filterDelimitor + bemFilterSuffix;
-			}
-			if (filter && filter.split(',').find(x => x.trim() === 'c')) {
-				expandedAbbr.label += filterDelimitor + commentFilterSuffix;
-			}
-			if (filter && filter.split(',').find(x => x.trim() === 't')) {
-				expandedAbbr.label += filterDelimitor + trimFilterSuffix;
-			}
+			expandedAbbr.label += filter ? '|' + filter.replace(', ', '|') : "";
 			completionItems = [expandedAbbr];
 		}
 	}

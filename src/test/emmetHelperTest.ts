@@ -420,6 +420,7 @@ describe('Test completions', () => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
 			let commentFilterExampleWithInlineFilter = commentFilterExample + '|c';
 			let bemCommentFilterExampleWithInlineFilter = bemCommentFilterExample + '|bem|c';
+			let commentBemFilterExampleWithInlineFilter = bemCommentFilterExample + '|c|bem';
 
 			const testCases: [string, number, number, string, string, string][] = [
 				['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>', '<ul>\${0}</ul>'], // One of the commonly used tags
@@ -434,6 +435,8 @@ describe('Test completions', () => {
 				['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>', '<u-l-z>\${0}</u-l-z>'], // Word with - is valid
 				[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],
 				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
+				[bemCommentFilterExampleWithInlineFilter, 0, bemCommentFilterExampleWithInlineFilter.length, bemCommentFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
+				[commentBemFilterExampleWithInlineFilter, 0, commentBemFilterExampleWithInlineFilter.length, commentBemFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],				
 				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'] // No last tab stop gets added as max tab stop is of a placeholder
 			];
 
