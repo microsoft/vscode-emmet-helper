@@ -292,7 +292,7 @@ function addFinalTabStop(text): string {
 			}
 
 			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
-			if (currentTabStop > maxTabStop) {
+			if (Number(currentTabStop) > Number(maxTabStop)) {
 				maxTabStop = currentTabStop;
 				maxTabStopRanges = [{ numberStart, numberEnd }];
 				replaceWithLastStop = !foundPlaceholder;
