@@ -27,7 +27,7 @@ const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
-const differentFilters = 3;
+const maxFilters = 3;
 const defaultUnitAliases = {
 	e: 'em',
 	p: '%',
@@ -117,7 +117,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
 			expandedAbbr.label = abbreviation;
-			expandedAbbr.label += filter ? '|' + filter.replace(', ', '|') : "";
+			expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
 			completionItems = [expandedAbbr];
 		}
 	}
@@ -346,32 +346,37 @@ export function isStyleSheet(syntax): boolean {
 	return (stylesheetSyntaxes.indexOf(syntax) > -1);
 }
 
-/**
- * Extracts abbreviation from the given position in the given document
- */
-export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
+function getFilters (text: string, pos: number) : {pos: number, filter: string} {
 	let filter;
-	let pos = position.character;
-	let currentLine = getCurrentLine(document, position);
-	let currentLineTillPosition = currentLine.substr(0, position.character);
-	let lengthOccupiedByFilter = 0;
-	for (let i = 0; i < differentFilters; i++) {
-		if (currentLineTillPosition.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
-			lengthOccupiedByFilter += bemFilterSuffix.length + 1;
+	for (let i = 0; i < maxFilters; i++) {
+		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
 			pos -= bemFilterSuffix.length + 1;
-			filter = filter ? bemFilterSuffix + ', ' + filter : bemFilterSuffix;
-		} else if (currentLineTillPosition.endsWith(`${filterDelimitor}${commentFilterSuffix}`, pos)) {
-			lengthOccupiedByFilter += commentFilterSuffix.length + 1;
+			filter = filter ? bemFilterSuffix + ',' + filter : bemFilterSuffix;
+		} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`, pos)) {
 			pos -= commentFilterSuffix.length + 1;
-			filter = filter ? commentFilterSuffix + ', ' + filter : commentFilterSuffix;
-		} else if (currentLineTillPosition.endsWith(`${filterDelimitor}${trimFilterSuffix}`, pos)) {
-			lengthOccupiedByFilter += trimFilterSuffix.length + 1;
+			filter = filter ? commentFilterSuffix + ',' + filter : commentFilterSuffix;
+		} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`, pos)) {
 			pos -= trimFilterSuffix.length + 1;
-			filter = filter ? trimFilterSuffix + ', ' + filter : trimFilterSuffix;
+			filter = filter ? trimFilterSuffix + ',' + filter : trimFilterSuffix;
 		} else {
 			break;
 		}
 	}
+	return {
+		pos: pos,
+		filter: filter
+	}
+}
+/**
+ * Extracts abbreviation from the given position in the given document
+ */
+export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
+	let currentLine = getCurrentLine(document, position);
+	let currentLineTillPosition = currentLine.substr(0, position.character);
+	
+	let {pos, filter} = getFilters(currentLineTillPosition, position.character);
+
+	let lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 	let result;
 	try {
 		result = extract(currentLine, pos, lookAhead);
@@ -397,21 +402,8 @@ export function extractAbbreviationFromText(text: string): any {
 			filter
 		}
 	}
-	let pos = text.length;
-	for (let i = 0; i < differentFilters; i++) {
-		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
-			pos -= bemFilterSuffix.length + 1;
-			filter = filter ? bemFilterSuffix + ', ' + filter : bemFilterSuffix;
-		} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`, pos)) {
-			pos -= trimFilterSuffix.length + 1;
-			filter = filter ? trimFilterSuffix + ', ' + filter : trimFilterSuffix;
-		} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`, pos)) {
-			pos -= commentFilterSuffix.length + 1;
-			filter = filter ? commentFilterSuffix + ', ' + filter : commentFilterSuffix;
-		} else {
-			break;
-		}
-	}
+	let pos;
+	({pos, filter} = getFilters(text, text.length));
 	let result;
 	try {
 		result = extract(text, pos, true);

@@ -67,9 +67,9 @@ describe('Extract Abbreviations', () => {
 			['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, undefined],
 			['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, undefined],
 			['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, 'bem'],
-			['ul>li|c|bem', 0, 11, 'ul>li', 0, 0, 0, 11, 'c, bem'],
-			['ul>li|bem|c', 0, 11, 'ul>li', 0, 0, 0, 11, 'bem, c'],
-			['ul>li|t|bem|c', 0, 13, 'ul>li', 0, 0, 0, 13, 't, bem, c'],
+			['ul>li|c|bem', 0, 11, 'ul>li', 0, 0, 0, 11, 'c,bem'],
+			['ul>li|bem|c', 0, 11, 'ul>li', 0, 0, 0, 11, 'bem,c'],
+			['ul>li|t|bem|c', 0, 13, 'ul>li', 0, 0, 0, 13, 't,bem,c'],
 			['div[a="b" c="d"]>md-button', 0, 26, 'div[a="b" c="d"]>md-button', 0, 0, 0, 26, undefined],			
 			['div[a=b c="d"]>md-button', 0, 24, 'div[a=b c="d"]>md-button', 0, 0, 0, 24, undefined],			
 			['div[a=b c=d]>md-button', 0, 22, 'div[a=b c=d]>md-button', 0, 0, 0, 22, undefined]
@@ -96,9 +96,9 @@ describe('Extract Abbreviations', () => {
 			['ul>li*3', 'ul>li*3', undefined],
 			['ul>li|bem', 'ul>li', 'bem'],
 			['ul>li|t', 'ul>li', 't'],
-			['ul>li|bem|c', 'ul>li', 'bem, c'],
-			['ul>li|c|bem', 'ul>li', 'c, bem'],
-			['ul>li|c|bem|t', 'ul>li', 'c, bem, t'],
+			['ul>li|bem|c', 'ul>li', 'bem,c'],
+			['ul>li|c|bem', 'ul>li', 'c,bem'],
+			['ul>li|c|bem|t', 'ul>li', 'c,bem,t'],
 		]
 
 		testCases.forEach(([content, expectedAbbr, expectedFilter]) => {
@@ -388,7 +388,7 @@ describe('Test filters (bem and comment)', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.equal(expandAbbreviation(bemFilterExample, getExpandOptions('html', {}, 'bem')), expectedBemFilterOutput);
 			assert.equal(expandAbbreviation(commentFilterExample, getExpandOptions('html', {}, 'c')), expectedCommentFilterOutput);
-			assert.equal(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem, c')), expectedBemCommentFilterOutput);
+			assert.equal(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem,c')), expectedBemCommentFilterOutput);
 			return Promise.resolve();
 		});
 	});
