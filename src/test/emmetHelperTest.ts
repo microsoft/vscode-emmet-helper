@@ -437,7 +437,9 @@ describe('Test completions', () => {
 				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
 				[bemCommentFilterExampleWithInlineFilter, 0, bemCommentFilterExampleWithInlineFilter.length, bemCommentFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
 				[commentBemFilterExampleWithInlineFilter, 0, commentBemFilterExampleWithInlineFilter.length, commentBemFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],				
-				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'] // No last tab stop gets added as max tab stop is of a placeholder
+				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'], // No last tab stop gets added as max tab stop is of a placeholder
+				['li*10', 0, 5, 'li*10', '<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>', 
+					'<li>\${1}</li>\n<li>\${2}</li>\n<li>\${3}</li>\n<li>\${4}</li>\n<li>\${5}</li>\n<li>\${6}</li>\n<li>\${7}</li>\n<li>\${8}</li>\n<li>\${9}</li>\n<li>\${0}</li>'], // tabstop 10 es greater than 9, should be replaced by 0
 			];
 
 			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansionDocs, expectedExpansion]) => {
