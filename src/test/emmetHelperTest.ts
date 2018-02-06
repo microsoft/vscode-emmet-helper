@@ -20,6 +20,16 @@ const expectedCommentFilterOutput =
 </ul>
 <!-- /.nav -->`;
 const expectedCommentFilterOutputDocs = expectedCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
+const bemCommentFilterExample = bemFilterExample;
+const expectedBemCommentFilterOutput = 
+`<ul class="search-form search-form_wide">
+	<li class="search-form__querystring">\${1}</li>
+	<!-- /.search-form__querystring -->
+	<li class="search-form__btn search-form__btn_large">\${0}</li>
+	<!-- /.search-form__btn search-form__btn_large -->
+</ul>
+<!-- /.search-form search-form_wide -->`;
+const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
 
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreviations', () => {
@@ -57,7 +67,9 @@ describe('Extract Abbreviations', () => {
 			['<div>ul>li*3</div>', 0, 12, 'ul>li*3', 0, 5, 0, 12, undefined],
 			['ul>li', 0, 5, 'ul>li', 0, 0, 0, 5, undefined],
 			['ul>li|bem', 0, 9, 'ul>li', 0, 0, 0, 9, 'bem'],
-
+			['ul>li|c|bem', 0, 11, 'ul>li', 0, 0, 0, 11, 'c,bem'],
+			['ul>li|bem|c', 0, 11, 'ul>li', 0, 0, 0, 11, 'bem,c'],
+			['ul>li|t|bem|c', 0, 13, 'ul>li', 0, 0, 0, 13, 't,bem,c'],
 			['div[a="b" c="d"]>md-button', 0, 26, 'div[a="b" c="d"]>md-button', 0, 0, 0, 26, undefined],			
 			['div[a=b c="d"]>md-button', 0, 24, 'div[a=b c="d"]>md-button', 0, 0, 0, 24, undefined],			
 			['div[a=b c=d]>md-button', 0, 22, 'div[a=b c=d]>md-button', 0, 0, 0, 22, undefined]
@@ -83,7 +95,10 @@ describe('Extract Abbreviations', () => {
 			['ul>li', 'ul>li', undefined],
 			['ul>li*3', 'ul>li*3', undefined],
 			['ul>li|bem', 'ul>li', 'bem'],
-			['ul>li|t', 'ul>li', 't']
+			['ul>li|t', 'ul>li', 't'],
+			['ul>li|bem|c', 'ul>li', 'bem,c'],
+			['ul>li|c|bem', 'ul>li', 'c,bem'],
+			['ul>li|c|bem|t', 'ul>li', 'c,bem,t'],
 		]
 
 		testCases.forEach(([content, expectedAbbr, expectedFilter]) => {
@@ -373,6 +388,7 @@ describe('Test filters (bem and comment)', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.equal(expandAbbreviation(bemFilterExample, getExpandOptions('html', {}, 'bem')), expectedBemFilterOutput);
 			assert.equal(expandAbbreviation(commentFilterExample, getExpandOptions('html', {}, 'c')), expectedCommentFilterOutput);
+			assert.equal(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem,c')), expectedBemCommentFilterOutput);
 			return Promise.resolve();
 		});
 	});
@@ -403,6 +419,8 @@ describe('Test completions', () => {
 		return updateExtensionsPath(null).then(() => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
 			let commentFilterExampleWithInlineFilter = commentFilterExample + '|c';
+			let bemCommentFilterExampleWithInlineFilter = bemCommentFilterExample + '|bem|c';
+			let commentBemFilterExampleWithInlineFilter = bemCommentFilterExample + '|c|bem';
 
 			const testCases: [string, number, number, string, string, string][] = [
 				['<div>ul>li*3</div>', 0, 7, 'ul', '<ul>|</ul>', '<ul>\${0}</ul>'], // One of the commonly used tags
@@ -417,10 +435,11 @@ describe('Test completions', () => {
 				['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>', '<u-l-z>\${0}</u-l-z>'], // Word with - is valid
 				[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],
 				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
+				[bemCommentFilterExampleWithInlineFilter, 0, bemCommentFilterExampleWithInlineFilter.length, bemCommentFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
+				[commentBemFilterExampleWithInlineFilter, 0, commentBemFilterExampleWithInlineFilter.length, commentBemFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],				
 				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'], // No last tab stop gets added as max tab stop is of a placeholder
 				['li*10', 0, 5, 'li*10', '<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>', 
 					'<li>\${1}</li>\n<li>\${2}</li>\n<li>\${3}</li>\n<li>\${4}</li>\n<li>\${5}</li>\n<li>\${6}</li>\n<li>\${7}</li>\n<li>\${8}</li>\n<li>\${9}</li>\n<li>\${0}</li>'], // tabstop 10 es greater than 9, should be replaced by 0
-
 			];
 
 			testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansionDocs, expectedExpansion]) => {

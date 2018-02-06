@@ -27,6 +27,7 @@ const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
+const maxFilters = 3;
 const defaultUnitAliases = {
 	e: 'em',
 	p: '%',
@@ -115,9 +116,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
 			expandedAbbr.detail = 'Emmet Abbreviation';
-			if (filter === 'bem' || filter === 'c') {
-				expandedAbbr.label = abbreviation + filterDelimitor + (filter === 'bem' ? bemFilterSuffix : commentFilterSuffix);
-			}
+			expandedAbbr.label = abbreviation;
+			expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
 			completionItems = [expandedAbbr];
 		}
 	}
@@ -346,24 +346,37 @@ export function isStyleSheet(syntax): boolean {
 	return (stylesheetSyntaxes.indexOf(syntax) > -1);
 }
 
+function getFilters (text: string, pos: number) : {pos: number, filter: string} {
+	let filter;
+	for (let i = 0; i < maxFilters; i++) {
+		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
+			pos -= bemFilterSuffix.length + 1;
+			filter = filter ? bemFilterSuffix + ',' + filter : bemFilterSuffix;
+		} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`, pos)) {
+			pos -= commentFilterSuffix.length + 1;
+			filter = filter ? commentFilterSuffix + ',' + filter : commentFilterSuffix;
+		} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`, pos)) {
+			pos -= trimFilterSuffix.length + 1;
+			filter = filter ? trimFilterSuffix + ',' + filter : trimFilterSuffix;
+		} else {
+			break;
+		}
+	}
+	return {
+		pos: pos,
+		filter: filter
+	}
+}
 /**
  * Extracts abbreviation from the given position in the given document
  */
 export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
-	let filter;
-	let pos = position.character;
 	let currentLine = getCurrentLine(document, position);
 	let currentLineTillPosition = currentLine.substr(0, position.character);
-	let lengthOccupiedByFilter = 0;
-	if (currentLineTillPosition.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
-		lengthOccupiedByFilter = 4;
-		pos -= lengthOccupiedByFilter;
-		filter = bemFilterSuffix;
-	} else if (currentLineTillPosition.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
-		lengthOccupiedByFilter = 2;
-		pos -= lengthOccupiedByFilter;
-		filter = commentFilterSuffix;
-	}
+	
+	let {pos, filter} = getFilters(currentLineTillPosition, position.character);
+
+	let lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 	let result;
 	try {
 		result = extract(currentLine, pos, lookAhead);
@@ -389,17 +402,8 @@ export function extractAbbreviationFromText(text: string): any {
 			filter
 		}
 	}
-	let pos = text.length;
-	if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`)) {
-		pos -= bemFilterSuffix.length + 1;
-		filter = bemFilterSuffix;
-	} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`)) {
-		pos -= trimFilterSuffix.length + 1;
-		filter = trimFilterSuffix;
-	} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`)) {
-		pos -= commentFilterSuffix.length + 1;
-		filter = commentFilterSuffix;
-	}
+	let pos;
+	({pos, filter} = getFilters(text, text.length));
 	let result;
 	try {
 		result = extract(text, pos, true);
@@ -476,7 +480,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string, ) {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string) {
 	emmetConfig = emmetConfig || {};
 	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
@@ -513,7 +517,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 
 	// Fetch Add Ons
 	let addons = {};
-	if ((filter && filter === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
+	if (filter && filter.split(',').find(x => x.trim() === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
 		if (emmetConfig['preferences']['bem.elementSeparator']) {
 			addons['bem']['element'] = emmetConfig['preferences']['bem.elementSeparator'];
@@ -528,7 +532,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 
 	// Fetch Formatters
 	let formatters = getFormatters(syntax, emmetConfig['preferences']);
-	if ((filter && filter === 'c') || filtersFromProfile.indexOf('c') > -1) {
+	if (filter && filter.split(',').find(x => x.trim() === 'c') || filtersFromProfile.indexOf('c') > -1) {
 		if (!formatters['comment']) {
 			formatters['comment'] = {
 				enabled: true
