@@ -16,7 +16,6 @@ let markupSnippetKeys: string[];
 let markupSnippetKeysRegex: RegExp[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
-const htmlAbbreviationEndRegex = /[a-z,A-Z,!,),\],#,\.,},\d,*,$]$/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
@@ -435,7 +434,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return false;
 	}
 
-	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationEndRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
+	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
 function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
