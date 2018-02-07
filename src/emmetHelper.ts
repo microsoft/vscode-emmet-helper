@@ -346,7 +346,7 @@ export function isStyleSheet(syntax): boolean {
 	return (stylesheetSyntaxes.indexOf(syntax) > -1);
 }
 
-function getFilters (text: string, pos: number) : {pos: number, filter: string} {
+function getFilters(text: string, pos: number): { pos: number, filter: string } {
 	let filter;
 	for (let i = 0; i < maxFilters; i++) {
 		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
@@ -371,52 +371,43 @@ function getFilters (text: string, pos: number) : {pos: number, filter: string} 
  * Extracts abbreviation from the given position in the given document
  */
 export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
-	let currentLine = getCurrentLine(document, position);
-	let currentLineTillPosition = currentLine.substr(0, position.character);
-	
-	let {pos, filter} = getFilters(currentLineTillPosition, position.character);
+	const currentLine = getCurrentLine(document, position);
+	const currentLineTillPosition = currentLine.substr(0, position.character);
+	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
+	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
-	let lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
-	let result;
 	try {
-		result = extract(currentLine, pos, lookAhead);
+		const result = extract(currentLine, pos, lookAhead);
+		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
+		return {
+			abbreviationRange: rangeToReplace,
+			abbreviation: result.abbreviation,
+			filter
+		};
 	}
 	catch (e) {
 	}
-	if (!result) {
-		return null;
-	}
-	let rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
-	return {
-		abbreviationRange: rangeToReplace,
-		abbreviation: result.abbreviation,
-		filter
-	};
 }
 
+/**
+ * Extracts abbreviation from the given text
+ */
 export function extractAbbreviationFromText(text: string): any {
-	let filter;
 	if (!text) {
-		return {
-			abbreviation: '',
-			filter
-		}
+		return;
 	}
-	let pos;
-	({pos, filter} = getFilters(text, text.length));
-	let result;
+
+	const { pos, filter } = getFilters(text, text.length);
+
 	try {
-		result = extract(text, pos, true);
+		const result = extract(text, pos, true);
+		return {
+			abbreviation: result.abbreviation,
+			filter
+		};
 	}
 	catch (e) {
 	}
-	if (!result) {
-		return null;
-	}
-	return {
-		abbreviation: result.abbreviation,
-		filter
-	};
 }
 
 /**
