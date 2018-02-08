@@ -51,6 +51,17 @@ export interface EmmetConfiguration {
 	showSuggestionsAsSnippets?: boolean;
 }
 
+export interface ExpandOptions {
+	field: (index: any, placeholder: any) => string,
+	syntax: string,
+	profile: any,
+	addons: any,
+	variables: any,
+	snippets: any,
+	format: any,
+	preferences: any
+}
+
 export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: EmmetConfiguration): CompletionList {
 
 	if (emmetConfig.showExpandedAbbreviation === 'never' || !getEmmetMode(syntax, emmetConfig.excludeLanguages)) {
@@ -369,7 +380,7 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true) {
+export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
@@ -391,7 +402,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 /**
  * Extracts abbreviation from the given text
  */
-export function extractAbbreviationFromText(text: string): any {
+export function extractAbbreviationFromText(text: string): { abbreviation: string, filter: string } {
 	if (!text) {
 		return;
 	}
@@ -470,7 +481,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string) {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string): ExpandOptions {
 	emmetConfig = emmetConfig || {};
 	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
@@ -618,7 +629,7 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
  * @param abbreviation string
  * @param options 
  */
-export function expandAbbreviation(abbreviation: string, options: any) {
+export function expandAbbreviation(abbreviation: string, options: ExpandOptions): string {
 	let expandedText;
 	let preferences = options['preferences'];
 	delete options['preferences'];
