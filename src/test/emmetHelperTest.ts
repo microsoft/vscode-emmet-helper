@@ -433,6 +433,7 @@ describe('Test completions', () => {
 				['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>', '<SPan>\${0}</SPan>'], // Prefix of a common tag in upper case
 				['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>', '<u:l:l>\${0}</u:l:l>'], // Word with : is valid
 				['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>', '<u-l-z>\${0}</u-l-z>'], // Word with - is valid
+				['<div>div.foo_</div>', 0, 13, 'div.foo_', '<div class="foo_">|</div>', '<div class="foo_">\${0}</div>'], // Word with _ is valid
 				[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],
 				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
 				[bemCommentFilterExampleWithInlineFilter, 0, bemCommentFilterExampleWithInlineFilter.length, bemCommentFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
