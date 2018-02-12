@@ -58,7 +58,7 @@ export declare function expandAbbreviation(abbreviation: string, options: Expand
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export declare function updateExtensionsPath(emmetExtensionsPath: string): Promise<void>;
+export declare function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolderPath?: string): Promise<void>;
 /**
 * Get the corresponding emmet mode for given vscode language mode
 * Eg: jsx for typescriptreact/javascriptreact or pug for jade
