@@ -510,12 +510,44 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0);
+				assert.equal(!completionList, true);
 			});
 			return Promise.resolve();
 
 		});
 	});
+
+	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
+		return updateExtensionsPath(null).then(() => {
+
+			const testCases: [string, number, number][] = [
+				['-', 0, 1],
+				['-m-', 0, 3],
+				['-s-', 0, 3],
+				['-o-', 0, 3],
+				['-w-', 0, 3],
+				['-wo-', 0, 4],
+				['-mw-', 0, 4],
+			];
+
+			testCases.forEach(([abbreviation, positionLine, positionChar]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
+				const position = Position.create(positionLine, positionChar);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items.length, 0);
+				assert.equal(completionList.isIncomplete, true);
+			});
+			return Promise.resolve();
+
+		});
+	})
 
 	it('should provide completions for text that are prefix for snippets, ensure $ doesnt get escaped', () => {
 		return updateExtensionsPath(null).then(() => {
@@ -710,7 +742,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0, completionList.items.length > 0 ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.equal(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 
@@ -736,7 +768,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0, completionList.items.length > 0 ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.equal(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 

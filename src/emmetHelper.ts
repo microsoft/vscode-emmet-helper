@@ -89,7 +89,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 	let extractedValue = extractAbbreviation(document, position);
 	if (!extractedValue) {
-		return CompletionList.create([], true);
+		return;
 	}
 	let { abbreviationRange, abbreviation, filter } = extractedValue;
 	let currentLineTillPosition = getCurrentLine(document, position).substr(0, position.character);
@@ -99,7 +99,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (currentWord === abbreviation
 		&& currentLineTillPosition.endsWith(`<${abbreviation}`)
 		&& (syntax === 'html' || syntax === 'xml' || syntax === 'xsl' || syntax === 'jsx')) {
-		return CompletionList.create([], true);
+		return;
 	}
 
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
@@ -110,7 +110,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	let completionItems: CompletionItem[] = [];
 
 	// Create completion item for expanded abbreviation
-	let createExpandedAbbr = (abbr) => {
+	const createExpandedAbbr = (abbr) => {
 
 		try {
 			expandedText = expand(abbr, expandOptions);
@@ -134,6 +134,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (isStyleSheet(syntax)) {
+		// Incomplete abbreviation using vendor prefix 
+		if (abbreviation === '-' || /^-[wmso]{1,4}-$/.test(abbreviation)) {
+			return CompletionList.create([], true);
+		}
+
 		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
 		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 		if (isAbbreviationValid(syntax, abbreviation)) {
@@ -145,7 +150,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
 			expandedAbbr.documentation = replaceTabStopsWithCursors(prefixedExpandedText);
 		} else {
-			return CompletionList.create([], true);
+			return undefined;
 		}
 
 		expandedAbbr.label = removeTabStops(expandedText);
@@ -194,7 +199,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	if (emmetConfig.showSuggestionsAsSnippets === true) {
 		completionItems.forEach(x => x.kind = CompletionItemKind.Snippet);
 	}
-	return CompletionList.create(completionItems, true);
+	return completionItems.length ? CompletionList.create(completionItems, true) : undefined;
 }
 
 function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any, snippetDetail: string, skipFullMatch: boolean = true): CompletionItem[] {
