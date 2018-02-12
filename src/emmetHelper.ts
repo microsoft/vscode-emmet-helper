@@ -10,6 +10,7 @@ import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
+import { homedir } from 'os';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -781,21 +782,30 @@ function getFormatters(syntax: string, preferences: object) {
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export function updateExtensionsPath(emmetExtensionsPath: string): Promise<void> {
+export function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolderPath?: string): Promise<void> {
 	if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
 		resetSettingsFromFile();
 		return Promise.resolve();
 	}
-	if (!path.isAbsolute(emmetExtensionsPath.trim())) {
+
+	emmetExtensionsPath = emmetExtensionsPath.trim();
+	workspaceFolderPath = workspaceFolderPath ? workspaceFolderPath.trim() : '';
+	if (emmetExtensionsPath[0] === '~') {
+		emmetExtensionsPath = path.join(homedir(), emmetExtensionsPath);
+	} else if (!path.isAbsolute(emmetExtensionsPath) && workspaceFolderPath) {
+		emmetExtensionsPath = path.join(workspaceFolderPath, emmetExtensionsPath);
+	}
+
+	if (!path.isAbsolute(emmetExtensionsPath)) {
 		resetSettingsFromFile();
 		return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
 	}
-	if (!dirExists(emmetExtensionsPath.trim())) {
+	if (!dirExists(emmetExtensionsPath)) {
 		resetSettingsFromFile();
-		return Promise.reject(`The directory ${emmetExtensionsPath.trim()} doesnt exist. Update emmet.extensionsPath setting`);
+		return Promise.reject(`The directory ${emmetExtensionsPath} doesnt exist. Update emmet.extensionsPath setting`);
 	}
 
-	let dirPath = emmetExtensionsPath.trim();
+	let dirPath = emmetExtensionsPath;
 	let snippetsPath = path.join(dirPath, 'snippets.json');
 	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
 
