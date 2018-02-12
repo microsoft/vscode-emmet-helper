@@ -1,10 +1,10 @@
 import { TextDocument, Position, Range, CompletionList } from 'vscode-languageserver-types';
 export interface EmmetConfiguration {
-    showExpandedAbbreviation: string;
-    showAbbreviationSuggestions: boolean;
-    syntaxProfiles: object;
-    variables: object;
-    preferences: object;
+    showExpandedAbbreviation?: string;
+    showAbbreviationSuggestions?: boolean;
+    syntaxProfiles?: object;
+    variables?: object;
+    preferences?: object;
     excludeLanguages?: string[];
     showSuggestionsAsSnippets?: boolean;
 }
