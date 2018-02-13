@@ -796,7 +796,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolde
 	emmetExtensionsPath = emmetExtensionsPath.trim();
 	workspaceFolderPath = workspaceFolderPath ? workspaceFolderPath.trim() : '';
 	if (emmetExtensionsPath[0] === '~') {
-		emmetExtensionsPath = path.join(homedir(), emmetExtensionsPath);
+		emmetExtensionsPath = path.join(homedir(), emmetExtensionsPath.substr(1));
 	} else if (!path.isAbsolute(emmetExtensionsPath) && workspaceFolderPath) {
 		emmetExtensionsPath = path.join(workspaceFolderPath, emmetExtensionsPath);
 	}
