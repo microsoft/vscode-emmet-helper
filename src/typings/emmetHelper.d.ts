@@ -69,3 +69,5 @@ export declare function updateExtensionsPath(emmetExtensionsPath: string, worksp
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
 export declare function getEmmetMode(language: string, excludedLanguages?: string[]): string;
+
+export declare function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any;

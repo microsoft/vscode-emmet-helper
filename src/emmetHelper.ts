@@ -160,7 +160,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 					completionItems.push(expandedAbbr);
 				}
 			}
-		} 
+		}
 
 		// Incomplete abbreviation using vendor prefix 
 		if (!completionItems.length && (abbreviation === '-' || /^-[wmso]{1,4}-?$/.test(abbreviation))) {
@@ -923,8 +923,30 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	}
 }
 
-
-
+const hexColorRegex = /^#[\d,a-f,A-F]+$/;
+export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any {
+	return {
+		onCssProperty: (context) => {
+			if (context && context.propertyName) {
+				result = doComplete(document, position, syntax, emmetSettings);
+			}
+		},
+		onCssPropertyValue: (context) => {
+			if (context && context.propertyValue) {
+				const extractedResults = extractAbbreviation(document, position);
+				if (!extractedResults) {
+					return;
+				}
+				if (extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` || hexColorRegex.test(extractedResults.abbreviation)) {
+					result = doComplete(document, position, syntax, emmetSettings);
+				}
+			}
+		},
+		onHtmlContent: () => {
+			result = doComplete(document, position, syntax, emmetSettings);
+		}
+	};
+}
 
 
 
