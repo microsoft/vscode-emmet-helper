@@ -928,7 +928,10 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 	return {
 		onCssProperty: (context) => {
 			if (context && context.propertyName) {
-				result = doComplete(document, position, syntax, emmetSettings);
+				const currentresult = doComplete(document, position, syntax, emmetSettings);
+				if (result && currentresult) {
+					result.items = currentresult.items;
+				}
 			}
 		},
 		onCssPropertyValue: (context) => {
@@ -938,12 +941,18 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 					return;
 				}
 				if (extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` || hexColorRegex.test(extractedResults.abbreviation)) {
-					result = doComplete(document, position, syntax, emmetSettings);
+					const currentresult = doComplete(document, position, syntax, emmetSettings);
+					if (result && currentresult) {
+						result.items = currentresult.items;
+					}
 				}
 			}
 		},
 		onHtmlContent: () => {
-			result = doComplete(document, position, syntax, emmetSettings);
+			const currentresult = doComplete(document, position, syntax, emmetSettings);
+			if (result && currentresult) {
+				result.items = currentresult.items;
+			}
 		}
 	};
 }
