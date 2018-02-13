@@ -526,8 +526,9 @@ describe('Test completions', () => {
 				['-s-', 0, 3],
 				['-o-', 0, 3],
 				['-w-', 0, 3],
-				['-wo-', 0, 4],
+				['-ow-', 0, 4],
 				['-mw-', 0, 4],
+				['-mo', 0, 3],
 			];
 
 			testCases.forEach(([abbreviation, positionLine, positionChar]) => {
@@ -541,7 +542,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0);
+				assert.equal(completionList.items.length, 0, completionList.items.length ? completionList.items[0].label : 'all good');
 				assert.equal(completionList.isIncomplete, true);
 			});
 			return Promise.resolve();

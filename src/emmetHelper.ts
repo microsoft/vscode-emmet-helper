@@ -134,11 +134,6 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (isStyleSheet(syntax)) {
-		// Incomplete abbreviation using vendor prefix 
-		if (abbreviation === '-' || /^-[wmso]{1,4}-$/.test(abbreviation)) {
-			return CompletionList.create([], true);
-		}
-
 		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
 		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 		if (isAbbreviationValid(syntax, abbreviation)) {
@@ -149,25 +144,27 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			let prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
 			expandedAbbr.documentation = replaceTabStopsWithCursors(prefixedExpandedText);
-		} else {
-			return undefined;
-		}
+			expandedAbbr.label = removeTabStops(expandedText);
+			expandedAbbr.filterText = abbreviation;
 
-		expandedAbbr.label = removeTabStops(expandedText);
-		expandedAbbr.filterText = abbreviation;
+			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
-		const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-		completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
+			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
 
-		if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
-
-			// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
-			// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
-			// Filter out those cases here.
-			const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
-			if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
-				completionItems.push(expandedAbbr);
+				// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
+				// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
+				// Filter out those cases here.
+				const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+				if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
+					completionItems.push(expandedAbbr);
+				}
 			}
+		} 
+
+		// Incomplete abbreviation using vendor prefix 
+		if (!completionItems.length && (abbreviation === '-' || /^-[wmso]{1,4}-?$/.test(abbreviation))) {
+			return CompletionList.create([], true);
 		}
 	} else {
 		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
