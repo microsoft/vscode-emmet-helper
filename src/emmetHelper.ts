@@ -5,7 +5,7 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry } from './expand/expand-full';
+import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
 import * as extract from '@emmetio/extract-abbreviation';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -626,17 +626,20 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
 	return prefixedProperty + expandedProperty;
 }
 
+export function parseAbbreviation(abbreviation: string, options: ExpandOptions): any {
+	return parse(abbreviation, options);
+}
 
 /**
  * Expands given abbreviation using given options
  * @param abbreviation string
  * @param options 
  */
-export function expandAbbreviation(abbreviation: string, options: ExpandOptions): string {
+export function expandAbbreviation(abbreviation: any, options: ExpandOptions): string {
 	let expandedText;
 	let preferences = options['preferences'];
 	delete options['preferences'];
-	if (isStyleSheet(options['syntax'])) {
+	if (isStyleSheet(options['syntax']) && typeof abbreviation === 'string') {
 		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
 		expandedText = expand(abbreviationWithoutPrefix, options);
 		expandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
