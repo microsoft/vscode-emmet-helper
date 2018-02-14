@@ -923,7 +923,8 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	}
 }
 
-const hexColorRegex = /^#[\d,a-f,A-F]+$/;
+const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
+const onlyLetters = /^[a-z,A-Z]+$/;
 export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any {
 	return {
 		onCssProperty: (context) => {
@@ -940,7 +941,10 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 				if (!extractedResults) {
 					return;
 				}
-				if (extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` || hexColorRegex.test(extractedResults.abbreviation)) {
+				const validAbbreviationWithColon = extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` && onlyLetters.test(context.propertyValue);
+				if (validAbbreviationWithColon // Allows abbreviations like pos:f
+                    || hexColorRegex.test(extractedResults.abbreviation)
+                    || extractedResults.abbreviation === '!') {
 					const currentresult = doComplete(document, position, syntax, emmetSettings);
 					if (result && currentresult) {
 						result.items = currentresult.items;
