@@ -2259,9 +2259,9 @@ function find(arr, filter) {
  * JSX transformer: replaces `class` and `for` attributes with `className` and
  * `htmlFor` attributes respectively
  */
-var jsx = function(tree) {
+var jsx = function(tree, options) {
 	tree.walk(node => {
-		replace(node, 'class', 'className');
+		replace(node, 'class', options && options.attributeName ? options.attributeName : 'className');
 		replace(node, 'for', 'htmlFor');
 	});
 	return tree;

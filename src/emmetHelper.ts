@@ -531,7 +531,9 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 		}
 	}
 	if (syntax === 'jsx') {
-		addons['jsx'] = true;
+		addons['jsx'] = {
+			attributeName: emmetConfig['preferences']['jsx.classAttributeName']
+		};
 	}
 
 	// Fetch Formatters
