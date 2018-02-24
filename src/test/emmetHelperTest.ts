@@ -790,6 +790,9 @@ describe('Test completions', () => {
 				variables: {}
 			});
 			const expandedText = completionList.items[0].documentation;
+			if (typeof expandedText !== 'string') {
+				return;
+			}
 			let matches = expandedText.match(/<div class="item">(.*)<\/div>/);
 
 			assert.equal(completionList.items[0].label, 'lorem10.item');
