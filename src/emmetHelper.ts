@@ -87,7 +87,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	let extractedValue = extractAbbreviation(document, position);
+	let extractedValue = extractAbbreviation(document, position, { syntax, lookAhead: !isStyleSheet(syntax) });
 	if (!extractedValue) {
 		return;
 	}
@@ -380,17 +380,28 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 		filter: filter
 	}
 }
+
+function getExtractOptions(options?: boolean | { lookAhead?: boolean, syntax?: string }): boolean | { lookAhead: boolean, syntax: string } {
+	if (typeof options === 'boolean') {
+		return options;
+	} else if (!options) {
+		return { lookAhead: true, syntax: 'markup' };
+	} else {
+		return { syntax: isStyleSheet(options.syntax) ? 'stylesheet' : 'markup', lookAhead: options.lookAhead };
+	}
+}
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position, lookAhead: boolean = true): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
 	try {
-		const result = extract(currentLine, pos, lookAhead);
+		let extractOptions = getExtractOptions(options)
+		const result = extract(currentLine, pos, extractOptions);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
 		return {
 			abbreviationRange: rangeToReplace,
@@ -405,7 +416,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 /**
  * Extracts abbreviation from the given text
  */
-export function extractAbbreviationFromText(text: string): { abbreviation: string, filter: string } {
+export function extractAbbreviationFromText(text: string, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, filter: string } {
 	if (!text) {
 		return;
 	}
@@ -413,7 +424,8 @@ export function extractAbbreviationFromText(text: string): { abbreviation: strin
 	const { pos, filter } = getFilters(text, text.length);
 
 	try {
-		const result = extract(text, pos, true);
+		let extractOptions = getExtractOptions(options);
+		const result = extract(text, pos, extractOptions);
 		return {
 			abbreviation: result.abbreviation,
 			filter
@@ -940,14 +952,14 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		},
 		onCssPropertyValue: (context) => {
 			if (context && context.propertyValue) {
-				const extractedResults = extractAbbreviation(document, position);
+				const extractedResults = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
 				if (!extractedResults) {
 					return;
 				}
 				const validAbbreviationWithColon = extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` && onlyLetters.test(context.propertyValue);
 				if (validAbbreviationWithColon // Allows abbreviations like pos:f
-                    || hexColorRegex.test(extractedResults.abbreviation)
-                    || extractedResults.abbreviation === '!') {
+					|| hexColorRegex.test(extractedResults.abbreviation)
+					|| extractedResults.abbreviation === '!') {
 					const currentresult = doComplete(document, position, syntax, emmetSettings);
 					if (result && currentresult) {
 						result.items = currentresult.items;
