@@ -387,7 +387,7 @@ function getExtractOptions(options?: boolean | { lookAhead?: boolean, syntax?: s
 	} else if (!options) {
 		return { lookAhead: true, syntax: 'markup' };
 	} else {
-		return { syntax: isStyleSheet(options.syntax) ? 'stylesheet' : 'markup', lookAhead: options.lookAhead };
+		return { syntax: (isStyleSheet(options.syntax) || options.syntax === 'stylesheet') ? 'stylesheet' : 'markup', lookAhead: options.lookAhead };
 	}
 }
 /**
@@ -644,7 +644,7 @@ export function parseAbbreviation(abbreviation: string, options: ExpandOptions):
 
 /**
  * Expands given abbreviation using given options
- * @param abbreviation string
+ * @param abbreviation string or parsed abbreviation
  * @param options 
  */
 export function expandAbbreviation(abbreviation: any, options: ExpandOptions): string {

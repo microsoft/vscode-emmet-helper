@@ -24,7 +24,10 @@ export declare function isStyleSheet(syntax: any): boolean;
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export declare function extractAbbreviation(document: TextDocument, position: Position, lookAhead?: boolean): {
+export declare function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | {
+    lookAhead?: boolean;
+    syntax?: string;
+}): {
     abbreviation: string;
     abbreviationRange: Range;
     filter: string;
@@ -32,7 +35,10 @@ export declare function extractAbbreviation(document: TextDocument, position: Po
 /**
  * Extracts abbreviation from the given text
  */
-export declare function extractAbbreviationFromText(text: string): {
+export declare function extractAbbreviationFromText(text: string, options?: boolean | {
+    lookAhead?: boolean;
+    syntax?: string;
+}): {
     abbreviation: string;
     filter: string;
 };
@@ -49,12 +55,13 @@ export declare function isAbbreviationValid(syntax: string, abbreviation: string
  * @param textToReplace
  */
 export declare function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string): ExpandOptions;
+export declare function parseAbbreviation(abbreviation: string, options: ExpandOptions): any;
 /**
  * Expands given abbreviation using given options
- * @param abbreviation string
+ * @param abbreviation string or parsed abbreviation
  * @param options
  */
-export declare function expandAbbreviation(abbreviation: string, options: ExpandOptions): string;
+export declare function expandAbbreviation(abbreviation: any, options: ExpandOptions): string;
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
@@ -69,5 +76,4 @@ export declare function updateExtensionsPath(emmetExtensionsPath: string, worksp
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
 export declare function getEmmetMode(language: string, excludedLanguages?: string[]): string;
-
 export declare function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any;
