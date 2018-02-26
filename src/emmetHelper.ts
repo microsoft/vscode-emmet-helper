@@ -380,34 +380,38 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 		filter: filter
 	}
 }
+
+function getExtractOptions(options?: boolean | { lookAhead?: boolean, syntax?: string }): boolean | { lookAhead: boolean, syntax: string } {
+	let extractOptions: boolean | { lookAhead: boolean, syntax: string };
+	if (typeof options === 'boolean') {
+		return options;
+	} else if (!options) {
+		return { lookAhead: true, syntax: 'markup' };
+	} else {
+		let syntax: string;
+		let lookAhead: boolean;
+		if (isStyleSheet(options.syntax)) {
+			syntax = 'stylesheet';
+			lookAhead = options.lookAhead || false;
+		} else {
+			syntax = 'markup';
+			lookAhead = options.lookAhead;
+		}
+		return { syntax, lookAhead };
+	}
+}
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position, extractOptions?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
 	try {
-		let options: boolean | { lookAhead: boolean, syntax: string };
-		if (!extractOptions) {
-			options = { lookAhead: true, syntax: 'markup' };
-		} else if (typeof extractOptions === 'boolean') {
-			options = extractOptions;
-		} else {
-			let syntax: string;
-			let lookAhead: boolean;
-			if (isStyleSheet(extractOptions.syntax)) {
-				syntax = 'stylesheet';
-				lookAhead = extractOptions.lookAhead || false;
-			} else {
-				syntax = 'markup';
-				lookAhead = extractOptions.lookAhead;
-			}
-			options = { syntax, lookAhead };
-		}
-		const result = extract(currentLine, pos, options);
+		let extractOptions = getExtractOptions(options)
+		const result = extract(currentLine, pos, extractOptions);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
 		return {
 			abbreviationRange: rangeToReplace,
@@ -422,7 +426,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 /**
  * Extracts abbreviation from the given text
  */
-export function extractAbbreviationFromText(text: string, extractOptions?: { lookAhead?: boolean, syntax?: string }): { abbreviation: string, filter: string } {
+export function extractAbbreviationFromText(text: string, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, filter: string } {
 	if (!text) {
 		return;
 	}
@@ -430,8 +434,8 @@ export function extractAbbreviationFromText(text: string, extractOptions?: { loo
 	const { pos, filter } = getFilters(text, text.length);
 
 	try {
-		let options = extractOptions || true;
-		const result = extract(text, pos, options);
+		let extractOptions = getExtractOptions(options);
+		const result = extract(text, pos, extractOptions);
 		return {
 			abbreviation: result.abbreviation,
 			filter
