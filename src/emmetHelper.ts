@@ -87,7 +87,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	let extractedValue = extractAbbreviation(document, position, undefined, syntax);
+	let extractedValue = extractAbbreviation(document, position, {syntax: 'css'});
 	if (!extractedValue) {
 		return;
 	}
@@ -383,7 +383,7 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position, lookAhead?: boolean, syntax?: string): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, extractOptions: boolean | {lookAhead?: boolean, syntax?: string}): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
@@ -391,16 +391,19 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 
 	try {
 		let options: boolean | {lookAhead: boolean, syntax: string};
-		if (syntax && isStyleSheet(syntax)) {
-			if (typeof lookAhead !== 'boolean') {
-				lookAhead = false;
-			}
-			options = {lookAhead, syntax: 'stylesheet'};
+		if (typeof extractOptions === 'boolean') {
+			options = extractOptions;
 		} else {
-			if (typeof lookAhead !== 'boolean') {
-				lookAhead = true;
+			let syntax: string;
+			let lookAhead: boolean;
+			if (extractOptions.syntax && isStyleSheet(extractOptions.syntax)) {
+				syntax = 'stylesheet';
+				lookAhead = extractOptions.lookAhead || false;
+			} else {
+				syntax = 'markup';
+				lookAhead = typeof extractOptions.lookAhead === 'boolean' ? extractOptions.lookAhead : true;
 			}
-			options = {lookAhead, syntax: 'markup'};
+			options = {syntax, lookAhead};
 		}
 		const result = extract(currentLine, pos, options);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
@@ -952,7 +955,7 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		},
 		onCssPropertyValue: (context) => {
 			if (context && context.propertyValue) {
-				const extractedResults = extractAbbreviation(document, position, undefined, 'css');
+				const extractedResults = extractAbbreviation(document, position, {syntax: 'css'});
 				if (!extractedResults) {
 					return;
 				}
