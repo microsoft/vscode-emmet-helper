@@ -381,17 +381,11 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 	}
 }
 
-function getExtractOptions(options?: boolean | { lookAhead?: boolean, syntax?: string }): boolean | { lookAhead: boolean, syntax: string } {
-	if (typeof options === 'boolean') {
-		return options;
-	} else if (!options) {
-		return { lookAhead: true, syntax: 'markup' };
-	} else {
-		return { syntax: (isStyleSheet(options.syntax) || options.syntax === 'stylesheet') ? 'stylesheet' : 'markup', lookAhead: options.lookAhead };
-	}
-}
 /**
- * Extracts abbreviation from the given position in the given document
+ *  * Extracts abbreviation from the given position in the given document
+ * @param document The TextDocument from which abbreviation needs to be extracted
+ * @param position The Position in the given document from where abbreviation needs to be extracted
+ * @param options The options to pass to the @emmetio/extract-abbreviation module
  */
 export function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
@@ -400,7 +394,14 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
 	try {
-		let extractOptions = getExtractOptions(options)
+		let extractOptions = options;
+		if (typeof extractOptions !== 'boolean') {
+			extractOptions = extractOptions || {};
+			extractOptions = {
+				syntax: (isStyleSheet(extractOptions.syntax) || extractOptions.syntax === 'stylesheet') ? 'stylesheet' : 'markup',
+				lookAhead: extractOptions.lookAhead
+			};
+		}
 		const result = extract(currentLine, pos, extractOptions);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
 		return {
@@ -414,9 +415,11 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 }
 
 /**
- * Extracts abbreviation from the given text
+ * Extracts abbreviation from the given text		
+ * @param text Text from which abbreviation needs to be extracted
+ * @param syntax Syntax used to extract the abbreviation from the given text
  */
-export function extractAbbreviationFromText(text: string, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, filter: string } {
+export function extractAbbreviationFromText(text: string, syntax?: string): { abbreviation: string, filter: string } {
 	if (!text) {
 		return;
 	}
@@ -424,7 +427,7 @@ export function extractAbbreviationFromText(text: string, options?: boolean | { 
 	const { pos, filter } = getFilters(text, text.length);
 
 	try {
-		let extractOptions = getExtractOptions(options);
+		let extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ? { syntax: 'stylesheet', lookAhead: false } : true;
 		const result = extract(text, pos, extractOptions);
 		return {
 			abbreviation: result.abbreviation,
@@ -492,7 +495,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 }
 
 /**
- * Returns options to be used by the expand module
+ * Returns options to be used by the @emmetio/expand-abbreviation module
  * @param syntax 
  * @param textToReplace 
  */
@@ -638,6 +641,11 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
 	return prefixedProperty + expandedProperty;
 }
 
+/**
+ * Parses given abbreviation using given options and returns a tree
+ * @param abbreviation string 
+ * @param options options used by the @emmetio/expand-abbreviation module to parse given abbreviation
+ */
 export function parseAbbreviation(abbreviation: string, options: ExpandOptions): any {
 	return parse(abbreviation, options);
 }
@@ -645,7 +653,7 @@ export function parseAbbreviation(abbreviation: string, options: ExpandOptions):
 /**
  * Expands given abbreviation using given options
  * @param abbreviation string or parsed abbreviation
- * @param options 
+ * @param options options used by the @emmetio/expand-abbreviation module to expand given abbreviation
  */
 export function expandAbbreviation(abbreviation: any, options: ExpandOptions): string {
 	let expandedText;
@@ -728,7 +736,7 @@ function getVariables(variablesFromSettings: object): any {
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
-function getFormatters(syntax: string, preferences: object) {
+function getFormatters(syntax: string, preferences: any) {
 	if (!preferences) {
 		return {};
 	}
@@ -940,6 +948,19 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 
 const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
 const onlyLetters = /^[a-z,A-Z]+$/;
+
+/**
+ * Returns a completion participant for Emmet of the form {
+ * 		onCssProperty: () => void
+ * 		onCssPropertyValue: () => void
+ * 		onHtmlContent: () => void
+ * }
+ * @param document The TextDocument for which completions are being provided
+ * @param position The Position in the given document where completions are being provided
+ * @param syntax The Emmet syntax to use when providing Emmet completions
+ * @param emmetSettings The Emmet settings to use when providing Emmet completions
+ * @param result The Completion List object that needs to be updated with Emmet completions
+ */
 export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any {
 	return {
 		onCssProperty: (context) => {
@@ -947,6 +968,7 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 				const currentresult = doComplete(document, position, syntax, emmetSettings);
 				if (result && currentresult) {
 					result.items = currentresult.items;
+					result.isIncomplete = true;
 				}
 			}
 		},
@@ -963,6 +985,7 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 					const currentresult = doComplete(document, position, syntax, emmetSettings);
 					if (result && currentresult) {
 						result.items = currentresult.items;
+						result.isIncomplete = true;
 					}
 				}
 			}
@@ -971,6 +994,7 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 			const currentresult = doComplete(document, position, syntax, emmetSettings);
 			if (result && currentresult) {
 				result.items = currentresult.items;
+				result.isIncomplete = true;
 			}
 		}
 	};

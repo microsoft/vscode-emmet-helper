@@ -22,7 +22,10 @@ export declare function doComplete(document: TextDocument, position: Position, s
 export declare const emmetSnippetField: (index: any, placeholder: any) => string;
 export declare function isStyleSheet(syntax: any): boolean;
 /**
- * Extracts abbreviation from the given position in the given document
+ *  * Extracts abbreviation from the given position in the given document
+ * @param document The TextDocument from which abbreviation needs to be extracted
+ * @param position The Position in the given document from where abbreviation needs to be extracted
+ * @param options The options to pass to the @emmetio/extract-abbreviation module
  */
 export declare function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | {
     lookAhead?: boolean;
@@ -34,11 +37,10 @@ export declare function extractAbbreviation(document: TextDocument, position: Po
 };
 /**
  * Extracts abbreviation from the given text
+ * @param text Text from which abbreviation needs to be extracted
+ * @param syntax Syntax used to extract the abbreviation from the given text
  */
-export declare function extractAbbreviationFromText(text: string, options?: boolean | {
-    lookAhead?: boolean;
-    syntax?: string;
-}): {
+export declare function extractAbbreviationFromText(text: string, syntax?: string): {
     abbreviation: string;
     filter: string;
 };
@@ -50,16 +52,21 @@ export declare function extractAbbreviationFromText(text: string, options?: bool
  */
 export declare function isAbbreviationValid(syntax: string, abbreviation: string): boolean;
 /**
- * Returns options to be used by the expand module
+ * Returns options to be used by the @emmetio/expand-abbreviation module
  * @param syntax
  * @param textToReplace
  */
 export declare function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string): ExpandOptions;
+/**
+ * Parses given abbreviation using given options and returns a tree
+ * @param abbreviation string
+ * @param options options used by the @emmetio/expand-abbreviation module to parse given abbreviation
+ */
 export declare function parseAbbreviation(abbreviation: string, options: ExpandOptions): any;
 /**
  * Expands given abbreviation using given options
  * @param abbreviation string or parsed abbreviation
- * @param options
+ * @param options options used by the @emmetio/expand-abbreviation module to expand given abbreviation
  */
 export declare function expandAbbreviation(abbreviation: any, options: ExpandOptions): string;
 /**
@@ -76,4 +83,16 @@ export declare function updateExtensionsPath(emmetExtensionsPath: string, worksp
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
 export declare function getEmmetMode(language: string, excludedLanguages?: string[]): string;
+/**
+ * Returns a completion participant for Emmet of the form {
+ * 		onCssProperty: () => void
+ * 		onCssPropertyValue: () => void
+ * 		onHtmlContent: () => void
+ * }
+ * @param document The TextDocument for which completions are being provided
+ * @param position The Position in the given document where completions are being provided
+ * @param syntax The Emmet syntax to use when providing Emmet completions
+ * @param emmetSettings The Emmet settings to use when providing Emmet completions
+ * @param result The Completion List object that needs to be updated with Emmet completions
+ */
 export declare function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any;
