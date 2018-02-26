@@ -60,7 +60,7 @@ describe('Validate Abbreviations', () => {
 });
 
 describe('Extract Abbreviations', () => {
-	it('should extract abbreviations from document', () => {
+	it('should extract abbreviations from document html', () => {
 		const testCases: [string, number, number, string, number, number, number, number, string][] = [
 			['<div>ul>li*3</div>', 0, 7, 'ul', 0, 5, 0, 7, undefined],
 			['<div>ul>li*3</div>', 0, 10, 'ul>li', 0, 5, 0, 10, undefined],
@@ -79,6 +79,26 @@ describe('Extract Abbreviations', () => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, content);
 			const position = Position.create(positionLine, positionChar);
 			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position);
+
+			assert.equal(expectedAbbr, abbreviation);
+			assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
+			assert.equal(expectedRangeStartChar, abbreviationRange.start.character);
+			assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
+			assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
+			assert.equal(filter, expectedFilter);
+		});
+	});
+	it('should extract abbreviations from document css', () => {
+		const testCases: [string, number, number, string, number, number, number, number, string][] = [
+			['<div style="dn"></div>', 0, 14, 'dn', 0, 12, 0, 14, undefined],
+			['<div style="trf:rx"></div>', 0, 18, 'trf:rx', 0, 12, 0, 18, undefined],
+			['<div style="-mwo-trf:rx"></div>', 0, 23, '-mwo-trf:rx', 0, 12, 0, 23, undefined],
+		]
+
+		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilter]) => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, content);
+			const position = Position.create(positionLine, positionChar);
+			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, undefined, 'css');
 
 			assert.equal(expectedAbbr, abbreviation);
 			assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
