@@ -98,7 +98,7 @@ describe('Extract Abbreviations', () => {
 		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilter]) => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, content);
 			const position = Position.create(positionLine, positionChar);
-			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, { syntax: 'css' });
+			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
 
 			assert.equal(expectedAbbr, abbreviation);
 			assert.equal(expectedRangeStartLine, abbreviationRange.start.line);

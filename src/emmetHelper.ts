@@ -87,7 +87,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	let extractedValue = extractAbbreviation(document, position, { syntax });
+	let extractedValue = extractAbbreviation(document, position, { syntax, lookAhead: !isStyleSheet(syntax) });
 	if (!extractedValue) {
 		return;
 	}
@@ -382,22 +382,12 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 }
 
 function getExtractOptions(options?: boolean | { lookAhead?: boolean, syntax?: string }): boolean | { lookAhead: boolean, syntax: string } {
-	let extractOptions: boolean | { lookAhead: boolean, syntax: string };
 	if (typeof options === 'boolean') {
 		return options;
 	} else if (!options) {
 		return { lookAhead: true, syntax: 'markup' };
 	} else {
-		let syntax: string;
-		let lookAhead: boolean;
-		if (isStyleSheet(options.syntax)) {
-			syntax = 'stylesheet';
-			lookAhead = options.lookAhead || false;
-		} else {
-			syntax = 'markup';
-			lookAhead = options.lookAhead;
-		}
-		return { syntax, lookAhead };
+		return { syntax: isStyleSheet(options.syntax) ? 'stylesheet' : 'markup', lookAhead: options.lookAhead };
 	}
 }
 /**
@@ -962,7 +952,7 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		},
 		onCssPropertyValue: (context) => {
 			if (context && context.propertyValue) {
-				const extractedResults = extractAbbreviation(document, position, { syntax: 'css' });
+				const extractedResults = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
 				if (!extractedResults) {
 					return;
 				}
