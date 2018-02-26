@@ -87,7 +87,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	let extractedValue = extractAbbreviation(document, position, {syntax: 'css'});
+	let extractedValue = extractAbbreviation(document, position, { syntax: 'css' });
 	if (!extractedValue) {
 		return;
 	}
@@ -383,14 +383,14 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 /**
  * Extracts abbreviation from the given position in the given document
  */
-export function extractAbbreviation(document: TextDocument, position: Position, extractOptions: boolean | {lookAhead?: boolean, syntax?: string}): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, extractOptions: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
 	try {
-		let options: boolean | {lookAhead: boolean, syntax: string};
+		let options: boolean | { lookAhead: boolean, syntax: string };
 		if (typeof extractOptions === 'boolean') {
 			options = extractOptions;
 		} else {
@@ -403,7 +403,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 				syntax = 'markup';
 				lookAhead = typeof extractOptions.lookAhead === 'boolean' ? extractOptions.lookAhead : true;
 			}
-			options = {syntax, lookAhead};
+			options = { syntax, lookAhead };
 		}
 		const result = extract(currentLine, pos, options);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
@@ -955,14 +955,14 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		},
 		onCssPropertyValue: (context) => {
 			if (context && context.propertyValue) {
-				const extractedResults = extractAbbreviation(document, position, {syntax: 'css'});
+				const extractedResults = extractAbbreviation(document, position, { syntax: 'css' });
 				if (!extractedResults) {
 					return;
 				}
 				const validAbbreviationWithColon = extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` && onlyLetters.test(context.propertyValue);
 				if (validAbbreviationWithColon // Allows abbreviations like pos:f
-                    || hexColorRegex.test(extractedResults.abbreviation)
-                    || extractedResults.abbreviation === '!') {
+					|| hexColorRegex.test(extractedResults.abbreviation)
+					|| extractedResults.abbreviation === '!') {
 					const currentresult = doComplete(document, position, syntax, emmetSettings);
 					if (result && currentresult) {
 						result.items = currentresult.items;
