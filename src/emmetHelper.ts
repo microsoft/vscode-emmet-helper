@@ -963,6 +963,7 @@ const onlyLetters = /^[a-z,A-Z]+$/;
  */
 export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any {
 	return {
+		getId: () => 'emmet',
 		onCssProperty: (context) => {
 			if (context && context.propertyName) {
 				const currentresult = doComplete(document, position, syntax, emmetSettings);
