@@ -435,6 +435,81 @@ describe('Test filters (bem and comment)', () => {
 });
 
 describe('Test completions', () => {
+	it('should provide multiple common tags completions in html', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'd');
+			const position = Position.create(0, 1);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expectedItems = ['dl', 'dt', 'dd', 'div'];
+			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All common tags starting with d not found');
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide multiple snippet suggestions in html', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'a:');
+			const position = Position.create(0, 2);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expectedItems = ['a:link', 'a:mail', 'a:tel'];
+			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
+			return Promise.resolve();
+		});
+	});
+
+	it('should not provide any suggestions in html for class names or id', () => {
+		return updateExtensionsPath(null).then(() => {
+			const testCases = ['div.col', 'div#col'];
+			testCases.forEach(abbr => {
+				const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
+				const position = Position.create(0, abbr.length);
+				const completionList = doComplete(document, position, 'html', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: true,
+					syntaxProfiles: {},
+					variables: {}
+				});
+				assert.ok(completionList.items.every(x => x.label !== 'colg'), `colg is not a valid suggestion for ${abbr}`);
+			});
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide multiple snippet suggestions in html for nested abbreviations', () => {
+		return updateExtensionsPath(null).then(() => {
+			const testCases = ['ul>a:', 'ul+a:'];
+			testCases.forEach(abbr => {
+				const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
+				const position = Position.create(0, abbr.length);
+				const completionList = doComplete(document, position, 'html', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: true,
+					syntaxProfiles: {},
+					variables: {}
+				});
+				const expectedItems = ['a:link', 'a:mail', 'a:tel'];
+				assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
+			});
+			
+			return Promise.resolve();
+		});
+	});
+
+
 	it('should provide completions html', () => {
 		return updateExtensionsPath(null).then(() => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';

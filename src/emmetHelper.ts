@@ -148,7 +148,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.filterText = abbreviation;
 
 			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
+			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
 			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
 
@@ -171,12 +171,17 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		if (isAbbreviationValid(syntax, abbreviation)) {
 			createExpandedAbbr(abbreviation);
 		}
-
-		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+		let tagToFindMoreSuggestionsFor = abbreviation;
+		let newTagMatches = abbreviation.match(/(>|\+)([\w:-]+)$/);
+		if (newTagMatches && newTagMatches.length === 3) {
+            tagToFindMoreSuggestionsFor = newTagMatches[2];
+        }
+		
+		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
-			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			if (expandedAbbr && abbreviationSuggestions.length > 0) {
