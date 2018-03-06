@@ -21,8 +21,8 @@ const expectedCommentFilterOutput =
 <!-- /.nav -->`;
 const expectedCommentFilterOutputDocs = expectedCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
 const bemCommentFilterExample = bemFilterExample;
-const expectedBemCommentFilterOutput = 
-`<ul class="search-form search-form_wide">
+const expectedBemCommentFilterOutput =
+	`<ul class="search-form search-form_wide">
 	<li class="search-form__querystring">\${1}</li>
 	<!-- /.search-form__querystring -->
 	<li class="search-form__btn search-form__btn_large">\${0}</li>
@@ -70,8 +70,8 @@ describe('Extract Abbreviations', () => {
 			['ul>li|c|bem', 0, 11, 'ul>li', 0, 0, 0, 11, 'c,bem'],
 			['ul>li|bem|c', 0, 11, 'ul>li', 0, 0, 0, 11, 'bem,c'],
 			['ul>li|t|bem|c', 0, 13, 'ul>li', 0, 0, 0, 13, 't,bem,c'],
-			['div[a="b" c="d"]>md-button', 0, 26, 'div[a="b" c="d"]>md-button', 0, 0, 0, 26, undefined],			
-			['div[a=b c="d"]>md-button', 0, 24, 'div[a=b c="d"]>md-button', 0, 0, 0, 24, undefined],			
+			['div[a="b" c="d"]>md-button', 0, 26, 'div[a="b" c="d"]>md-button', 0, 0, 0, 26, undefined],
+			['div[a=b c="d"]>md-button', 0, 24, 'div[a=b c="d"]>md-button', 0, 0, 0, 24, undefined],
 			['div[a=b c=d]>md-button', 0, 22, 'div[a=b c=d]>md-button', 0, 0, 0, 22, undefined]
 		]
 
@@ -415,6 +415,58 @@ describe('Test filters (bem and comment)', () => {
 });
 
 describe('Test completions', () => {
+	it('should provide common tags completions in html', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'd');
+			const position = Position.create(0, 1);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expectedItems = ['dl', 'dt', 'dd', 'div'];
+			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All common tags starting with d not found');
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide snippet suggestions in html', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'a:');
+			const position = Position.create(0, 2);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expectedItems = ['a:link', 'a:mail', 'a:tel'];
+			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide snippet suggestions in html for class names', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'div.col');
+			const position = Position.create(0, 7);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			completionList.items.every(x => x.label !== 'colg')
+			assert.ok(completionList.items.every(x => x.label !== 'dd'), 'All snippet suggestions for a: not found');
+			return Promise.resolve();
+		});
+	});
+
+
 	it('should provide completions html', () => {
 		return updateExtensionsPath(null).then(() => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
@@ -437,9 +489,9 @@ describe('Test completions', () => {
 				[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],
 				[commentFilterExampleWithInlineFilter, 0, commentFilterExampleWithInlineFilter.length, commentFilterExampleWithInlineFilter, expectedCommentFilterOutputDocs, expectedCommentFilterOutput],
 				[bemCommentFilterExampleWithInlineFilter, 0, bemCommentFilterExampleWithInlineFilter.length, bemCommentFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
-				[commentBemFilterExampleWithInlineFilter, 0, commentBemFilterExampleWithInlineFilter.length, commentBemFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],				
+				[commentBemFilterExampleWithInlineFilter, 0, commentBemFilterExampleWithInlineFilter.length, commentBemFilterExampleWithInlineFilter, expectedBemCommentFilterOutputDocs, expectedBemCommentFilterOutput],
 				['li*2+link:css', 0, 13, 'li*2+link:css', '<li>|</li>\n<li>|</li>\n<link rel="stylesheet" href="style.css">', '<li>\${1}</li>\n<li>\${2}</li>\n<link rel="stylesheet" href="\${4:style}.css">'], // No last tab stop gets added as max tab stop is of a placeholder
-				['li*10', 0, 5, 'li*10', '<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>', 
+				['li*10', 0, 5, 'li*10', '<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>\n<li>|</li>',
 					'<li>\${1}</li>\n<li>\${2}</li>\n<li>\${3}</li>\n<li>\${4}</li>\n<li>\${5}</li>\n<li>\${6}</li>\n<li>\${7}</li>\n<li>\${8}</li>\n<li>\${9}</li>\n<li>\${0}</li>'], // tabstop 10 es greater than 9, should be replaced by 0
 			];
 
@@ -805,14 +857,14 @@ describe('Test completions', () => {
 		return updateExtensionsPath(extensionsPath).then(() => {
 			const testCases: [string, number, number, string, string, string][] = [
 
-				['brs', 0, 3, 'border-radius: ;', 'border-radius: |;', 'brs'], 
-				['brs5', 0, 4, 'border-radius: 5px;', 'border-radius: 5px;', 'brs5'], 
-				
-				['-brs', 0, 4, 'border-radius: ;', '-webkit-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-brs'], 
-				['-mo-brs', 0, 7, 'border-radius: ;', '-moz-border-radius: |;\n-o-border-radius: |;\nborder-radius: |;', '-mo-brs'], 
-				['-om-brs', 0, 7, 'border-radius: ;', '-o-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-om-brs'], 
+				['brs', 0, 3, 'border-radius: ;', 'border-radius: |;', 'brs'],
+				['brs5', 0, 4, 'border-radius: 5px;', 'border-radius: 5px;', 'brs5'],
+
+				['-brs', 0, 4, 'border-radius: ;', '-webkit-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-brs'],
+				['-mo-brs', 0, 7, 'border-radius: ;', '-moz-border-radius: |;\n-o-border-radius: |;\nborder-radius: |;', '-mo-brs'],
+				['-om-brs', 0, 7, 'border-radius: ;', '-o-border-radius: |;\n-moz-border-radius: |;\nborder-radius: |;', '-om-brs'],
 				['-brs10', 0, 6, 'border-radius: 10px;', '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\nborder-radius: 10px;', '-brs10'],
-				['-bdts', 0, 5, 'border-top-style: ;', '-webkit-border-top-style: |;\n-moz-border-top-style: |;\n-ms-border-top-style: |;\n-o-border-top-style: |;\nborder-top-style: |;', '-bdts'], 
+				['-bdts', 0, 5, 'border-top-style: ;', '-webkit-border-top-style: |;\n-moz-border-top-style: |;\n-ms-border-top-style: |;\n-o-border-top-style: |;\nborder-top-style: |;', '-bdts'],
 				['-p', 0, 2, 'padding: ;', '-webkit-padding: |;\n-moz-padding: |;\n-ms-padding: |;\n-o-padding: |;\npadding: |;', '-p'],
 				['-p10-20p', 0, 8, 'padding: 10px 20%;', '-webkit-padding: 10px 20%;\n-moz-padding: 10px 20%;\n-ms-padding: 10px 20%;\n-o-padding: 10px 20%;\npadding: 10px 20%;', '-p10-20p'],
 			];
@@ -884,7 +936,7 @@ describe('Test completions', () => {
 			assert.equal(expandAbbreviation('-p10-20', getExpandOptions('css', {})), '-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;\npadding: 10px 20px;');
 			assert.equal(expandAbbreviation('-p10p20', getExpandOptions('css', {})), '-webkit-padding: 10% 20px;\n-moz-padding: 10% 20px;\n-ms-padding: 10% 20px;\n-o-padding: 10% 20px;\npadding: 10% 20px;');
 			assert.equal(expandAbbreviation('-mo-brs', getExpandOptions('css', {})), '-moz-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
-			
+
 			return Promise.resolve();
 		});
 	});
@@ -902,7 +954,7 @@ describe('Test completions', () => {
 	});
 
 	it('should not provide completions for exlcudedLanguages', () => {
-		return updateExtensionsPath(null).then(() => { 
+		return updateExtensionsPath(null).then(() => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
 			const position = Position.create(0, 5);
 			const completionList = doComplete(document, position, 'html', {
@@ -918,7 +970,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions with kind snippet when showSuggestionsAsSnippets is enabled', () => {
-		return updateExtensionsPath(null).then(() => { 
+		return updateExtensionsPath(null).then(() => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
 			const position = Position.create(0, 5);
 			const completionList = doComplete(document, position, 'html', {

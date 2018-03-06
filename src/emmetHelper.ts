@@ -148,7 +148,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.filterText = abbreviation;
 
 			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
+			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
 			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
 
@@ -172,11 +172,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			createExpandedAbbr(abbreviation);
 		}
 
-		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
-			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, currentWord, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, 1 === 1 ? currentWord : abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			if (expandedAbbr && abbreviationSuggestions.length > 0) {
@@ -943,8 +943,8 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 				}
 				const validAbbreviationWithColon = extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` && onlyLetters.test(context.propertyValue);
 				if (validAbbreviationWithColon // Allows abbreviations like pos:f
-                    || hexColorRegex.test(extractedResults.abbreviation)
-                    || extractedResults.abbreviation === '!') {
+					|| hexColorRegex.test(extractedResults.abbreviation)
+					|| extractedResults.abbreviation === '!') {
 					const currentresult = doComplete(document, position, syntax, emmetSettings);
 					if (result && currentresult) {
 						result.items = currentresult.items;
