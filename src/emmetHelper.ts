@@ -174,9 +174,9 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		let tagToFindMoreSuggestionsFor = abbreviation;
 		let newTagMatches = abbreviation.match(/(>|\+)([\w:-]+)$/);
 		if (newTagMatches && newTagMatches.length === 3) {
-            tagToFindMoreSuggestionsFor = newTagMatches[2];
-        }
-		
+			tagToFindMoreSuggestionsFor = newTagMatches[2];
+		}
+
 		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
@@ -767,9 +767,15 @@ function getFormatters(syntax: string, preferences: any) {
 			comment: commentFormatter
 		};
 	}
-
+	let fuzzySearchMinScore = preferences.fuzzySearchMinScore || 0.3;
+	if (fuzzySearchMinScore > 1) {
+		fuzzySearchMinScore = 1;
+	}
+	if (fuzzySearchMinScore < 0) {
+		fuzzySearchMinScore = 0;
+	}
 	let stylesheetFormatter = {
-		'fuzzySearchMinScore': 0.3
+		'fuzzySearchMinScore': fuzzySearchMinScore
 	};
 	for (let key in preferences) {
 		switch (key) {
