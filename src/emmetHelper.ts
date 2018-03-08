@@ -767,12 +767,11 @@ function getFormatters(syntax: string, preferences: any) {
 			comment: commentFormatter
 		};
 	}
-	let fuzzySearchMinScore = preferences.fuzzySearchMinScore || 0.3;
+	let fuzzySearchMinScore = typeof preferences['css.fuzzySearchMinScore'] === 'number' ? preferences['css.fuzzySearchMinScore'] : 0.3;
 	if (fuzzySearchMinScore > 1) {
-		fuzzySearchMinScore = 1;
-	}
-	if (fuzzySearchMinScore < 0) {
-		fuzzySearchMinScore = 0;
+		fuzzySearchMinScore = 1
+	} else if (fuzzySearchMinScore < 0) {
+		fuzzySearchMinScore = 0
 	}
 	let stylesheetFormatter = {
 		'fuzzySearchMinScore': fuzzySearchMinScore
