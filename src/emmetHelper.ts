@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
 import { homedir } from 'os';
+import { cssData } from './data';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -138,6 +139,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 		if (isAbbreviationValid(syntax, abbreviation)) {
 			createExpandedAbbr(abbreviationWithoutPrefix);
+		}
+
+		// When abbr contains -, emmet uses it as a delimitor using the left to match propertyname and the right to match propertyvalue
+		// If there is css property that matches with abbr better, then that should win over emmet
+		if (abbreviationWithoutPrefix.indexOf('-') > 0 && cssData.properties.indexOf(abbreviationWithoutPrefix) > -1) {
+			return;
 		}
 
 		if (expandedAbbr) {

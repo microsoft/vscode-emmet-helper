@@ -848,8 +848,9 @@ describe('Test completions', () => {
 	it('should not provide completions as they would noise when typing (css)', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
-				['background', 0, 10],
-				['background:u', 0, 12]
+				// ['background', 0, 10],
+				// ['background:u', 0, 12],
+				['text-overflo', 0, 12]
 
 			];
 
