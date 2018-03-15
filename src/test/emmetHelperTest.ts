@@ -586,32 +586,6 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should not provide completions for property names css', () => {
-		return updateExtensionsPath(null).then(() => {
-
-			const testCases: [string, number, number][] = [
-				['width', 0, 5],
-				['font-family', 0, 11]
-			];
-
-			testCases.forEach(([abbreviation, positionLine, positionChar]) => {
-				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
-				const position = Position.create(positionLine, positionChar);
-				const completionList = doComplete(document, position, 'css', {
-					preferences: {},
-					showExpandedAbbreviation: 'always',
-					showAbbreviationSuggestions: false,
-					syntaxProfiles: {},
-					variables: {}
-				});
-
-				assert.equal(!completionList, true);
-			});
-			return Promise.resolve();
-
-		});
-	});
-
 	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
 		return updateExtensionsPath(null).then(() => {
 
@@ -848,8 +822,11 @@ describe('Test completions', () => {
 	it('should not provide completions as they would noise when typing (css)', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
-				['background', 0, 10],
-				['background:u', 0, 12]
+				['background', 0, 10], 	// Complete match with property name
+				['font-family', 0, 11], // Complete match with property name
+				['width', 0, 5], 		// Complete match with property name
+				['background:u', 0, 12],// Property Value pair that would get expanded to the same thing
+				['text-overflo', 0, 12] // Partial match with property name
 
 			];
 
@@ -864,7 +841,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.equal(!completionList || !completionList.items || !completionList.items.length, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 

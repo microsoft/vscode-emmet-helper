@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
 import { homedir } from 'os';
+import { cssData } from './data';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -138,6 +139,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
 		if (isAbbreviationValid(syntax, abbreviation)) {
 			createExpandedAbbr(abbreviationWithoutPrefix);
+		}
+
+		// When abbr is longer than usual emmet snippets and matches better with existing css property, then no emmet
+		if (abbreviationWithoutPrefix.length > 4
+			&& cssData.properties.find(x => x.startsWith(abbreviationWithoutPrefix))) {
+			return CompletionList.create([], true);
 		}
 
 		if (expandedAbbr) {
