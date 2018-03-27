@@ -162,7 +162,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 				// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
 				// Filter out those cases here.
-				const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => x === '$' ? '\\$' : x).join('.*') + '.*', 'i');
+				const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => (x === '$' || x === '+') ? '\\' + x : x).join('.*') + '.*', 'i');
 				if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
 					completionItems.push(expandedAbbr);
 				}

@@ -565,6 +565,7 @@ describe('Test completions', () => {
 				['trf', 0, 3, 'transform: ;'], // Simple case
 				['trf:rx', 0, 6, 'transform: rotateX(angle);'], // using : to delimit property name and value, case insensitve 
 				['trfrx', 0, 5, 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
+				['m10+p10', 0, 7, 'margin: 10px;\npadding: 10px;'] // abbreviation with +
 			];
 
 			testCases.forEach(([abbreviation, positionLine, positionChar, expected]) => {
