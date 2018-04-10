@@ -2116,7 +2116,7 @@ const defaultOptions$3 = {
 };
 
 const reElement  = /^(-+)([a-z0-9]+[a-z0-9-]*)/i;
-const reModifier = /^(_+)([a-z0-9]+[a-z0-9-]*)/i;
+const reModifier = /^(_+)([a-z0-9]+[a-z0-9-_]*)/i;
 const blockCandidates1 = className => /^[a-z]\-/i.test(className);
 const blockCandidates2 = className => /^[a-z]/i.test(className);
 
@@ -2181,8 +2181,8 @@ function expandShortNotation(node, lookup, options) {
 			cl = cl.slice(m[0].length);
 		}
 
-		// parse modifiers definitions (may contain multiple)
-		while (m = cl.match(reModifier)) {
+		// parse modifiers definitions 
+		if (m = cl.match(reModifier)) {
 			if (!prefix) {
 				prefix = getBlockName(node, lookup, m[1]);
 				out.add(prefix);
@@ -2252,7 +2252,14 @@ function getBlockName(node, lookup, prefix) {
 }
 
 function find(arr, filter) {
-	return arr.filter(filter)[0];
+	for(let i = 0; i < arr.length; i++){
+		if (reElement.test(arr[i]) || reModifier.test(arr[i])) {
+			break;
+		}
+		if (filter(arr[i])) {
+			return arr[i];
+		}
+	}
 }
 
 /**
@@ -2454,7 +2461,7 @@ const CLOSE_BRACE = 125; // }
 
 /**
  * Finds fields in given string and returns object with field-less string
- * and array of fileds found
+ * and array of fields found
  * @param  {String} string
  * @return {Object}
  */
@@ -2532,8 +2539,8 @@ function createToken(index, placeholder) {
  * or `${index}` or `${index:placeholder}`
  * @param  {StreamReader} stream
  * @param  {Number}       location Field location in *clean* string
- * @return {Object} Object with `index` and `placeholder` properties if
- * fieald was successfully consumed, `null` otherwise
+ * @return {Field} Object with `index` and `placeholder` properties if
+ * field was successfully consumed, `null` otherwise
  */
 function consumeField(stream, location) {
 	const start = stream.pos;
@@ -2634,7 +2641,7 @@ class FieldString {
 	}
 
 	toString() {
-		return string;
+		return this.string;
 	}
 }
 
