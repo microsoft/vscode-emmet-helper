@@ -11,7 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
 import { homedir } from 'os';
-import { cssData } from './data';
+import { cssData, htmlData } from './data';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -21,9 +21,7 @@ const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
-const commonlyUsedTags = ['div', 'span', 'p', 'b', 'i', 'body', 'html', 'ul', 'ol', 'li', 'head', 'section', 'canvas', 'dl', 'dt', 'dd', 'em', 'main', 'figure',
-	'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'aside', 'table', 'tbody', 'thead', 'tfoot', 'tr', 'th', 'td', 'blockquote', 'pre', 'sup', 'sub', 'title',
-	'plaintext', 'noscript', 'legend', 'u', 'code', 'comment', 'caption', 'colgroup', 'button', 'big', 'applet', 'address', 'strong', 'small', 'lorem'];
+const commonlyUsedTags = [...htmlData.tags, 'lorem'];
 const bemFilterSuffix = 'bem';
 const filterDelimitor = '|';
 const trimFilterSuffix = 't';
