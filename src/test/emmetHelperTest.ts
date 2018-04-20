@@ -42,19 +42,30 @@ describe('Validate Abbreviations', () => {
 		});
 	});
 	it('should return false for invalid abbreviations', () => {
-		const htmlAbbreviations = ['!ul!', '(hello)', 'super(hello)', 'console.log(hello)', '()', '[]'];
+		const htmlAbbreviations = [
+			'!ul!', 
+			'(hello)', 
+			'super(hello)', 
+			'console.log(hello)', 
+			'()', 
+			'[]', 
+			'(my.data[0].element)',
+			'if(!ok)',
+			'while(!ok)',
+			'(!ok)',
+		];
 		const cssAbbreviations = ['123'];
 		htmlAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('html', abbr));
+			assert(!isAbbreviationValid('html', abbr), `${abbr} should be treated as invalid abbreviation`);
 		});
 		htmlAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('haml', abbr));
+			assert(!isAbbreviationValid('haml', abbr), `${abbr} should be treated as invalid abbreviation`);
 		});
 		cssAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('css', abbr));
+			assert(!isAbbreviationValid('css', abbr), `${abbr} should be treated as invalid abbreviation`);
 		});
 		cssAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('scss', abbr));
+			assert(!isAbbreviationValid('scss', abbr), `${abbr} should be treated as invalid abbreviation`);
 		});
 	})
 });

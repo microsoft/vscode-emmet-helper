@@ -470,10 +470,10 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return !/[^!]/.test(abbreviation);
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
-	if (/^[a-z,A-Z,\d,-,:,\(,\),\.,\$]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
+	if (/^[a-zA-Z\d-:\(\)\.\$\[\]!]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
-
+	
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
