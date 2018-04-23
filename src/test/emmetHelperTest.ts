@@ -520,7 +520,6 @@ describe('Test completions', () => {
 		});
 	});
 
-
 	it('should provide completions html', () => {
 		return updateExtensionsPath(null).then(() => {
 			let bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
@@ -922,6 +921,7 @@ describe('Test completions', () => {
 			return Promise.resolve();
 		});
 	});
+
 	it('should provide completions using vendor prefixes with custom preferences', () => {
 		return updateExtensionsPath(extensionsPath).then(() => {
 			const testCases: [string, number, number, string, string, string][] = [
@@ -958,7 +958,6 @@ describe('Test completions', () => {
 		});
 	});
 
-
 	it('should expand with multiple vendor prefixes', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.equal(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
@@ -975,7 +974,6 @@ describe('Test completions', () => {
 			return Promise.resolve();
 		});
 	});
-
 
 	it('should expand with default vendor prefixes in properties', () => {
 		return updateExtensionsPath(null).then(() => {
@@ -1017,6 +1015,23 @@ describe('Test completions', () => {
 				showSuggestionsAsSnippets: true
 			});
 			assert.equal(completionList.items[0].kind, CompletionItemKind.Snippet);
+		});
+	});
+
+	it('should not provide double completions for commonly used tags that are also snippets', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'abb');
+			const position = Position.create(0, 3);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {},
+				excludeLanguages: []
+			});
+			assert.equal(completionList.items.length, 1);
+			assert.equal(completionList.items[0].label, 'abbr');
 		});
 	});
 })

@@ -186,7 +186,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
-			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)) , tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			if (expandedAbbr && abbreviationSuggestions.length > 0 && tagToFindMoreSuggestionsFor !== abbreviation) {
