@@ -2098,7 +2098,7 @@ function setNodeContent(node, content) {
 		}
 	}
 
-	if (node.name.toLowerCase() === 'a' || node.hasAttribute('href')) {
+	if ((node.name && node.name.toLowerCase() === 'a') || node.hasAttribute('href')) {
 		// special case: inserting content into `<a>` tag
 		if (reUrl.test(content)) {
 			node.setAttribute('href', (reProto.test(content) ? '' : 'http://') + content);
