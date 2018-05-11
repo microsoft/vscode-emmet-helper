@@ -809,7 +809,8 @@ describe('Test completions', () => {
 				['<div>($db)</div>', 0, 10], // Word with symbols inside brackets
 				['<div>($db.)</div>', 0, 11], // Word with symbols inside brackets
 				['<div>ul::l</div>', 0, 10], // Word with : is valid, but not consecutive
-				['<div', 0, 4] // Its an open tag
+				['<div', 0, 4], // Its an open tag
+				['<div>ul:</div>', 0, 8] // https://github.com/Microsoft/vscode/issues/49376
 			];
 
 			testCases.forEach(([content, positionLine, positionChar]) => {

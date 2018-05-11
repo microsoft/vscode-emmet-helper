@@ -488,7 +488,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	}
 
 	// Custom tags can have - or :
-	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation)) {
+	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation) && !abbreviation.endsWith(':')) {
 		return false;
 	}
 
