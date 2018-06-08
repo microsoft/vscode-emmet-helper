@@ -47,6 +47,7 @@ describe('Validate Abbreviations', () => {
 			'(hello)', 
 			'super(hello)', 
 			'console.log(hello)', 
+			'console.log(._hello)', 
 			'()', 
 			'[]', 
 			'(my.data[0].element)',

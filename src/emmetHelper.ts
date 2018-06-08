@@ -468,7 +468,8 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return !/[^!]/.test(abbreviation);
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
-	if (/^[a-zA-Z\d-:\(\)\.\$\[\]!]*$/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
+	// Grouping in abbreviation is valid only if preceeded/succeeded with one of the symbols for nesting, sibling, repeater or climb up
+	if (!/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
 	
