@@ -861,7 +861,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide completions for lorem', () => {
+	it('should provide completions for loremn with n words', () => {
 		return updateExtensionsPath(null).then(() => {
 
 
@@ -884,6 +884,32 @@ describe('Test completions', () => {
 			assert.equal(matches != null, true);
 			assert.equal(matches[1].split(' ').length, 10);
 			assert.equal(matches[1].startsWith('Lorem'), true);
+
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide completions for lorem*n with n lines', () => {
+		return updateExtensionsPath(null).then(() => {
+
+
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*3');
+			const position = Position.create(0, 12);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expandedText = completionList.items[0].documentation;
+			if (typeof expandedText !== 'string') {
+				return;
+			}
+		
+			assert.equal(completionList.items[0].label, 'lorem*3');
+			assert.equal(expandedText.split('\n').length, 3);
+			assert.equal(expandedText.startsWith('Lorem'), true);
 
 			return Promise.resolve();
 		});
