@@ -53,7 +53,7 @@ var defaultOptions$1 = {
 	 * Set to 1 to output all inline elements with formatting (same as block-level).
 	 * @type {Number}
 	 */
-	inlineBreak: 3,
+	inlineBreak: 2,
 
 	/**
 	 * Produce compact notation of boolean attribues: attributes where name equals value.

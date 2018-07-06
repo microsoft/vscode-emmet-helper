@@ -863,8 +863,6 @@ describe('Test completions', () => {
 
 	it('should provide completions for loremn with n words', () => {
 		return updateExtensionsPath(null).then(() => {
-
-
 			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem10.item');
 			const position = Position.create(0, 12);
 			const completionList = doComplete(document, position, 'html', {
@@ -889,10 +887,56 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide completions for lorem*n with n lines', () => {
+	it('should provide completions for lorem*1 with 1 lines', () => {
 		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*1');
+			const position = Position.create(0, 12);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expandedText = completionList.items[0].documentation;
+			if (typeof expandedText !== 'string') {
+				return;
+			}
 
+			assert.equal(completionList.items[0].label, 'lorem*1');
+			assert.equal(expandedText.split('\n').length, 1);
+			assert.equal(expandedText.startsWith('Lorem'), true);
 
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide completions for lorem*2 with 2 lines', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*2');
+			const position = Position.create(0, 12);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expandedText = completionList.items[0].documentation;
+			if (typeof expandedText !== 'string') {
+				return;
+			}
+
+			assert.equal(completionList.items[0].label, 'lorem*2');
+			assert.equal(expandedText.split('\n').length, 2);
+			assert.equal(expandedText.startsWith('Lorem'), true);
+
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide completions for lorem*3 with 3 lines', () => {
+		return updateExtensionsPath(null).then(() => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*3');
 			const position = Position.create(0, 12);
 			const completionList = doComplete(document, position, 'html', {
@@ -906,9 +950,33 @@ describe('Test completions', () => {
 			if (typeof expandedText !== 'string') {
 				return;
 			}
-		
+
 			assert.equal(completionList.items[0].label, 'lorem*3');
 			assert.equal(expandedText.split('\n').length, 3);
+			assert.equal(expandedText.startsWith('Lorem'), true);
+
+			return Promise.resolve();
+		});
+	});
+
+	it('should provide completions for lorem*10 with 10 lines', () => {
+		return updateExtensionsPath(null).then(() => {
+			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*10');
+			const position = Position.create(0, 12);
+			const completionList = doComplete(document, position, 'html', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+			const expandedText = completionList.items[0].documentation;
+			if (typeof expandedText !== 'string') {
+				return;
+			}
+
+			assert.equal(completionList.items[0].label, 'lorem*10');
+			assert.equal(expandedText.split('\n').length, 10);
 			assert.equal(expandedText.startsWith('Lorem'), true);
 
 			return Promise.resolve();
