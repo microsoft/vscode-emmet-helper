@@ -34,11 +34,18 @@ const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replac
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreviations', () => {
 		const htmlAbbreviations = ['ul>li', 'ul', 'h1', 'ul>li*3', '(ul>li)+div', '.hello', '!', '#hello', '.item[id=ok]'];
+		const cssAbbreviations = ['#123', '#abc'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('html', abbr));
 		});
 		htmlAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('haml', abbr));
+		});
+		cssAbbreviations.forEach(abbr => {
+			assert(isAbbreviationValid('css', abbr), `${abbr} should be treated as valid abbreviation`);
+		});
+		cssAbbreviations.forEach(abbr => {
+			assert(isAbbreviationValid('scss', abbr), `${abbr} should be treated as valid abbreviation`);
 		});
 	});
 	it('should return false for invalid abbreviations', () => {
@@ -55,7 +62,7 @@ describe('Validate Abbreviations', () => {
 			'while(!ok)',
 			'(!ok)',
 		];
-		const cssAbbreviations = ['123'];
+		const cssAbbreviations = ['123', '#xyz'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(!isAbbreviationValid('html', abbr), `${abbr} should be treated as invalid abbreviation`);
 		});
@@ -415,6 +422,14 @@ describe('Test emmet preferences', () => {
 });
 
 describe('Test filters (bem and comment)', () => {
+
+	it('should expand haml', () => {
+		return updateExtensionsPath(null).then(() => {
+			assert.equal(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class")${0}');
+			return Promise.resolve();
+		});
+	});
+
 
 	it('should use filters from expandOptions', () => {
 		return updateExtensionsPath(null).then(() => {

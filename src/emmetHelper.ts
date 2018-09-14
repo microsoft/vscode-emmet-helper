@@ -186,7 +186,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
-			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)) , tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)), tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			if (expandedAbbr && abbreviationSuggestions.length > 0 && tagToFindMoreSuggestionsFor !== abbreviation) {
@@ -462,6 +462,9 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		if (abbreviation.endsWith(':')) {
 			return false;
 		}
+		if (abbreviation.indexOf('#') > -1) {
+			return hexColorRegex.test(abbreviation) || propertyHexColorRegex.test(abbreviation);
+		}
 		return cssAbbreviationRegex.test(abbreviation);
 	}
 	if (abbreviation.startsWith('!')) {
@@ -472,7 +475,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (!/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
 		return false;
 	}
-	
+
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
@@ -961,6 +964,7 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	}
 }
 
+const propertyHexColorRegex = /^[a-zA-Z]+#[\d,a-f,A-F]{0,6}$/;
 const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
 const onlyLetters = /^[a-z,A-Z]+$/;
 
