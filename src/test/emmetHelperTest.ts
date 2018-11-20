@@ -430,6 +430,19 @@ describe('Test filters (bem and comment)', () => {
 		});
 	});
 
+	it('should expand attributes with []', () => {
+		return updateExtensionsPath(null).then(() => {
+			assert.equal(expandAbbreviation('div[[a]="b"]', getExpandOptions('html', {})), '<div [a]="b">${0}</div>');
+			return Promise.resolve();
+		});
+	});
+
+	it('should expand abbreviations that are nodes with no name', () => {
+		return updateExtensionsPath(null).then(() => {
+			assert.equal(expandAbbreviation('c', getExpandOptions('html', {})), '<!-- ${0} -->');
+			return Promise.resolve();
+		});
+	});
 
 	it('should use filters from expandOptions', () => {
 		return updateExtensionsPath(null).then(() => {
