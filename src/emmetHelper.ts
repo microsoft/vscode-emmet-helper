@@ -27,12 +27,6 @@ const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
 const maxFilters = 3;
-const defaultUnitAliases = {
-	e: 'em',
-	p: '%',
-	x: 'ex',
-	r: 'rem'
-};
 const vendorPrefixes = { 'w': "webkit", 'm': "moz", 's': "ms", 'o': "o" };
 const defaultVendorProperties = {
 	'w': "animation, animation-delay, animation-direction, animation-duration, animation-fill-mode, animation-iteration-count, animation-name, animation-play-state, animation-timing-function, appearance, backface-visibility, background-clip, background-composite, background-origin, background-size, border-fit, border-horizontal-spacing, border-image, border-vertical-spacing, box-align, box-direction, box-flex, box-flex-group, box-lines, box-ordinal-group, box-orient, box-pack, box-reflect, box-shadow, color-correction, column-break-after, column-break-before, column-break-inside, column-count, column-gap, column-rule-color, column-rule-style, column-rule-width, column-span, column-width, dashboard-region, font-smoothing, highlight, hyphenate-character, hyphenate-limit-after, hyphenate-limit-before, hyphens, line-box-contain, line-break, line-clamp, locale, margin-before-collapse, margin-after-collapse, marquee-direction, marquee-increment, marquee-repetition, marquee-style, mask-attachment, mask-box-image, mask-box-image-outset, mask-box-image-repeat, mask-box-image-slice, mask-box-image-source, mask-box-image-width, mask-clip, mask-composite, mask-image, mask-origin, mask-position, mask-repeat, mask-size, nbsp-mode, perspective, perspective-origin, rtl-ordering, text-combine, text-decorations-in-effect, text-emphasis-color, text-emphasis-position, text-emphasis-style, text-fill-color, text-orientation, text-security, text-stroke-color, text-stroke-width, transform, transition, transform-origin, transform-style, transition-delay, transition-duration, transition-property, transition-timing-function, user-drag, user-modify, user-select, writing-mode, svg-shadow, box-sizing, border-radius",
@@ -41,6 +35,9 @@ const defaultVendorProperties = {
 	'o': "dashboard-region, animation, animation-delay, animation-direction, animation-duration, animation-fill-mode, animation-iteration-count, animation-name, animation-play-state, animation-timing-function, border-image, link, link-source, object-fit, object-position, tab-size, table-baseline, transform, transform-origin, transition, transition-delay, transition-duration, transition-property, transition-timing-function, accesskey, input-format, input-required, marquee-dir, marquee-loop, marquee-speed, marquee-style"
 }
 
+/**
+ * Emmet configuration as derived from the Emmet related VS Code settings
+ */
 export interface EmmetConfiguration {
 	showExpandedAbbreviation?: string;
 	showAbbreviationSuggestions?: boolean;
@@ -51,6 +48,9 @@ export interface EmmetConfiguration {
 	showSuggestionsAsSnippets?: boolean;
 }
 
+/**
+ * The options bag to be passed to the `expand` function along with the abbreviation to expand
+ */
 export interface ExpandOptions {
 	field: (index: any, placeholder: any) => string,
 	syntax: string,
@@ -62,12 +62,21 @@ export interface ExpandOptions {
 	preferences: any
 }
 
+/**
+ * Returns all applicable emmet expansions for abbreviation at given position in a CompletionList
+ * @param document TextDocument in which completions are requested
+ * @param position Position in the document at which completions are requested
+ * @param syntax Emmet supported language
+ * @param emmetConfig Emmet Configurations as derived from VS Code
+ */
 export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: EmmetConfiguration): CompletionList {
 
 	if (emmetConfig.showExpandedAbbreviation === 'never' || !getEmmetMode(syntax, emmetConfig.excludeLanguages)) {
 		return;
 	}
 
+	// Fetch markupSnippets so that we can provide possible abbreviation completions
+	// For example, when text at position is `a`, completions should return `a:blank`, `a:link`, `acr` etc.
 	if (!isStyleSheet(syntax)) {
 		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
 			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
@@ -101,43 +110,46 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		return;
 	}
 
+	// `preferences` is supported in Emmet config to allow backward compatibility
+	// `getExpandOptions` converts it into a format understandable by new modules
+	// We retain a copy here to be used by the vendor prefixing feature
 	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
 	let preferences = expandOptions['preferences'];
 	delete expandOptions['preferences'];
-	let expandedText;
+
+	let expandedText: string;
 	let expandedAbbr: CompletionItem;
 	let completionItems: CompletionItem[] = [];
 
-	// Create completion item for expanded abbreviation
-	const createExpandedAbbr = (abbr) => {
+	// Create completion item after expanding given abbreviation 
+	// if abbreviation is valid and expanded value is not noise
+	const createExpandedAbbr = (syntax: string, abbr: string) => {
+		if (!isAbbreviationValid(syntax, abbreviation)) {
+			return;
+		}
 
 		try {
 			expandedText = expand(abbr, expandOptions);
 		} catch (e) {
 		}
 
-		if (expandedText && isExpandedTextNoise(syntax, abbr, expandedText)) {
-			expandedText = '';
+		if (!expandedText || isExpandedTextNoise(syntax, abbr, expandedText)) {
+			return;
 		}
 
-		if (expandedText) {
-			expandedAbbr = CompletionItem.create(abbr);
-			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
-			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
-			expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-			expandedAbbr.detail = 'Emmet Abbreviation';
-			expandedAbbr.label = abbreviation;
-			expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
-			completionItems = [expandedAbbr];
-		}
+		expandedAbbr = CompletionItem.create(abbr);
+		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
+		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
+		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
+		expandedAbbr.detail = 'Emmet Abbreviation';
+		expandedAbbr.label = abbreviation;
+		expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
+		completionItems = [expandedAbbr];
 	}
 
 	if (isStyleSheet(syntax)) {
 		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
-		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
-		if (isAbbreviationValid(syntax, abbreviation)) {
-			createExpandedAbbr(abbreviationWithoutPrefix);
-		}
+		createExpandedAbbr(syntax, abbreviationWithoutPrefix);
 
 		// When abbr is longer than usual emmet snippets and matches better with existing css property, then no emmet
 		if (abbreviationWithoutPrefix.length > 4
@@ -152,6 +164,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			expandedAbbr.label = removeTabStops(expandedText);
 			expandedAbbr.filterText = abbreviation;
 
+			// Custom snippets should show up in completions if abbreviation is a prefix
 			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
@@ -167,15 +180,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			}
 		}
 
-		// Incomplete abbreviation using vendor prefix 
+		// Incomplete abbreviations that use vendor prefix 
 		if (!completionItems.length && (abbreviation === '-' || /^-[wmso]{1,4}-?$/.test(abbreviation))) {
 			return CompletionList.create([], true);
 		}
 	} else {
-		// If abbreviation is valid, then expand it and ensure the expanded value is not noise
-		if (isAbbreviationValid(syntax, abbreviation)) {
-			createExpandedAbbr(abbreviation);
-		}
+		createExpandedAbbr(syntax, abbreviation);
+
 		let tagToFindMoreSuggestionsFor = abbreviation;
 		let newTagMatches = abbreviation.match(/(>|\+)([\w:-]+)$/);
 		if (newTagMatches && newTagMatches.length === 3) {
@@ -208,12 +219,15 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	return completionItems.length ? CompletionList.create(completionItems, true) : undefined;
 }
 
-function makeSnippetSuggestion(snippets: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any, snippetDetail: string, skipFullMatch: boolean = true): CompletionItem[] {
-	if (!prefix || !snippets) {
+/**
+ * Create & return snippets for snippet keys that start with given prefix	
+ */
+function makeSnippetSuggestion(snippetKeys: string[], prefix: string, abbreviation: string, abbreviationRange: Range, expandOptions: any, snippetDetail: string, skipFullMatch: boolean = true): CompletionItem[] {
+	if (!prefix || !snippetKeys) {
 		return [];
 	}
 	let snippetCompletions = [];
-	snippets.forEach(snippetKey => {
+	snippetKeys.forEach(snippetKey => {
 		if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
 			return;
 		}
