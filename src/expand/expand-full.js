@@ -1,10 +1,10 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.emmet = global.emmet || {})));
+	(factory((global.emmet = {})));
 }(this, (function (exports) { 'use strict';
 
-var defaultOptions$1 = {
+var defaultOptions = {
 	/**
 	 * String for one-level indentation
 	 * @type {String}
@@ -98,7 +98,7 @@ var defaultOptions$1 = {
  */
 class Profile {
     constructor(options) {
-        this.options = Object.assign({}, defaultOptions$1, options);
+        this.options = Object.assign({}, defaultOptions, options);
         this.quoteChar = this.options.attributeQuotes === 'single' ? '\'' : '"';
     }
 
@@ -1047,7 +1047,7 @@ class StreamReader {
 const SINGLE_QUOTE = 39; // '
 const DOUBLE_QUOTE = 34; // "
 
-const defaultOptions$2 = {
+const defaultOptions$1 = {
 	escape: 92,   // \ character
 	throws: false
 };
@@ -1061,7 +1061,7 @@ const defaultOptions$2 = {
  *                   of quoted string will be availabe as `stream.current()`
  */
 var eatQuoted = function(stream, options) {
-	options = options ? Object.assign({}, defaultOptions$2, options) : defaultOptions$2;
+	options = options ? Object.assign({}, defaultOptions$1, options) : defaultOptions$1;
 	const start = stream.pos;
 	const quote = stream.peek();
 
@@ -1144,6 +1144,57 @@ function isSpace(code) {
 		|| code === 13; /* CR */
 }
 
+const defaultOptions$1$1 = {
+	escape: 92,   // \ character
+	throws: false
+};
+
+/**
+ * Eats paired characters substring, for example `(foo)` or `[bar]`
+ * @param  {StreamReader} stream
+ * @param  {Number} open      Character code of pair openinig
+ * @param  {Number} close     Character code of pair closing
+ * @param  {Object} [options]
+ * @return {Boolean}       Returns `true` if chacarter pair was successfully
+ *                         consumed, it’s content will be available as `stream.current()`
+ */
+function eatPair(stream, open, close, options) {
+	options = options ? Object.assign({}, defaultOptions$1$1, options) : defaultOptions$1$1;
+	const start = stream.pos;
+
+	if (stream.eat(open)) {
+		let stack = 1, ch;
+
+		while (!stream.eof()) {
+			if (eatQuoted(stream, options)) {
+				continue;
+			}
+
+			ch = stream.next();
+			if (ch === open) {
+				stack++;
+			} else if (ch === close) {
+				stack--;
+				if (!stack) {
+					stream.start = start;
+					return true;
+				}
+			} else if (ch === options.escape) {
+				stream.next();
+			}
+		}
+
+		// If we’re here then paired character can’t be consumed
+		stream.pos = start;
+
+		if (options.throws) {
+			throw stream.error(`Unable to find matching pair for ${String.fromCharCode(open)}`);
+		}
+	}
+
+	return false;
+}
+
 const ASTERISK = 42; // *
 
 /**
@@ -1176,52 +1227,21 @@ var consumeQuoted = function(stream) {
 	}
 };
 
-const TEXT_START = 123; // {
-const TEXT_END = 125; // }
-const ESCAPE =  92; // \ character
+const LCURLY = 123; // {
+const RCURLY = 125; // }
+
+const opt$1 = { throws: true };
 
 /**
- * Consumes text node `{...}` from stream
- * @param  {StreamReader} stream
- * @return {String} Returns consumed text value (without surrounding braces) or
- * `null` if there’s no text at starting position
+ * Consumes text node, e.g. contents of `{...}` and returns its inner value
+ * @param  {StringReader} stream
+ * @return {String} Consumed text content or `null` otherwise
  */
-function consumeText(stream) {
-	// NB using own implementation instead of `eatPair()` from @emmetio/stream-reader-utils
-	// to disable quoted value consuming
-	const start = stream.pos;
-
-	if (stream.eat(TEXT_START)) {
-		let stack = 1, ch;
-		let result = '';
-		let offset = stream.pos;
-
-		while (!stream.eof()) {
-			ch = stream.next();
-			if (ch === TEXT_START) {
-				stack++;
-			} else if (ch === TEXT_END) {
-				stack--;
-				if (!stack) {
-					stream.start = start;
-					return result + stream.substring(offset, stream.pos - 1);
-				}
-			} else if (ch === ESCAPE) {
-				ch = stream.next();
-				if (ch === TEXT_START || ch === TEXT_END) {
-					result += stream.substring(offset, stream.pos - 2) + String.fromCharCode(ch);
-					offset = stream.pos;
-				}
-			}
-		}
-
-		// If we’re here then paired character can’t be consumed
-		stream.pos = start;
-		throw stream.error(`Unable to find closing ${String.fromCharCode(TEXT_END)} for text start`);
-	}
-
-	return null;
-}
+var consumeTextNode = function(stream) {
+	return eatPair(stream, LCURLY, RCURLY, opt$1)
+		? stream.current().slice(1, -1)
+		: null;
+};
 
 const EXCL       = 33; // .
 const DOT$1        = 46; // .
@@ -1278,7 +1298,7 @@ var consumeAttributes = function(stream) {
 					// or React-like expression
 					if ((token = consumeQuoted(stream)) != null) {
 						attr.value = token;
-					} else if ((token = consumeText(stream)) != null) {
+					} else if ((token = consumeTextNode(stream)) != null) {
 						attr.value = token;
 						attr.options = {
 							before: '{',
@@ -1374,7 +1394,7 @@ var consumeElement = function(stream) {
 			for (let i = 0, il = next.length; i < il; i++) {
 				node.setAttribute(next[i]);
 			}
-		} else if ((next = consumeText(stream)) !== null) {
+		} else if ((next = consumeTextNode(stream)) !== null) {
 			node.value = next;
 		} else if (next = consumeRepeat(stream)) {
 			node.repeat = next;
@@ -1418,7 +1438,7 @@ const OP_CLIMB    = 94; // ^
  * @param  {String} str Abbreviation to parse
  * @return {Node}
  */
-function parse$2(str) {
+function parse(str) {
 	const stream = new StreamReader(str.trim());
 	const root = new Node();
 	let ctx = root, groupStack = [], ch;
@@ -1500,7 +1520,7 @@ function parse$2(str) {
  * @return {Node}
  */
 var index = function(abbr) {
-	const tree = parse$2(abbr);
+	const tree = parse(abbr);
 	tree.walk(unroll);
 	return tree;
 };
@@ -1774,23 +1794,16 @@ function replaceRanges(str, ranges, value) {
 
         let offset = 0;
         let offsetLength = 0;
-        let descendingOrder = false;
-
         if (str.substr(r[0] + r[1], 1) === '@'){
-            if (str.substr(r[0] + r[1] + 1, 1) === '-') {
-                descendingOrder = true;
-            } 
-            const matches = str.substr(r[0] + r[1] + 1 + Number(descendingOrder)).match(/^(\d+)/);
+            const matches = str.substr(r[0] + r[1] + 1).match(/^(\d+)/);
             if (matches) {
-                offsetLength = matches[1].length + 1 + Number(descendingOrder);
+                offsetLength = matches[1].length + 1;
                 offset = parseInt(matches[1]) - 1;
-            } else {
-                offsetLength = 2;
             }
         }
 
 		str = str.substring(0, r[0])
-			+ (typeof value === 'function' ? value(str.substr(r[0], r[1]), offset, descendingOrder) : value)
+			+ (typeof value === 'function' ? value(str.substr(r[0], r[1]), offset) : value)
 			+ str.substring(r[0] + r[1] + offsetLength);
 	}
 
@@ -1826,14 +1839,13 @@ function applyNumbering$1(node) {
         // it solves issues with abbreviations like `xsl:if[test=$foo]` where
         // `$foo` is preferred output
         const value = repeater.value;
-        const count = repeater.count;
 
-        node.name = replaceNumbering(node.name, value, count);
-        node.value = replaceNumbering(node.value, value, count);
+        node.name = replaceNumbering(node.name, value);
+        node.value = replaceNumbering(node.value, value);
         node.attributes.forEach(attr => {
             const copy = node.getAttribute(attr.name).clone();
-            copy.name = replaceNumbering(attr.name, value, count);
-            copy.value = replaceNumbering(attr.value, value, count);
+            copy.name = replaceNumbering(attr.name, value);
+            copy.value = replaceNumbering(attr.value, value);
             node.replaceAttribute(attr.name, copy);
         });
     }
@@ -1862,12 +1874,12 @@ function findRepeater(node) {
  * @param  {Number} value
  * @return {String}
  */
-function replaceNumbering(str, value, count) {
+function replaceNumbering(str, value) {
     // replace numbering in strings only: skip explicit wrappers that could
     // contain unescaped numbering tokens
     if (typeof str === 'string') {
         const ranges = getNumberingRanges(str);
-        return replaceNumberingRanges(str, ranges, value, count);
+        return replaceNumberingRanges(str, ranges, value);
     }
 
     return str;
@@ -1902,9 +1914,9 @@ function getNumberingRanges(str) {
  * @param  {Number} value
  * @return {String}
  */
-function replaceNumberingRanges(str, ranges, value, count) {
-    const replaced = replaceRanges(str, ranges, (token, offset, descendingOrder) => {
-    let _value = descendingOrder ? String(offset + count - value + 1) : String(value + offset);
+function replaceNumberingRanges(str, ranges, value) {
+    const replaced = replaceRanges(str, ranges, (token, offset) => {
+        let _value = String(value + offset);
         // pad values for multiple numbering tokens, e.g. 3 for $$$ becomes 003
         while (_value.length < token.length) {
             _value = '0' + _value;
@@ -2098,7 +2110,7 @@ function setNodeContent(node, content) {
 		}
 	}
 
-	if ((node.name && node.name.toLowerCase() === 'a') || node.hasAttribute('href')) {
+	if (node.name.toLowerCase() === 'a' || node.hasAttribute('href')) {
 		// special case: inserting content into `<a>` tag
 		if (reUrl.test(content)) {
 			node.setAttribute('href', (reProto.test(content) ? '' : 'http://') + content);
@@ -2110,13 +2122,13 @@ function setNodeContent(node, content) {
 	node.value = content;
 }
 
-const defaultOptions$3 = {
+const defaultOptions$2 = {
 	element: '__',
 	modifier: '_'
 };
 
 const reElement  = /^(-+)([a-z0-9]+[a-z0-9-]*)/i;
-const reModifier = /^(_+)([a-z0-9]+[a-z0-9-_]*)/i;
+const reModifier = /^(_+)([a-z0-9]+[a-z0-9-]*)/i;
 const blockCandidates1 = className => /^[a-z]\-/i.test(className);
 const blockCandidates2 = className => /^[a-z]/i.test(className);
 
@@ -2127,7 +2139,7 @@ const blockCandidates2 = className => /^[a-z]/i.test(className);
  * that element contains `.block` class as well
  */
 var bem = function(tree, options) {
-	options = Object.assign({}, defaultOptions$3, options);
+	options = Object.assign({}, defaultOptions$2, options);
 
 	tree.walk(node => expandClassNames(node, options));
 
@@ -2181,8 +2193,8 @@ function expandShortNotation(node, lookup, options) {
 			cl = cl.slice(m[0].length);
 		}
 
-		// parse modifiers definitions 
-		if (m = cl.match(reModifier)) {
+		// parse modifiers definitions (may contain multiple)
+		while (m = cl.match(reModifier)) {
 			if (!prefix) {
 				prefix = getBlockName(node, lookup, m[1]);
 				out.add(prefix);
@@ -2252,14 +2264,7 @@ function getBlockName(node, lookup, prefix) {
 }
 
 function find(arr, filter) {
-	for(let i = 0; i < arr.length; i++){
-		if (reElement.test(arr[i]) || reModifier.test(arr[i])) {
-			break;
-		}
-		if (filter(arr[i])) {
-			return arr[i];
-		}
-	}
+	return arr.filter(filter)[0];
 }
 
 /**
@@ -2455,17 +2460,17 @@ function createModel(string) {
 
 const DOLLAR      = 36;  // $
 const COLON       = 58;  // :
-const ESCAPE$1      = 92;  // \
+const ESCAPE      = 92;  // \
 const OPEN_BRACE  = 123; // {
 const CLOSE_BRACE = 125; // }
 
 /**
  * Finds fields in given string and returns object with field-less string
- * and array of fields found
+ * and array of fileds found
  * @param  {String} string
  * @return {Object}
  */
-function parse$4(string) {
+function parse$2(string) {
 	const stream = new StreamReader(string);
 	const fields = [];
 	let cleanString = '', offset = 0, pos = 0;
@@ -2475,7 +2480,7 @@ function parse$4(string) {
 		code = stream.peek();
 		pos = stream.pos;
 
-		if (code === ESCAPE$1) {
+		if (code === ESCAPE) {
 			stream.next();
 			stream.next();
 		} else if (field = consumeField(stream, cleanString.length + pos - offset)) {
@@ -2539,8 +2544,8 @@ function createToken(index, placeholder) {
  * or `${index}` or `${index:placeholder}`
  * @param  {StreamReader} stream
  * @param  {Number}       location Field location in *clean* string
- * @return {Field} Object with `index` and `placeholder` properties if
- * field was successfully consumed, `null` otherwise
+ * @return {Object} Object with `index` and `placeholder` properties if
+ * fieald was successfully consumed, `null` otherwise
  */
 function consumeField(stream, location) {
 	const start = stream.pos;
@@ -2641,7 +2646,7 @@ class FieldString {
 	}
 
 	toString() {
-		return this.string;
+		return string;
 	}
 }
 
@@ -2696,7 +2701,7 @@ class OutputNode {
 	 * @param {String} text
 	 */
 	indentText(text) {
-		const lines = splitByLines$1(text);
+		const lines = splitByLines(text);
         if (lines.length === 1) {
             // no newlines, nothing to indent
             return text;
@@ -2745,7 +2750,7 @@ class OutputNode {
  * @param  {String} text
  * @return {String[]}
  */
-function splitByLines$1(text) {
+function splitByLines(text) {
 	return (text || '').split(/\r\n|\r|\n/g);
 }
 
@@ -2809,7 +2814,7 @@ function run(nodes, formatter, fieldsRenderer) {
  * @return {Object} Field model
  */
 function getFieldsModel(text, fieldState) {
-	const model = typeof text === 'object' ? text : parse$4(text);
+	const model = typeof text === 'object' ? text : parse$2(text);
     let largestIndex = -1;
 
     model.fields.forEach(field => {
@@ -2887,7 +2892,7 @@ function template(str, data) {
  * @param  {String} text
  * @return {String[]}
  */
-function splitByLines(text) {
+function splitByLines$1(text) {
 	return (text || '').split(/\r\n|\r|\n/g);
 }
 
@@ -2942,7 +2947,7 @@ function handlePseudoSnippet(outNode) {
 	const node = outNode.node; // original abbreviaiton node
 
 	if (isPseudoSnippet(node)) {
-		const fieldsModel = parse$4(node.value);
+		const fieldsModel = parse$2(node.value);
 		const field = findLowestIndexField(fieldsModel);
 		if (field) {
 			const parts = splitFieldsModel(fieldsModel, field);
@@ -3093,7 +3098,7 @@ function shouldFormatNode(node, profile) {
 
     if (node.parent.isTextOnly
         && node.parent.children.length === 1
-        && parse$4(node.parent.value).fields.length) {
+        && parse$2(node.parent.value).fields.length) {
         // Edge case: do not format the only child of text-only node,
         // but only if parent contains fields
         return false;
@@ -3475,7 +3480,7 @@ function updateFormatting(outNode, profile) {
  */
 function formatNodeValue(node, profile) {
 	if (node.value != null && reNl.test(node.value)) {
-		const lines = splitByLines(node.value);
+		const lines = splitByLines$1(node.value);
 		const indent = profile.indent(1);
 		const maxLength = lines.reduce((prev, line) => Math.max(prev, line.length), 0);
 
@@ -3589,7 +3594,7 @@ function updateFormatting$1(outNode, profile) {
 function formatNodeValue$1(node, profile) {
 	if (node.value != null && reNl$1.test(node.value)) {
 		const indent = profile.indent(1);
-		return splitByLines(node.value).map((line, i) => `${indent}${i ? ' ' : '|'} ${line}`).join('\n');
+		return splitByLines$1(node.value).map((line, i) => `${indent}${i ? ' ' : '|'} ${line}`).join('\n');
 	}
 
 	return node.value;
@@ -3674,7 +3679,7 @@ function updateFormatting$2(outNode, profile) {
 function formatNodeValue$2(node, profile) {
 	if (node.value != null && reNl$2.test(node.value)) {
 		const indent = profile.indent(1);
-		return splitByLines(node.value).map(line => `${indent}| ${line}`).join('\n');
+		return splitByLines$1(node.value).map(line => `${indent}| ${line}`).join('\n');
 	}
 
 	return node.value;
@@ -3729,11 +3734,11 @@ function supports(syntax) {
  * @param  {Object} options
  * @return {String}
  */
-function expand$1(abbr, options) {
+function expand(abbr, options) {
 	options = options || {};
 
 	if (typeof abbr === 'string') {
-		abbr = parse$1(abbr, options);
+		abbr = parse$3(abbr, options);
 	}
 
 	return index$3(abbr, options.profile, options.syntax, options.format);
@@ -3746,7 +3751,7 @@ function expand$1(abbr, options) {
  * @param  {Object} options
  * @return {Node}
  */
-function parse$1(abbr, options) {
+function parse$3(abbr, options) {
 	return index(abbr)
 	.use(index$1, options.snippets)
 	.use(replaceVariables, options.variables)
@@ -3780,7 +3785,7 @@ class CSSValue {
 }
 
 const HASH$1 = 35; // #
-const DOT$1$1  = 46; // .
+const DOT$2  = 46; // .
 
 /**
  * Consumes a color token from given string
@@ -3802,7 +3807,7 @@ var consumeColor = function(stream) {
 
 		// a hex color can be followed by `.num` alpha value
 		stream.start = stream.pos;
-		if (stream.eat(DOT$1$1) && !stream.eatWhile(isNumber)) {
+		if (stream.eat(DOT$2) && !stream.eatWhile(isNumber)) {
 			throw stream.error('Unexpected character for alpha value of color');
 		}
 
@@ -3931,7 +3936,7 @@ function isAlphaWord(code) {
 }
 
 const PERCENT = 37; // %
-const DOT$1$2     = 46; // .
+const DOT$1$1     = 46; // .
 const DASH$1    = 45; // -
 
 /**
@@ -3981,13 +3986,13 @@ function eatNumber(stream) {
 		code = stream.peek();
 
 		// either a second dot or not a number: stop parsing
-		if (code === DOT$1$2 ? hadDot : !isNumber(code)) {
+		if (code === DOT$1$1 ? hadDot : !isNumber(code)) {
 			break;
 		}
 
 		consumed = true;
 
-		if (code === DOT$1$2) {
+		if (code === DOT$1$1) {
 			hadDot = true;
 		}
 
@@ -4050,7 +4055,7 @@ function isVariableName(code) {
 	return code === 45 /* - */ || isAlphaNumericWord(code);
 }
 
-const opt$1 = { throws: true };
+const opt$2 = { throws: true };
 
 /**
  * Consumes 'single' or "double"-quoted string from given string, if possible
@@ -4058,7 +4063,7 @@ const opt$1 = { throws: true };
  * @return {String}
  */
 var consumeQuoted$1 = function(stream) {
-	if (eatQuoted(stream, opt$1)) {
+	if (eatQuoted(stream, opt$2)) {
 		return new QuotedString(stream.current());
 	}
 };
@@ -4170,7 +4175,7 @@ class FunctionCall {
 }
 
 const EXCL$1   = 33; // !
-const DOLLAR$1$1 = 36; // $
+const DOLLAR$2 = 36; // $
 const PLUS   = 43; // +
 const DASH   = 45; // -
 const COLON$1  = 58; // :
@@ -4184,8 +4189,6 @@ const AT     = 64; // @
 var index$4 = function(abbr) {
 	const root = new Node();
 	const stream = new StreamReader(abbr);
-	let node;
-
 	while (!stream.eof()) {
 		let node = new Node(consumeIdent(stream));
 		node.value = consumeValue(stream);
@@ -4278,10 +4281,10 @@ function isIdent(code) {
  * @return {Boolean}
  */
 function isIdentPrefix(code) {
-	return code === AT || code === DOLLAR$1$1 || code === EXCL$1;
+	return code === AT || code === DOLLAR$2 || code === EXCL$1;
 }
 
-const DASH$1$1 = 45; // -
+const DASH$3 = 45; // -
 
 /**
  * Calculates fuzzy match score of how close `abbr` matches given `string`.
@@ -4323,7 +4326,7 @@ var stringScore = function(abbr, string) {
             }
 
             // add acronym bonus for exactly next match after unmatched `-`
-            acronym = ch2 === DASH$1$1;
+            acronym = ch2 === DASH$3;
             j++;
         }
 
@@ -4347,7 +4350,7 @@ function sum(n) {
 }
 
 const reProperty = /^([a-z\-]+)(?:\s*:\s*([^\n\r]+))?$/;
-const DASH$1$2 = 45; // -
+const DASH$1$1 = 45; // -
 
 /**
  * Creates a special structure for resolving CSS properties from plain CSS
@@ -4456,7 +4459,7 @@ function nest(snippets) {
             prev = stack[stack.length - 1];
 
             if (cur.property.indexOf(prev.property) === 0
-                && cur.property.charCodeAt(prev.property.length) === DASH$1$2) {
+                && cur.property.charCodeAt(prev.property.length) === DASH$1$1) {
                 prev.addDependency(cur);
                 stack.push(cur);
                 break;
@@ -4506,7 +4509,7 @@ const unitlessProperties = [
     'flex', 'flex-grow', 'flex-shrink'
 ];
 
-const defaultOptions$4 = {
+const defaultOptions$3 = {
 	intUnit: 'px',
 	floatUnit: 'em',
 	unitAliases: {
@@ -4529,10 +4532,10 @@ const defaultOptions$4 = {
 var index$5 = function(tree, registry, options) {
 	const snippets = convertToCSSSnippets(registry);
 	options = {
-		intUnit: (options && options.intUnit) || defaultOptions$4.intUnit,
-		floatUnit: (options && options.floatUnit) || defaultOptions$4.floatUnit,
-		unitAliases: Object.assign({}, defaultOptions$4.unitAliases, options && options.unitAliases),
-		fuzzySearchMinScore: (options && options.fuzzySearchMinScore) || defaultOptions$4.fuzzySearchMinScore
+		intUnit: (options && options.intUnit) || defaultOptions$3.intUnit,
+		floatUnit: (options && options.floatUnit) || defaultOptions$3.floatUnit,
+		unitAliases: Object.assign({}, defaultOptions$3.unitAliases, options && options.unitAliases),
+		fuzzySearchMinScore: (options && options.fuzzySearchMinScore) || defaultOptions$3.fuzzySearchMinScore
 	};
 	tree.walk(node => resolveNode$1(node, snippets, options));
 	return tree;
@@ -4602,7 +4605,7 @@ function resolveAsProperty(node, snippet, formatOptions) {
 
 				if (token === '!') {
 					token = `${!i ? '${1} ' : ''}!important`;
-				} else if (isKeyword$1$1(token)) {
+				} else if (isKeyword$2(token)) {
 					token = findBestMatch(token.value, keywords)
 						|| findBestMatch(token.value, globalKeywords)
 						|| token;
@@ -4707,7 +4710,7 @@ function getUnmatchedPart(abbr, string) {
  * @param {*} token
  * @return {Boolean}
  */
-function isKeyword$1$1(token) {
+function isKeyword$2(token) {
 	return tokenTypeOf(token, 'keyword');
 }
 
@@ -4743,7 +4746,7 @@ function resolveNumericValue(property, token, formatOptions) {
     return token;
 }
 
-const defaultOptions$5 = {
+const defaultOptions$4 = {
 	shortHex: true,
 	format: {
 		between: ': ',
@@ -4760,7 +4763,7 @@ const defaultOptions$5 = {
  * @return {String}
  */
 function css(tree, profile, options) {
-	options = Object.assign({}, defaultOptions$5, options);
+	options = Object.assign({}, defaultOptions$4, options);
 
 	return render(tree, options.field, outNode => {
 		const node = outNode.node;
@@ -4797,7 +4800,7 @@ function css(tree, profile, options) {
  * @return {FieldString}
  */
 function injectFields(string, values) {
-	const fieldsModel = parse$4(string);
+	const fieldsModel = parse$2(string);
 	const fieldsAmount = fieldsModel.fields.length;
 
 	if (fieldsAmount) {
@@ -4931,11 +4934,11 @@ function getFormat(syntax, options) {
  * @param  {Object} options
  * @return {String}
  */
-function expand$2(abbr, options) {
+function expand$1(abbr, options) {
 	options = options || {};
 
 	if (typeof abbr === 'string') {
-		abbr = parse$5(abbr, options);
+		abbr = parse$4(abbr, options);
 	}
 
 	return index$6(abbr, options.profile, options.syntax, options.format);
@@ -4944,11 +4947,11 @@ function expand$2(abbr, options) {
 /**
  * Parses given Emmet abbreviation into a final abbreviation tree with all
  * required transformations applied
- * @param {String|Node} Abbreviation to parse or already parsed abbreviation
+ * @param {String|Node} abbr Abbreviation to parse or already parsed abbreviation
  * @param  {Object} options
  * @return {Node}
  */
-function parse$5(abbr, options) {
+function parse$4(abbr, options) {
 	if (typeof abbr === 'string') {
 		abbr = index$4(abbr);
 	}
@@ -5454,7 +5457,7 @@ var sp = {
 
 const langs = { latin, ru, sp };
 
-const defaultOptions$6 = {
+const defaultOptions$5 = {
 	wordCount: 30,
 	skipCommon: false,
 	lang: 'latin'
@@ -5467,7 +5470,7 @@ const defaultOptions$6 = {
  * @return {Node}
  */
 var index$8 = function(node, options) {
-	options = Object.assign({}, defaultOptions$6, options);
+	options = Object.assign({}, defaultOptions$5, options);
 	const dict = langs[options.lang] || langs.latin;
     const startWithCommon = !options.skipCommon && !isRepeating(node);
 
@@ -5555,7 +5558,7 @@ function insertCommas(words) {
 		totalCommas = rand(1, 4);
 	}
 
-	for (let i = 0, pos, word; i < totalCommas; i++) {
+	for (let i = 0, pos; i < totalCommas; i++) {
 		pos = rand(0, len - 2);
 		if (!hasComma.test(words[pos])) {
 			words[pos] += ',';
@@ -5611,7 +5614,7 @@ function isRepeating(node) {
     return false;
 }
 
-const reLorem = /^lorem([a-z]*)(\d*)$/;
+const reLorem = /^lorem([a-z]*)(\d*)$/i;
 
 /**
  * Constructs a snippets registry, filled with snippets, for given options
@@ -5619,7 +5622,7 @@ const reLorem = /^lorem([a-z]*)(\d*)$/;
  * @param  {Object|Object[]} snippets Additional snippets
  * @return {SnippetsRegistry}
  */
-var snippetsRegistryFactory = function(syntax, snippets) {
+function snippetsRegistryFactory(syntax, snippets) {
 	const registrySnippets = [index$7[syntax] || index$7.html];
 
 	if (Array.isArray(snippets)) {
@@ -5640,7 +5643,7 @@ var snippetsRegistryFactory = function(syntax, snippets) {
 	}
 
 	return registry;
-};
+}
 
 function loremGenerator(node) {
 	const options = {};
@@ -5673,7 +5676,7 @@ const defaultVariables = {
  */
 const stylesheetSyntaxes = new Set(['css', 'sass', 'scss', 'less', 'stylus', 'sss']);
 
-const defaultOptions = {
+const defaultOptions$6 = {
 	/**
 	 * Abbreviation output syntax
 	 * @type {String}
@@ -5758,12 +5761,12 @@ const defaultOptions = {
  * abbreviation syntax (string)
  * @return {String}
  */
-function expand$$1(abbr, options) {
+function expand$2(abbr, options) {
 	options = createOptions(options);
 
 	return isStylesheet(options.syntax)
-		? expand$2(abbr, options)
-		: expand$1(abbr, options);
+		? expand$1(abbr, options)
+		: expand(abbr, options);
 }
 
 /**
@@ -5774,12 +5777,12 @@ function expand$$1(abbr, options) {
  * abbreviation syntax (string)
  * @return {Node}
  */
-function parse$$1(abbr, options) {
+function parse$5(abbr, options) {
 	options = createOptions(options);
 
 	return isStylesheet(options.syntax)
-		? parse$5(abbr, options)
-		: parse$1(abbr, options);
+		? parse$4(abbr, options)
+		: parse$3(abbr, options);
 }
 
 /**
@@ -5799,7 +5802,7 @@ function createOptions(options) {
 		options = { syntax: options };
 	}
 
-	options = Object.assign({}, defaultOptions, options);
+	options = Object.assign({}, defaultOptions$6, options);
 	options.format = Object.assign({field: options.field}, options.format);
 	options.profile = createProfile(options);
 	options.variables = Object.assign({}, defaultVariables, options.variables);
@@ -5831,8 +5834,8 @@ function createProfile(options) {
 		: new Profile(options.profile);
 }
 
-exports.expand = expand$$1;
-exports.parse = parse$$1;
+exports.expand = expand$2;
+exports.parse = parse$5;
 exports.createSnippetsRegistry = createSnippetsRegistry;
 exports.createOptions = createOptions;
 exports.isStylesheet = isStylesheet;
