@@ -434,6 +434,110 @@ class SnippetsRegistry {
 }
 
 /**
+ * Methods for consuming quoted values
+ */
+
+const SINGLE_QUOTE = 39; // '
+const DOUBLE_QUOTE = 34; // "
+
+const defaultOptions$1 = {
+	escape: 92,   // \ character
+	throws: false
+};
+
+/**
+ * Consumes 'single' or "double"-quoted string from given string, if possible
+ * @param  {StreamReader} stream
+ * @param  {Number}  options.escape A character code of quote-escape symbol
+ * @param  {Boolean} options.throws Throw error if quotes string can’t be properly consumed
+ * @return {Boolean} `true` if quoted string was consumed. The contents
+ *                   of quoted string will be availabe as `stream.current()`
+ */
+var eatQuoted = function(stream, options) {
+	options = options ? Object.assign({}, defaultOptions$1, options) : defaultOptions$1;
+	const start = stream.pos;
+	const quote = stream.peek();
+
+	if (stream.eat(isQuote)) {
+		while (!stream.eof()) {
+			switch (stream.next()) {
+				case quote:
+					stream.start = start;
+					return true;
+
+				case options.escape:
+					stream.next();
+					break;
+			}
+		}
+
+		// If we’re here then stream wasn’t properly consumed.
+		// Revert stream and decide what to do
+		stream.pos = start;
+
+		if (options.throws) {
+			throw stream.error('Unable to consume quoted string');
+		}
+	}
+
+	return false;
+};
+
+function isQuote(code) {
+	return code === SINGLE_QUOTE || code === DOUBLE_QUOTE;
+}
+
+/**
+ * Check if given code is a number
+ * @param  {Number}  code
+ * @return {Boolean}
+ */
+function isNumber(code) {
+	return code > 47 && code < 58;
+}
+
+/**
+ * Check if given character code is alpha code (letter through A to Z)
+ * @param  {Number}  code
+ * @param  {Number}  [from]
+ * @param  {Number}  [to]
+ * @return {Boolean}
+ */
+function isAlpha(code, from, to) {
+	from = from || 65; // A
+	to   = to   || 90; // Z
+	code &= ~32; // quick hack to convert any char code to uppercase char code
+
+	return code >= from && code <= to;
+}
+
+/**
+ * Check if given character code is alpha-numeric (letter through A to Z or number)
+ * @param  {Number}  code
+ * @return {Boolean}
+ */
+function isAlphaNumeric(code) {
+	return isNumber(code) || isAlpha(code);
+}
+
+function isWhiteSpace(code) {
+	return code === 32   /* space */
+		|| code === 9    /* tab */
+		|| code === 160; /* non-breaking space */
+}
+
+/**
+ * Check if given character code is a space
+ * @param  {Number}  code
+ * @return {Boolean}
+ */
+function isSpace(code) {
+	return isWhiteSpace(code)
+		|| code === 10  /* LF */
+		|| code === 13; /* CR */
+}
+
+/**
  * Attribute descriptor of parsed abbreviation node
  * @param {String} name Attribute name
  * @param {String} value Attribute value
@@ -1040,161 +1144,6 @@ class StreamReader {
 	}
 }
 
-/**
- * Methods for consuming quoted values
- */
-
-const SINGLE_QUOTE = 39; // '
-const DOUBLE_QUOTE = 34; // "
-
-const defaultOptions$1 = {
-	escape: 92,   // \ character
-	throws: false
-};
-
-/**
- * Consumes 'single' or "double"-quoted string from given string, if possible
- * @param  {StreamReader} stream
- * @param  {Number}  options.escape A character code of quote-escape symbol
- * @param  {Boolean} options.throws Throw error if quotes string can’t be properly consumed
- * @return {Boolean} `true` if quoted string was consumed. The contents
- *                   of quoted string will be availabe as `stream.current()`
- */
-var eatQuoted = function(stream, options) {
-	options = options ? Object.assign({}, defaultOptions$1, options) : defaultOptions$1;
-	const start = stream.pos;
-	const quote = stream.peek();
-
-	if (stream.eat(isQuote)) {
-		while (!stream.eof()) {
-			switch (stream.next()) {
-				case quote:
-					stream.start = start;
-					return true;
-
-				case options.escape:
-					stream.next();
-					break;
-			}
-		}
-
-		// If we’re here then stream wasn’t properly consumed.
-		// Revert stream and decide what to do
-		stream.pos = start;
-
-		if (options.throws) {
-			throw stream.error('Unable to consume quoted string');
-		}
-	}
-
-	return false;
-};
-
-function isQuote(code) {
-	return code === SINGLE_QUOTE || code === DOUBLE_QUOTE;
-}
-
-/**
- * Check if given code is a number
- * @param  {Number}  code
- * @return {Boolean}
- */
-function isNumber(code) {
-	return code > 47 && code < 58;
-}
-
-/**
- * Check if given character code is alpha code (letter through A to Z)
- * @param  {Number}  code
- * @param  {Number}  [from]
- * @param  {Number}  [to]
- * @return {Boolean}
- */
-function isAlpha(code, from, to) {
-	from = from || 65; // A
-	to   = to   || 90; // Z
-	code &= ~32; // quick hack to convert any char code to uppercase char code
-
-	return code >= from && code <= to;
-}
-
-/**
- * Check if given character code is alpha-numeric (letter through A to Z or number)
- * @param  {Number}  code
- * @return {Boolean}
- */
-function isAlphaNumeric(code) {
-	return isNumber(code) || isAlpha(code);
-}
-
-function isWhiteSpace(code) {
-	return code === 32   /* space */
-		|| code === 9    /* tab */
-		|| code === 160; /* non-breaking space */
-}
-
-/**
- * Check if given character code is a space
- * @param  {Number}  code
- * @return {Boolean}
- */
-function isSpace(code) {
-	return isWhiteSpace(code)
-		|| code === 10  /* LF */
-		|| code === 13; /* CR */
-}
-
-const defaultOptions$1$1 = {
-	escape: 92,   // \ character
-	throws: false
-};
-
-/**
- * Eats paired characters substring, for example `(foo)` or `[bar]`
- * @param  {StreamReader} stream
- * @param  {Number} open      Character code of pair openinig
- * @param  {Number} close     Character code of pair closing
- * @param  {Object} [options]
- * @return {Boolean}       Returns `true` if chacarter pair was successfully
- *                         consumed, it’s content will be available as `stream.current()`
- */
-function eatPair(stream, open, close, options) {
-	options = options ? Object.assign({}, defaultOptions$1$1, options) : defaultOptions$1$1;
-	const start = stream.pos;
-
-	if (stream.eat(open)) {
-		let stack = 1, ch;
-
-		while (!stream.eof()) {
-			if (eatQuoted(stream, options)) {
-				continue;
-			}
-
-			ch = stream.next();
-			if (ch === open) {
-				stack++;
-			} else if (ch === close) {
-				stack--;
-				if (!stack) {
-					stream.start = start;
-					return true;
-				}
-			} else if (ch === options.escape) {
-				stream.next();
-			}
-		}
-
-		// If we’re here then paired character can’t be consumed
-		stream.pos = start;
-
-		if (options.throws) {
-			throw stream.error(`Unable to find matching pair for ${String.fromCharCode(open)}`);
-		}
-	}
-
-	return false;
-}
-
 const ASTERISK = 42; // *
 
 /**
@@ -1203,14 +1152,14 @@ const ASTERISK = 42; // *
  * @param  {StringReader} stream
  * @return {Object}
  */
-var consumeRepeat = function(stream) {
+function consumeRepeat(stream) {
 	if (stream.eat(ASTERISK)) {
 		stream.start = stream.pos;
 
 		// XXX think about extending repeat syntax with through numbering
 		return { count: stream.eatWhile(isNumber) ? +stream.current() : null };
 	}
-};
+}
 
 const opt = { throws: true };
 
@@ -1221,30 +1170,61 @@ const opt = { throws: true };
  * @return {String} Returns `null` if unable to consume quoted value from current
  * position
  */
-var consumeQuoted = function(stream) {
+function consumeQuoted(stream) {
 	if (eatQuoted(stream, opt)) {
 		return stream.current().slice(1, -1);
 	}
-};
+}
 
-const LCURLY = 123; // {
-const RCURLY = 125; // }
-
-const opt$1 = { throws: true };
+const TEXT_START = 123; // {
+const TEXT_END = 125; // }
+const ESCAPE =  92; // \ character
 
 /**
- * Consumes text node, e.g. contents of `{...}` and returns its inner value
- * @param  {StringReader} stream
- * @return {String} Consumed text content or `null` otherwise
+ * Consumes text node `{...}` from stream
+ * @param  {StreamReader} stream
+ * @return {String} Returns consumed text value (without surrounding braces) or
+ * `null` if there’s no text at starting position
  */
-var consumeTextNode = function(stream) {
-	return eatPair(stream, LCURLY, RCURLY, opt$1)
-		? stream.current().slice(1, -1)
-		: null;
-};
+function consumeText(stream) {
+	// NB using own implementation instead of `eatPair()` from @emmetio/stream-reader-utils
+	// to disable quoted value consuming
+	const start = stream.pos;
+
+	if (stream.eat(TEXT_START)) {
+		let stack = 1, ch;
+		let result = '';
+		let offset = stream.pos;
+
+		while (!stream.eof()) {
+			ch = stream.next();
+			if (ch === TEXT_START) {
+				stack++;
+			} else if (ch === TEXT_END) {
+				stack--;
+				if (!stack) {
+					stream.start = start;
+					return result + stream.substring(offset, stream.pos - 1);
+				}
+			} else if (ch === ESCAPE) {
+				ch = stream.next();
+				if (ch === TEXT_START || ch === TEXT_END) {
+					result += stream.substring(offset, stream.pos - 2) + String.fromCharCode(ch);
+					offset = stream.pos;
+				}
+			}
+		}
+
+		// If we’re here then paired character can’t be consumed
+		stream.pos = start;
+		throw stream.error(`Unable to find closing ${String.fromCharCode(TEXT_END)} for text start`);
+	}
+
+	return null;
+}
 
 const EXCL       = 33; // .
-const DOT$1        = 46; // .
+const DOT        = 46; // .
 const EQUALS     = 61; // =
 const ATTR_OPEN  = 91; // [
 const ATTR_CLOSE = 93; // ]
@@ -1258,7 +1238,7 @@ const reAttributeName = /^\!?[\w\-:\$@]+\.?$|^\!?\[[\w\-:\$@]+\]\.?$/;
  * @param {StringReader} stream
  * @returns {Array} Array of consumed attributes
  */
-var consumeAttributes = function(stream) {
+function consumeAttributes(stream) {
 	if (!stream.eat(ATTR_OPEN)) {
 		return null;
 	}
@@ -1280,11 +1260,13 @@ var consumeAttributes = function(stream) {
 		} else if (eatUnquoted(stream)) {
 			// Consumed next word: could be either attribute name or unquoted default value
 			token = stream.current();
+
 			// In angular attribute names can be surrounded by []
-			if (token && token[0] === '[' && stream.peek() === ATTR_CLOSE) {
+			if (token[0] === '[' && stream.peek() === ATTR_CLOSE) {
 				stream.next();
 				token = stream.current();
 			}
+			
 			if (!reAttributeName.test(token)) {
 				// anonymous attribute
 				result.push({ name: null, value: token });
@@ -1298,7 +1280,7 @@ var consumeAttributes = function(stream) {
 					// or React-like expression
 					if ((token = consumeQuoted(stream)) != null) {
 						attr.value = token;
-					} else if ((token = consumeTextNode(stream)) != null) {
+					} else if ((token = consumeText(stream)) != null) {
 						attr.value = token;
 						attr.options = {
 							before: '{',
@@ -1315,7 +1297,7 @@ var consumeAttributes = function(stream) {
 	}
 
 	throw stream.error('Expected closing "]" brace');
-};
+}
 
 function parseAttributeName(name) {
 	const options = {};
@@ -1328,7 +1310,7 @@ function parseAttributeName(name) {
 	}
 
 	// Check for last character: if it’s a `.`, user wants boolean attribute
-	if (name.charCodeAt(name.length - 1) === DOT$1) {
+	if (name.charCodeAt(name.length - 1) === DOT) {
 		name = name.slice(0, name.length - 1);
 		options.boolean = true;
 	}
@@ -1356,11 +1338,11 @@ function eatUnquoted(stream) {
 
 function isUnquoted(code) {
 	return !isSpace(code) && !isQuote(code)
-		&& code !== ATTR_CLOSE && code !== EQUALS;
+		 && code !== ATTR_CLOSE && code !== EQUALS;
 }
 
 const HASH    = 35; // #
-const DOT     = 46; // .
+const DOT$1     = 46; // .
 const SLASH   = 47; // /
 
 /**
@@ -1368,14 +1350,14 @@ const SLASH   = 47; // /
  * @param  {StringReader} stream
  * @return {Node}
  */
-var consumeElement = function(stream) {
+function consumeElement(stream) {
 	// consume element name, if provided
 	const start = stream.pos;
 	const node = new Node(eatName(stream));
 	let next;
 
 	while (!stream.eof()) {
-		if (stream.eat(DOT)) {
+		if (stream.eat(DOT$1)) {
 			node.addClass(eatName(stream));
 		} else if (stream.eat(HASH)) {
 			node.setAttribute('id', eatName(stream));
@@ -1394,7 +1376,7 @@ var consumeElement = function(stream) {
 			for (let i = 0, il = next.length; i < il; i++) {
 				node.setAttribute(next[i]);
 			}
-		} else if ((next = consumeTextNode(stream)) !== null) {
+		} else if ((next = consumeText(stream)) !== null) {
 			node.value = next;
 		} else if (next = consumeRepeat(stream)) {
 			node.repeat = next;
@@ -1408,7 +1390,7 @@ var consumeElement = function(stream) {
 	}
 
 	return node;
-};
+}
 
 function eatName(stream) {
 	stream.start = stream.pos;
@@ -1519,31 +1501,35 @@ function parse(str) {
  * @param  {String} abbr
  * @return {Node}
  */
-var index = function(abbr) {
+function index(abbr) {
 	const tree = parse(abbr);
 	tree.walk(unroll);
 	return tree;
-};
+}
 
 function unroll(node) {
 	if (!node.repeat || !node.repeat.count) {
 		return;
 	}
 
+	const parent = node.parent;
+	let ix = parent.children.indexOf(node);
+
 	for (let i = 0; i < node.repeat.count; i++) {
 		const clone = node.clone(true);
-		clone.repeat.value = i+1;
+		clone.repeat.value = i + 1;
 		clone.walk(unroll);
+
 		if (clone.isGroup) {
 			while (clone.children.length > 0) {
 				clone.firstChild.repeat = clone.repeat;
-				node.parent.insertBefore(clone.firstChild, node);
+				parent.insertAt(clone.firstChild, ix++);
 			}
 		} else {
-			node.parent.insertBefore(clone, node);
+			parent.insertAt(clone, ix++);
 		}
 	}
-	
+
 	node.parent.removeChild(node);
 }
 
@@ -2460,7 +2446,7 @@ function createModel(string) {
 
 const DOLLAR      = 36;  // $
 const COLON       = 58;  // :
-const ESCAPE      = 92;  // \
+const ESCAPE$1      = 92;  // \
 const OPEN_BRACE  = 123; // {
 const CLOSE_BRACE = 125; // }
 
@@ -2480,7 +2466,7 @@ function parse$2(string) {
 		code = stream.peek();
 		pos = stream.pos;
 
-		if (code === ESCAPE) {
+		if (code === ESCAPE$1) {
 			stream.next();
 			stream.next();
 		} else if (field = consumeField(stream, cleanString.length + pos - offset)) {
@@ -4055,7 +4041,7 @@ function isVariableName(code) {
 	return code === 45 /* - */ || isAlphaNumericWord(code);
 }
 
-const opt$2 = { throws: true };
+const opt$1 = { throws: true };
 
 /**
  * Consumes 'single' or "double"-quoted string from given string, if possible
@@ -4063,7 +4049,7 @@ const opt$2 = { throws: true };
  * @return {String}
  */
 var consumeQuoted$1 = function(stream) {
-	if (eatQuoted(stream, opt$2)) {
+	if (eatQuoted(stream, opt$1)) {
 		return new QuotedString(stream.current());
 	}
 };
@@ -4980,6 +4966,7 @@ var html$1 = {
 	"link:css": "link[href='${1:style}.css']",
 	"link:print": "link[href='${1:print}.css' media=print]",
 	"link:favicon": "link[rel='shortcut icon' type=image/x-icon href='${1:favicon.ico}']",
+	"link:mf|link:manifest": "link[rel='manifest' href='${1:manifest.json}']",
 	"link:touch": "link[rel=apple-touch-icon href='${1:favicon.png}']",
 	"link:rss": "link[rel=alternate type=application/rss+xml title=RSS href='${1:rss.xml}']",
 	"link:atom": "link[rel=alternate type=application/atom+xml title=Atom href='${1:atom.xml}']",
