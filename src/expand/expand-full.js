@@ -3206,7 +3206,11 @@ function formatAttributes(outNode, profile) {
     		attrValue = outNode.renderFields(attr.value);
     	}
 
-    	return ` ${attrName}=${profile.quote(attrValue)}`;
+			// For https://github.com/Microsoft/vscode/issues/63703
+			// https://github.com/emmetio/markup-formatters/pull/2/files
+    	return attr.options.before && attr.options.after
+				? ` ${attrName}=${attr.options.before+attrValue+attr.options.after}`
+				: ` ${attrName}=${profile.quote(attrValue)}`;
     }).join('');
 }
 
