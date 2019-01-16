@@ -64,16 +64,16 @@ describe('Validate Abbreviations', () => {
 		];
 		const cssAbbreviations = ['123', '#xyz'];
 		htmlAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('html', abbr), `${abbr} should be treated as invalid abbreviation`);
+			assert(!isAbbreviationValid('html', abbr), `${abbr} should be treated as invalid abbreviation in html`);
 		});
 		htmlAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('haml', abbr), `${abbr} should be treated as invalid abbreviation`);
+			assert(!isAbbreviationValid('haml', abbr), `${abbr} should be treated as invalid abbreviation in haml`);
 		});
 		cssAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('css', abbr), `${abbr} should be treated as invalid abbreviation`);
+			assert(!isAbbreviationValid('css', abbr), `${abbr} should be treated as invalid abbreviation in css`);
 		});
 		cssAbbreviations.forEach(abbr => {
-			assert(!isAbbreviationValid('scss', abbr), `${abbr} should be treated as invalid abbreviation`);
+			assert(!isAbbreviationValid('scss', abbr), `${abbr} should be treated as invalid abbreviation in scss`);
 		});
 	})
 });
@@ -600,16 +600,18 @@ describe('Test completions', () => {
 	it('should provide completions css', () => {
 		return updateExtensionsPath(null).then(() => {
 
-			const testCases: [string, number, number, string][] = [
-				['trf', 0, 3, 'transform: ;'], // Simple case
-				['trf:rx', 0, 6, 'transform: rotateX(angle);'], // using : to delimit property name and value, case insensitve 
-				['trfrx', 0, 5, 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
-				['m10+p10', 0, 7, 'margin: 10px;\npadding: 10px;'] // abbreviation with +
+			const testCases: [string, string][] = [
+				['trf', 'transform: ;'], // Simple case
+				['trf:rx', 'transform: rotateX(angle);'], // using : to delimit property name and value, case insensitve 
+				['trfrx', 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
+				['m10+p10', 'margin: 10px;\npadding: 10px;'] // abbreviation with +
 			];
+			
+			const positionLine = 0
 
-			testCases.forEach(([abbreviation, positionLine, positionChar, expected]) => {
+			testCases.forEach(([abbreviation, expected]) => {
 				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
-				const position = Position.create(positionLine, positionChar);
+				const position = Position.create(positionLine, abbreviation.length);
 				const completionList = doComplete(document, position, 'css', {
 					preferences: {},
 					showExpandedAbbreviation: 'always',
@@ -626,6 +628,40 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should provide hex color completions css', () => {
+		return updateExtensionsPath(null).then(() => {
+
+			const testCases: [string, string][] = [
+				['#1', '#111111'],
+				['#ab', '#ababab'],
+				['#abc', '#aabbcc'],
+				['c:#1', 'color: #111111;'],
+				['c:#1a', 'color: #1a1a1a;'],
+				['bgc:1', 'background-color: 1px;'],
+				['c:#0.1', 'color: rgba(0, 0, 0, 0.1);']
+			];
+			
+			const positionLine = 0
+
+			testCases.forEach(([abbreviation, expected]) => {
+				const document = TextDocument.create('test://test/test.css', 'css', 0, abbreviation);
+				const position = Position.create(positionLine, abbreviation.length);
+				const completionList = doComplete(document, position, 'css', {
+					preferences: {},
+					showExpandedAbbreviation: 'always',
+					showAbbreviationSuggestions: false,
+					syntaxProfiles: {},
+					variables: {}
+				});
+
+				assert.equal(completionList.items[0].label, expected);
+				assert.equal(completionList.items[0].filterText, abbreviation);
+			});
+			return Promise.resolve();
+
+		});
+	});
+	
 	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
 		return updateExtensionsPath(null).then(() => {
 

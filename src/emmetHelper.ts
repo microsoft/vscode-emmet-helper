@@ -978,7 +978,7 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	}
 }
 
-const propertyHexColorRegex = /^[a-zA-Z]+#[\d,a-f,A-F]{0,6}$/;
+const propertyHexColorRegex = /^[a-zA-Z]+:?#[\d.a-fA-F]{0,6}$/;
 const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
 const onlyLetters = /^[a-z,A-Z]+$/;
 
