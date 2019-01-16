@@ -484,6 +484,11 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (abbreviation.startsWith('!')) {
 		return !/[^!]/.test(abbreviation);
 	}
+	
+	const multipleMatch = abbreviation.match(/\*(\d+)$/)
+	if (multipleMatch) {
+		return parseInt(multipleMatch[1], 10) <= 100
+	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
 	// Grouping in abbreviation is valid only if preceeded/succeeded with one of the symbols for nesting, sibling, repeater or climb up
 	if (!/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {

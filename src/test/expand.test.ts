@@ -25,7 +25,20 @@ describe('Expand Abbreviations', () => {
 			
 			assert.equal(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]))
 		})
-  }
+	}
+	
+	function testNotExpand(syntax: string, abbrev: string) {
+		it(`should not expand ${abbrev}`, async () => {
+			const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
+			const position = Position.create(0, abbrev.length);
+
+			const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+			
+			assert.ok(!completionList)
+		})
+	}
 	
 	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick="props.onClick">${0}</button>')
+
+	testNotExpand('html', 'div*101')
 })
