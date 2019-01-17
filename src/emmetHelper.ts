@@ -19,7 +19,7 @@ let markupSnippetKeysRegex: RegExp[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
-const htmlAbbreviationRegex = /[a-z,A-Z]/;
+const htmlAbbreviationRegex = /[a-z,A-Z\.]/;
 const emmetModes = ['html', 'pug', 'slim', 'haml', 'xml', 'xsl', 'jsx', 'css', 'scss', 'sass', 'less', 'stylus'];
 const commonlyUsedTags = [...htmlData.tags, 'lorem'];
 const bemFilterSuffix = 'bem';
@@ -256,7 +256,7 @@ function makeSnippetSuggestion(snippetKeys: string[], prefix: string, abbreviati
 
 function getCurrentWord(currentLineTillPosition: string): string {
 	if (currentLineTillPosition) {
-		let matches = currentLineTillPosition.match(/[\w,:,-]*$/);
+		let matches = currentLineTillPosition.match(/[\w,:,-,\.]*$/)
 		if (matches) {
 			return matches[0];
 		}
@@ -517,7 +517,20 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// Its common for users to type some text and end it with period, this should not be treated as an abbreviation
 	// Else it becomes noise.
-	if (/^[a-z,A-Z,\d]*\.$/.test(abbreviation)) {
+
+	// When user just types '.', return the expansion
+	// Otherwise emmet loses change to participate later
+	// For example in `.foo`. See https://github.com/Microsoft/vscode/issues/66013
+	if (abbreviation === '.') {
+		return false;
+	}
+
+	const dotMatches = abbreviation.match(/^([a-z,A-Z,\d]*)\.$/)
+	if (dotMatches) {
+		// Valid html tags such as `div.`
+		if (dotMatches[1] && htmlData.tags.includes(dotMatches[1])) {
+			return false
+		}
 		return true;
 	}
 

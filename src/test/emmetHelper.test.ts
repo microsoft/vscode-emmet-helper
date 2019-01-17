@@ -33,7 +33,7 @@ const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replac
 
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreviations', () => {
-		const htmlAbbreviations = ['ul>li', 'ul', 'h1', 'ul>li*3', '(ul>li)+div', '.hello', '!', '#hello', '.item[id=ok]'];
+		const htmlAbbreviations = ['ul>li', 'ul', 'h1', 'ul>li*3', '(ul>li)+div', '.hello', '!', '#hello', '.item[id=ok]', '.', '.foo'];
 		const cssAbbreviations = ['#123', '#abc'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('html', abbr));
