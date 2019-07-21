@@ -491,7 +491,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	}
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
 	// Grouping in abbreviation is valid only if it's inside a text node or preceeded/succeeded with one of the symbols for nesting, sibling, repeater or climb up
-	if (!/\{[^\}]*\(.*\)[^\{]*\}/.test(abbreviation) && !/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation) && /\(/.test(abbreviation) && /\)/.test(abbreviation)) {
+	if ((/\(/.test(abbreviation) || /\)/.test(abbreviation)) && !/\{[^\}\{]*[\(\)]+[^\}\{]*\}(?:[>\+\*\^]|$)/.test(abbreviation) && !/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation)) {
 		return false;
 	}
 
