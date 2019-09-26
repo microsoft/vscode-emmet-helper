@@ -33,13 +33,30 @@ const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replac
 
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreviations', () => {
-		const htmlAbbreviations = ['ul>li', 'ul', 'h1', 'ul>li*3', '(ul>li)+div', '.hello', '!', '#hello', '.item[id=ok]', '.', '.foo'];
+		const htmlAbbreviations = [
+			'ul>li',
+			'ul',
+			'h1',
+			'ul>li*3',
+			'(ul>li)+div',
+			'.hello',
+			'!',
+			'#hello',
+			'.item[id=ok]',
+			'.',
+			'.foo',
+			'div{ foo (bar) baz }',
+			'div{ foo ((( abc }',
+			'div{()}',
+			'div{ a (b) c}',
+			'div{ a (b) c}+div{ a (( }'
+		];
 		const cssAbbreviations = ['#123', '#abc'];
 		htmlAbbreviations.forEach(abbr => {
-			assert(isAbbreviationValid('html', abbr));
+			assert(isAbbreviationValid('html', abbr), `${abbr} should be treated as valid abbreviation`);
 		});
 		htmlAbbreviations.forEach(abbr => {
-			assert(isAbbreviationValid('haml', abbr));
+			assert(isAbbreviationValid('haml', abbr), `${abbr} should be treated as valid abbreviation`);
 		});
 		cssAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('css', abbr), `${abbr} should be treated as valid abbreviation`);
@@ -61,6 +78,12 @@ describe('Validate Abbreviations', () => {
 			'if(!ok)',
 			'while(!ok)',
 			'(!ok)',
+			'div{ foo }(bar){ baz }',
+			'div{ foo ((}( abc }',
+			'div{ a}(b) c}',
+			'div{ a (b){c}',
+			'div{ a}(b){c}',
+			'div{ a ((  dsf} d (( sf )) }'
 		];
 		const cssAbbreviations = ['123', '#xyz'];
 		htmlAbbreviations.forEach(abbr => {
