@@ -5,17 +5,17 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
-import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
-import * as extract from '@emmetio/extract-abbreviation';
+import { expand, parse, extract } from './emmetCompat';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
 import { homedir } from 'os';
 import { cssData, htmlData } from './data';
+import { OldEmmetExpandOptions } from './oldEmmetTypes';
+import { resolveConfig } from 'emmet';
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
-let markupSnippetKeysRegex: RegExp[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
@@ -38,29 +38,68 @@ const defaultVendorProperties = {
 /**
  * Emmet configuration as derived from the Emmet related VS Code settings
  */
-export interface EmmetConfiguration {
-	showExpandedAbbreviation?: string;
-	showAbbreviationSuggestions?: boolean;
-	syntaxProfiles?: object;
-	variables?: object;
-	preferences?: object;
-	excludeLanguages?: string[];
-	showSuggestionsAsSnippets?: boolean;
+type VscodeEmmetConfiguration = {
+    excludeLanguages?: any[],
+    extensionsPath?: string,
+    includeLanguages?: Record<string, string>,
+    optimizeStylesheetParsing?: boolean,
+    preferences?: {
+		"bem.elementSeparator"?: string,
+		"bem.modifierSeparator"?: string,
+		"css.floatUnit"?: string,
+		"css.fuzzySearchMinScore"?: number,
+		"css.intUnit"?:string,
+		"css.mozProperties"?: string,
+		"css.msProperties"?:string,
+		"css.oProperties"?:string,
+		"css.propertyEnd"?: string,
+		"css.valueSeparator"?:string,
+		"css.webkitProperties"?: string,
+		"filter.commentAfter"?: string,
+		"filter.commentBefore"?: string,
+		"filter.commentTrigger"?: string[],
+		"format.forceIndentationForTags"?: string,
+		"format.noIndentTags"?: string,
+		"profile.allowCompactBoolean"?: boolean,
+		"sass.propertyEnd"?: string,
+		"sass.valueSeparator"?: string,
+		"stylus.propertyEnd"?: string,
+		"stylus.valueSeparator"?: string,
+
+		// Why following aren't in the json schema but is in tests?
+		"css.unitAliases"?: string, 
+		"scss.valueSeparator"?: string
+	},
+    showAbbreviationSuggestions?: boolean,
+	showExpandedAbbreviation?:
+		| "always"
+		| "inMarkupAndStylesheetFilesOnly"
+		| "never",
+    showSuggestionsAsSnippets?: boolean,
+    syntaxProfiles?: Record<string, Record<string, string>>,
+    triggerExpansionOnTab?: boolean,
+    variables?: {
+		charset?: string,
+		lang?: string
+	}
 }
 
-/**
- * The options bag to be passed to the `expand` function along with the abbreviation to expand
- */
-export interface ExpandOptions {
-	field: (index: any, placeholder: any) => string,
-	syntax: string,
-	profile: any,
-	addons: any,
-	variables: any,
-	snippets: any,
-	format: any,
-	preferences: any
-}
+export type HelperExpandOptions =
+	& Required<Only<
+		OldEmmetExpandOptions,
+		| "field"
+		| "syntax"
+		| "profile"
+		| "variables"
+		| "format"
+	>>
+	& {
+		snippets: Record<string, string>,
+		addons: any, // TODO
+		preferences: VscodeEmmetConfiguration["preferences"]
+	};
+
+type Only<T, K extends keyof T> = Omit<T, Exclude<keyof T, K>>;
 
 /**
  * Returns all applicable emmet expansions for abbreviation at given position in a CompletionList
@@ -69,7 +108,7 @@ export interface ExpandOptions {
  * @param syntax Emmet supported language
  * @param emmetConfig Emmet Configurations as derived from VS Code
  */
-export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: EmmetConfiguration): CompletionList {
+export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: VscodeEmmetConfiguration): CompletionList {
 
 	if (emmetConfig.showExpandedAbbreviation === 'never' || !getEmmetMode(syntax, emmetConfig.excludeLanguages)) {
 		return;
@@ -78,19 +117,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// Fetch markupSnippets so that we can provide possible abbreviation completions
 	// For example, when text at position is `a`, completions should return `a:blank`, `a:link`, `acr` etc.
 	if (!isStyleSheet(syntax)) {
-		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
-			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
+		if (!snippetKeyCache.has(syntax)) {
+			let registry = customSnippetRegistry[syntax] || resolveConfig({ syntax }).snippets;
 
 			if (!snippetKeyCache.has(syntax)) {
-				snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
-					return snippet.key;
-				}));
+				snippetKeyCache.set(syntax, Object.keys(registry));
 			}
-
-			markupSnippetKeysRegex = registry.all({ type: 'regexp' }).map(snippet => {
-				return snippet.key;
-			});
-
 		}
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
@@ -371,7 +403,7 @@ function getCurrentLine(document: TextDocument, position: Position): string {
 	return text.substring(start, end);
 }
 
-let customSnippetRegistry = {};
+let customSnippetRegistry = {} as Record<string, Record<string, string>>;
 let variablesFromFile = {};
 let profilesFromFile = {};
 
@@ -408,7 +440,7 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
  *  * Extracts abbreviation from the given position in the given document
  * @param document The TextDocument from which abbreviation needs to be extracted
  * @param position The Position in the given document from where abbreviation needs to be extracted
- * @param options The options to pass to the @emmetio/extract-abbreviation module
+ * @param options The options to pass to emmet's extract function
  */
 export function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
@@ -540,11 +572,11 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 }
 
 /**
- * Returns options to be used by the @emmetio/expand-abbreviation module
+ * Returns options to be used by the extractAbbreviation function
  * @param syntax 
  * @param textToReplace 
  */
-export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string): ExpandOptions {
+export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: string): HelperExpandOptions {
 	emmetConfig = emmetConfig || {};
 	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
@@ -691,7 +723,7 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
  * @param abbreviation string 
  * @param options options used by the @emmetio/expand-abbreviation module to parse given abbreviation
  */
-export function parseAbbreviation(abbreviation: string, options: ExpandOptions): any {
+export function parseAbbreviation(abbreviation: string, options: OldEmmetExpandOptions): any {
 	return parse(abbreviation, options);
 }
 
@@ -700,7 +732,7 @@ export function parseAbbreviation(abbreviation: string, options: ExpandOptions):
  * @param abbreviation string or parsed abbreviation
  * @param options options used by the @emmetio/expand-abbreviation module to expand given abbreviation
  */
-export function expandAbbreviation(abbreviation: any, options: ExpandOptions): string {
+export function expandAbbreviation(abbreviation: any, options: HelperExpandOptions): string {
 	let expandedText;
 	let preferences = options['preferences'];
 	delete options['preferences'];
@@ -921,11 +953,9 @@ export function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolde
 						stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
 					}
 
-					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
+					customSnippetRegistry[syntax] = customSnippets;
 
-					let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
-						return snippet.key;
-					});
+					let snippetKeys = Object.keys(customSnippetRegistry[syntax]);
 					snippetKeyCache.set(syntax, snippetKeys);
 				});
 			} catch (e) {
@@ -948,7 +978,7 @@ export function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolde
 		});
 	});
 
-	return Promise.all([snippetsPromise, variablesFromFile]).then(() => Promise.resolve());
+	return Promise.all([snippetsPromise, variablesPromise]).then(() => Promise.resolve());
 
 }
 
@@ -1012,7 +1042,7 @@ const onlyLetters = /^[a-z,A-Z]+$/;
  * @param emmetSettings The Emmet settings to use when providing Emmet completions
  * @param result The Completion List object that needs to be updated with Emmet completions
  */
-export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: EmmetConfiguration, result: CompletionList): any {
+export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: VscodeEmmetConfiguration, result: CompletionList): any {
 	return {
 		getId: () => 'emmet',
 		onCssProperty: (context) => {

@@ -5,7 +5,7 @@ import { doComplete } from '../emmetHelper';
 
 const COMPLETE_OPTIONS = {
 	preferences: {},
-	showExpandedAbbreviation: 'always',
+	showExpandedAbbreviation: 'always' as const,
 	showAbbreviationSuggestions: false,
 	syntaxProfiles: {},
 	variables: {}
@@ -38,7 +38,14 @@ describe('Expand Abbreviations', () => {
 		})
 	}
 	
-	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick="props.onClick">${0}</button>')
+	// https://github.com/microsoft/vscode/issues/63703
+	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick={props.onClick}>${0}</button>');
+
+	// https://github.com/microsoft/vscode/issues/59951
+	testExpand('scss', 'fsz18', 'font-size: 18px;');
+
+	// https://github.com/microsoft/vscode/issues/71002
+	testExpand('css', '@m', '@media ${1:screen} {\n\t${0}\n}');
 
 	testNotExpand('html', 'div*101')
 })
