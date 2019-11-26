@@ -47,5 +47,8 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/71002
 	testExpand('css', '@m', '@media ${1:screen} {\n\t${0}\n}');
 
+	// https://github.com/microsoft/vscode/issues/67971
+	testExpand('html', 'div>p+lorem3', '<div>\n\t<p>${0}</p>\n\tLorem, ipsum dolor.\n</div>');
+
 	testNotExpand('html', 'div*101')
 })
