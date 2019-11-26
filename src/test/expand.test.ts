@@ -36,7 +36,7 @@ describe('Expand Abbreviations', () => {
 			assert.ok(!completionList);
 		})
 	}
-	
+
 	// https://github.com/microsoft/vscode/issues/63703
 	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick={props.onClick}>${0}</button>');
 
@@ -48,6 +48,9 @@ describe('Expand Abbreviations', () => {
 
 	// https://github.com/microsoft/vscode/issues/92120
 	testExpand('css', 'd', 'display: ${2:block};');
+
+	// https://github.com/microsoft/vscode/issues/67971
+	testExpand('html', 'div>p+lorem3', '<div>\n\t<p>${0}</p>\n\tLorem, ipsum dolor.\n</div>');
 
 	testNotExpand('html', 'div*101');
 })
