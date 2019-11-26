@@ -19,7 +19,9 @@
     "cpy-cli": "^3.1.1",
     "mocha": "^8.1.1",
     "rimraf": "^3.0.2",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "@emmetio/abbreviation": "^2.0.0-rc.4",
+    "@emmetio/css-abbreviation": "^2.0.0-rc.4"
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.2.0",
