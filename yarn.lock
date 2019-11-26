@@ -2,6 +2,30 @@
 # yarn lockfile v1
 
 
+"@emmetio/abbreviation@^2.0.0-rc.4":
+  version "2.0.0-rc.4"
+  resolved "https://registry.yarnpkg.com/@emmetio/abbreviation/-/abbreviation-2.0.0-rc.4.tgz#f50dc7e9bd375e1a89f3bf043036812019ec711a"
+  integrity sha512-d+FJBor+jZ/JWmdJqDK/eTcYqax2OrmrSIqqaIDgmFLxolJX34PCKsTwLsYzS6lw4NGqNdsi6hsggReRYNRYMQ==
+  dependencies:
+    "@emmetio/scanner" "^0.0.7"
+
+"@emmetio/css-abbreviation@^2.0.0-rc.4":
+  version "2.0.0-rc.4"
+  resolved "https://registry.yarnpkg.com/@emmetio/css-abbreviation/-/css-abbreviation-2.0.0-rc.4.tgz#65073e6de5016cbf222fe9e144d1e82b5469b802"
+  integrity sha512-EjFVzg2dT+wmJO/IbqAQ5TSXOT/BAmZejC5lg969TAMVa3EBVw6UsR1o9zBNcHbqLzLJ2hhXlvpcd6pXtBZddg==
+  dependencies:
+    "@emmetio/scanner" "^0.0.4"
+
+"@emmetio/scanner@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@emmetio/scanner/-/scanner-0.0.4.tgz#e36a979e54aec565037e45f87f89306530bf990b"
+  integrity sha512-QGg0aUaL2//suGuu7f+2Vpz9jvaCYMk9CYT2fK33ULCXwmC3K8IsSA15goHfa479Tku+vCHQ/RSd7zJRMmD59A==
+
+"@emmetio/scanner@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@emmetio/scanner/-/scanner-0.0.7.tgz#f89c3dadf041f0b8fbd24e0ea303fa16102f2cb9"
+  integrity sha512-Pux49/ztCAXytv9BmHqcOiOqKLAfwmTtZU/kns2wfIO3OBY5ANunQlxFC5WedS1L9m5rssew6FypJDtaqEThHw==
+
 "@types/node@^6.14.8":
   version "6.14.9"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-6.14.9.tgz#733583e21ef0eab85a9737dfafbaa66345a92ef0"

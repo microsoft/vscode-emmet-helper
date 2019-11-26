@@ -14,6 +14,8 @@
     "url": "https://github.com/Microsoft/vscode-emmet-helper"
   },
   "devDependencies": {
+    "@emmetio/abbreviation": "^2.0.0-rc.4",
+    "@emmetio/css-abbreviation": "^2.0.0-rc.4",
     "@types/node": "^6.14.8",
     "cpy-cli": "^1.0.1",
     "mocha": "3.4.2",
