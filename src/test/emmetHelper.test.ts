@@ -1,10 +1,14 @@
 import { TextDocument, Position, CompletionItemKind } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath, doComplete, expandAbbreviation } from '../emmetHelper';
+import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath as updateExtensionsPathHelper, doComplete, expandAbbreviation } from '../emmetHelper';
 import { describe, it } from 'mocha';
-import * as assert from 'assert';
+import assert from 'assert';
 import * as path from 'path';
+import * as util from 'util';
+import * as fs from 'fs';
+import { FileService, FileType } from '../fileService';
+import { URI } from 'vscode-uri';
 
-const extensionsPath = path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-profile');
+const extensionsPath = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile');
 const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
 const expectedBemFilterOutput =
 	`<ul class="search-form search-form_wide">
@@ -30,6 +34,51 @@ const expectedBemCommentFilterOutput =
 </ul>
 <!-- /.search-form search-form_wide -->`;
 const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
+
+const fileService: FileService = {
+	async readFile(uri: URI) : Promise<Uint8Array> {
+		if (uri.scheme === 'file') {
+			return await util.promisify(fs.readFile)(uri.fsPath);
+		}
+		throw new Error(`schema ${uri.scheme} not supported`);
+	},
+	stat(uri: URI) {
+		if (uri.scheme === 'file') {
+			return new Promise((c, e) => {
+				fs.stat(uri.fsPath, (err, stats) => {
+					if (err) {
+						if (err.code === 'ENOENT') {
+							return c({ type: FileType.Unknown, ctime: -1, mtime: -1, size: -1 });
+						} else {
+							return e(err);
+						}
+					}
+
+					let type = FileType.Unknown;
+					if (stats.isFile()) {
+						type = FileType.File;
+					} else if (stats.isDirectory()) {
+						type = FileType.Directory;
+					} else if (stats.isSymbolicLink()) {
+						type = FileType.SymbolicLink;
+					}
+
+					c({
+						type,
+						ctime: stats.ctime.getTime(),
+						mtime: stats.mtime.getTime(),
+						size: stats.size
+					});
+				});
+			});
+		}
+	}
+}
+
+function updateExtensionsPath(extPath: string) {
+	return updateExtensionsPathHelper(extPath, fileService, URI.file('/home/projects/test'))
+}
+
 
 describe('Validate Abbreviations', () => {
 	it('should return true for valid abbreviations', () => {
@@ -67,13 +116,13 @@ describe('Validate Abbreviations', () => {
 	});
 	it('should return false for invalid abbreviations', () => {
 		const htmlAbbreviations = [
-			'!ul!', 
-			'(hello)', 
-			'super(hello)', 
-			'console.log(hello)', 
-			'console.log(._hello)', 
-			'()', 
-			'[]', 
+			'!ul!',
+			'(hello)',
+			'super(hello)',
+			'console.log(hello)',
+			'console.log(._hello)',
+			'()',
+			'[]',
 			'(my.data[0].element)',
 			'if(!ok)',
 			'while(!ok)',
@@ -386,7 +435,7 @@ describe('Test custom snippets', () => {
 			assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 			// Use custom snippets from extensionsPath
-			return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
+			return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
 				let foundCustomSnippet = false;
 				const expandOptionsWithCustomSnippets = getExpandOptions('scss');
 				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
@@ -402,7 +451,7 @@ describe('Test custom snippets', () => {
 
 	it('should throw error when snippets file from extensionsPath has invalid json', () => {
 		// Use invalid snippets.json
-		return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../..')), 'testData', 'custom-snippets-invalid-json')).then(() => {
+		return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-invalid-json')).then(() => {
 			assert.ok(false, 'updateExtensionsPath method should have failed for invalid json but it didnt');
 			return Promise.resolve();
 		}, (e) => {
@@ -567,7 +616,7 @@ describe('Test completions', () => {
 				const expectedItems = ['a:link', 'a:mail', 'a:tel'];
 				assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
 			});
-			
+
 			return Promise.resolve();
 		});
 	});
@@ -629,7 +678,7 @@ describe('Test completions', () => {
 				['trfrx', 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
 				['m10+p10', 'margin: 10px;\npadding: 10px;'] // abbreviation with +
 			];
-			
+
 			const positionLine = 0
 
 			testCases.forEach(([abbreviation, expected]) => {
@@ -663,7 +712,7 @@ describe('Test completions', () => {
 				['bgc:1', 'background-color: 1px;'],
 				['c:#0.1', 'color: rgba(0, 0, 0, 0.1);']
 			];
-			
+
 			const positionLine = 0
 
 			testCases.forEach(([abbreviation, expected]) => {
@@ -684,7 +733,7 @@ describe('Test completions', () => {
 
 		});
 	});
-	
+
 	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
 		return updateExtensionsPath(null).then(() => {
 
@@ -993,7 +1042,7 @@ describe('Test completions', () => {
 			if (typeof expandedText !== 'string') {
 				return;
 			}
-		
+
 			assert.equal(completionList.items[0].label, 'lorem*3');
 			assert.equal(expandedText.split('\n').length, 3);
 			assert.equal(expandedText.startsWith('Lorem'), true);

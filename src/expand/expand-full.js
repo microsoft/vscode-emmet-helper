@@ -1,8 +1,3 @@
-(function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.emmet = {})));
-}(this, (function (exports) { 'use strict';
 
 var defaultOptions = {
 	/**
@@ -572,7 +567,7 @@ class Attribute {
 /**
  * A parsed abbreviation AST node. Nodes build up an abbreviation AST tree
  */
-class Node {
+export class Node {
 	/**
 	 * Creates a new node
 	 * @param {String} [name] Node name
@@ -1420,7 +1415,7 @@ const OP_CLIMB    = 94; // ^
  * @param  {String} str Abbreviation to parse
  * @return {Node}
  */
-function parse(str) {
+function parse$5(str) {
 	const stream = new StreamReader(str.trim());
 	const root = new Node();
 	let ctx = root, groupStack = [], ch;
@@ -1502,7 +1497,7 @@ function parse(str) {
  * @return {Node}
  */
 function index(abbr) {
-	const tree = parse(abbr);
+	const tree = parse$5(abbr);
 	tree.walk(unroll);
 	return tree;
 }
@@ -3724,7 +3719,7 @@ function supports(syntax) {
  * @param  {Object} options
  * @return {String}
  */
-function expand(abbr, options) {
+function expand$2(abbr, options) {
 	options = options || {};
 
 	if (typeof abbr === 'string') {
@@ -5774,12 +5769,12 @@ const defaultOptions$6 = {
  * abbreviation syntax (string)
  * @return {String}
  */
-function expand$2(abbr, options) {
+export function expand(abbr, options) {
 	options = createOptions(options);
 
 	return isStylesheet(options.syntax)
 		? expand$1(abbr, options)
-		: expand(abbr, options);
+		: expand$2(abbr, options);
 }
 
 /**
@@ -5790,7 +5785,7 @@ function expand$2(abbr, options) {
  * abbreviation syntax (string)
  * @return {Node}
  */
-function parse$5(abbr, options) {
+export function parse(abbr, options) {
 	options = createOptions(options);
 
 	return isStylesheet(options.syntax)
@@ -5804,13 +5799,13 @@ function parse$5(abbr, options) {
  * @param  {SnippetsRegistry|Object|Object[]} [snippets] Additional snippets
  * @return {SnippetsRegistry}
  */
-function createSnippetsRegistry(syntax, snippets) {
+export function createSnippetsRegistry(syntax, snippets) {
 	return snippets instanceof SnippetsRegistry
 		? snippets
 		: snippetsRegistryFactory(isStylesheet(syntax) ? 'css' : syntax, snippets);
 }
 
-function createOptions(options) {
+export function createOptions(options) {
 	if (typeof options === 'string') {
 		options = { syntax: options };
 	}
@@ -5832,7 +5827,7 @@ function createOptions(options) {
  * @param  {String}  syntax
  * @return {Boolean}
  */
-function isStylesheet(syntax) {
+export function isStylesheet(syntax) {
 	return stylesheetSyntaxes.has(syntax);
 }
 
@@ -5841,19 +5836,11 @@ function isStylesheet(syntax) {
  * @param  {Object} options
  * @return {Profile}
  */
-function createProfile(options) {
+export function createProfile(options) {
 	return options.profile instanceof Profile
 		? options.profile
 		: new Profile(options.profile);
 }
 
-exports.expand = expand$2;
-exports.parse = parse$5;
-exports.createSnippetsRegistry = createSnippetsRegistry;
-exports.createOptions = createOptions;
-exports.isStylesheet = isStylesheet;
-exports.createProfile = createProfile;
-
 Object.defineProperty(exports, '__esModule', { value: true });
 
-})));

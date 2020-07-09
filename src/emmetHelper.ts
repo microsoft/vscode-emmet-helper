@@ -6,12 +6,22 @@
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
 import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
-import * as extract from '@emmetio/extract-abbreviation';
-import * as path from 'path';
-import * as fs from 'fs';
+
 import * as JSONC from 'jsonc-parser';
-import { homedir } from 'os';
 import { cssData, htmlData } from './data';
+import { URI } from 'vscode-uri';
+import { FileService, joinPath, isAbsolutePath, FileType, FileStat } from './fileService';
+import { TextDecoder } from 'util';
+
+import extract from '@emmetio/extract-abbreviation';
+
+// /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
+//  @emmetio/extract-abbreviation has a cjs that uses a default export
+// */
+// const extract = typeof _extractAbbreviation === 'function' ? _extractAbbreviation : _extractAbbreviation.default;
+
+
+export { FileService, FileType, FileStat }
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -59,7 +69,8 @@ export interface ExpandOptions {
 	variables: any,
 	snippets: any,
 	format: any,
-	preferences: any
+	preferences: any,
+	text?: string[]
 }
 
 /**
@@ -405,7 +416,7 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
 }
 
 /**
- *  * Extracts abbreviation from the given position in the given document
+ * Extracts abbreviation from the given position in the given document
  * @param document The TextDocument from which abbreviation needs to be extracted
  * @param position The Position in the given document from where abbreviation needs to be extracted
  * @param options The options to pass to the @emmetio/extract-abbreviation module
@@ -425,6 +436,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 				lookAhead: extractOptions.lookAhead
 			};
 		}
+
 		const result = extract(currentLine, pos, extractOptions);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
 		return {
@@ -484,7 +496,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (abbreviation.startsWith('!')) {
 		return !/[^!]/.test(abbreviation);
 	}
-	
+
 	const multipleMatch = abbreviation.match(/\*(\d+)$/)
 	if (multipleMatch) {
 		return parseInt(multipleMatch[1], 10) <= 100
@@ -857,109 +869,91 @@ function getFormatters(syntax: string, preferences: any) {
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export function updateExtensionsPath(emmetExtensionsPath: string, workspaceFolderPath?: string): Promise<void> {
-	if (!emmetExtensionsPath || !emmetExtensionsPath.trim()) {
+export async function updateExtensionsPath(emmetExtensionsPath: string | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	if (emmetExtensionsPath) {
+		emmetExtensionsPath = emmetExtensionsPath.trim();
+	}
+	if (!emmetExtensionsPath) {
 		resetSettingsFromFile();
 		return Promise.resolve();
 	}
 
-	emmetExtensionsPath = emmetExtensionsPath.trim();
-	workspaceFolderPath = workspaceFolderPath ? workspaceFolderPath.trim() : '';
+	let emmetExtensionsPathUri: URI | undefined;
 	if (emmetExtensionsPath[0] === '~') {
-		emmetExtensionsPath = path.join(homedir(), emmetExtensionsPath.substr(1));
-	} else if (!path.isAbsolute(emmetExtensionsPath) && workspaceFolderPath) {
-		emmetExtensionsPath = path.join(workspaceFolderPath, emmetExtensionsPath);
+		if (homeDir) {
+			emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+		}
+	} else if (!isAbsolutePath(emmetExtensionsPath)) {
+		if (workspaceFolderPath) {
+			emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+		}
+	} else {
+		emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
 	}
 
-	if (!path.isAbsolute(emmetExtensionsPath)) {
-		resetSettingsFromFile();
-		return Promise.reject('The path provided in emmet.extensionsPath setting should be absoulte path');
-	}
-	if (!dirExists(emmetExtensionsPath)) {
+	if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
 		resetSettingsFromFile();
 		return Promise.reject(`The directory ${emmetExtensionsPath} doesnt exist. Update emmet.extensionsPath setting`);
 	}
 
-	let dirPath = emmetExtensionsPath;
-	let snippetsPath = path.join(dirPath, 'snippets.json');
-	let profilesPath = path.join(dirPath, 'syntaxProfiles.json');
+	let snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
+	let profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
 
-	let snippetsPromise = new Promise<void>((resolve, reject) => {
-		fs.readFile(snippetsPath, (err, snippetsData) => {
-			if (err) {
-				return reject(`Error while fetching the file ${snippetsPath}`);
-			}
-			try {
-				let errors = [];
-				let snippetsJson = JSONC.parse(snippetsData.toString(), errors);
-				if (errors.length > 0) {
-					return reject(`Found error ${JSONC.ScanError[errors[0].error]} while parsing the file ${snippetsPath} at offset ${errors[0].offset}`);
-				}
-				variablesFromFile = snippetsJson['variables'];
-				customSnippetRegistry = {};
-				snippetKeyCache.clear();
-				Object.keys(snippetsJson).forEach(syntax => {
-					if (!snippetsJson[syntax]['snippets']) {
-						return;
-					}
-					let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
-					let customSnippets = snippetsJson[syntax]['snippets'];
-					if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
-						customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
-					}
-					if (!isStyleSheet(syntax)) {
-						// In Emmet 2.0 all snippets should be valid abbreviations
-						// Convert old snippets that do not follow this format to new format
-						for (let snippetKey in customSnippets) {
-							if (customSnippets.hasOwnProperty(snippetKey)
-								&& customSnippets[snippetKey].startsWith('<')
-								&& customSnippets[snippetKey].endsWith('>')) {
-								customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
-							}
-						}
-					} else {
-						stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
-					}
-
-					customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
-
-					let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
-						return snippet.key;
-					});
-					snippetKeyCache.set(syntax, snippetKeys);
-				});
-			} catch (e) {
-				return reject(`Error while parsing the file ${snippetsPath}`);
-			}
-			return resolve();
-		});
-	});
-
-	let variablesPromise = new Promise<void>((resolve, reject) => {
-		fs.readFile(profilesPath, (err, profilesData) => {
-			try {
-				if (!err) {
-					profilesFromFile = JSON.parse(profilesData.toString());
-				}
-			} catch (e) {
-
-			}
-			return resolve();
-		});
-	});
-
-	return Promise.all([snippetsPromise, variablesFromFile]).then(() => Promise.resolve());
-
-}
-
-function dirExists(dirPath: string): boolean {
 	try {
+		const snippetsData = await fs.readFile(snippetsPath);
+		const snippetsDataStr = new TextDecoder().decode(snippetsData);
 
-		return fs.statSync(dirPath).isDirectory();
+		let errors: JSONC.ParseError[] = [];
+		let snippetsJson = JSONC.parse(snippetsDataStr, errors);
+		if (errors.length > 0) {
+			throw new Error(`Found error ${JSONC.printParseErrorCode(errors[0].error)} while parsing the file ${snippetsPath} at offset ${errors[0].offset}`);
+		}
+		variablesFromFile = snippetsJson['variables'];
+		customSnippetRegistry = {};
+		snippetKeyCache.clear();
+		Object.keys(snippetsJson).forEach(syntax => {
+			if (!snippetsJson[syntax]['snippets']) {
+				return;
+			}
+			let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+			let customSnippets = snippetsJson[syntax]['snippets'];
+			if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
+				customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
+			}
+			if (!isStyleSheet(syntax)) {
+				// In Emmet 2.0 all snippets should be valid abbreviations
+				// Convert old snippets that do not follow this format to new format
+				for (let snippetKey in customSnippets) {
+					if (customSnippets.hasOwnProperty(snippetKey)
+						&& customSnippets[snippetKey].startsWith('<')
+						&& customSnippets[snippetKey].endsWith('>')) {
+						customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
+					}
+				}
+			} else {
+				stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
+			}
+
+			customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
+
+			let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
+				return snippet.key;
+			});
+			snippetKeyCache.set(syntax, snippetKeys);
+		});
 	} catch (e) {
-		return false;
+		throw new Error(`Error while parsing the file ${snippetsPath}`);
+	}
+
+	try {
+		const profilesData = await fs.readFile(profilesPath);
+		const profilesDataStr = new TextDecoder().decode(profilesData);
+		profilesFromFile = JSON.parse(profilesDataStr);
+	} catch (e) {
+		// 
 	}
 }
+
 
 function resetSettingsFromFile() {
 	customSnippetRegistry = {};

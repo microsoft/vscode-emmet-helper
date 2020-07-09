@@ -2,8 +2,9 @@
 	"compilerOptions": {
 		"target": "es6",
 		"lib": ["es2016"],
-		"module": "commonjs",
-		"outDir": "./lib/cjs",
+		"module": "es6",
+		"moduleResolution": "node",
+		"outDir": "./lib/esm",
 		"sourceMap": true,
 		"allowJs": true,
 		"declaration": true,

@@ -15,11 +15,11 @@
                 "--timeout",
                 "999999",
                 "--colors",
-                "${workspaceRoot}/out/test/**/*.test.js"
+                "${workspaceRoot}/lib/cjs/test/**/*.test.js"
             ],
             "sourceMaps": true,
             "outFiles": [
-                "${workspaceFolder}/out/**/*.js"
+                "${workspaceFolder}/lib/cjs/**/*.js"
 			]
         }
     ]

@@ -1,9 +1,10 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "1.2.17",
+  "version": "2.0.0",
   "description": "Helper to use emmet modules in Visual Studio Code",
-  "main": "./out/emmetHelper.js",
-  "types": "./out/emmetHelper.d.ts",
+  "main": "./lib/cjs/emmetHelper.js",
+  "module": "./lib/esm/emmetHelper.js",
+  "types": "./lib/cjs/emmetHelper.d.ts",
   "author": "Microsoft Corporation",
   "repository": {
     "type": "git",
@@ -14,20 +15,22 @@
     "url": "https://github.com/Microsoft/vscode-emmet-helper"
   },
   "devDependencies": {
-    "@types/node": "^6.0.46",
+    "@types/node": "^12.11.7",
     "cpy-cli": "^1.0.1",
     "mocha": "3.4.2",
-    "typescript": "^2.1.5"
+    "typescript": "^3.9.6"
   },
   "dependencies": {
-    "@emmetio/extract-abbreviation": "0.1.6",
-    "jsonc-parser": "^1.0.0",
-    "vscode-languageserver-types": "^3.6.0-next.1"
+    "@emmetio/extract-abbreviation": "^0.2.0",
+    "jsonc-parser": "^2.3.0",
+    "vscode-languageserver-types": "^3.15.1",
+    "vscode-uri": "^2.1.2"
   },
   "scripts": {
-    "prepublish": "npm run compile && npm run test",
+    "prepublish": "npm run compile && npm run compile-esm && npm run test",
     "watch": "tsc -watch -p ./",
-    "compile": "tsc -p ./ && cpy ./src/expand/*.js ./out/expand && cpy ./src/typings/emmetHelper.d.ts ./out",
-    "test": "mocha out/test"
+    "compile": "tsc -p ./",
+    "compile-esm": "tsc -p ./tsconfig.esm.json",
+    "test": "mocha lib/cjs/test"
   }
 }
