@@ -18,7 +18,8 @@
     "@types/node": "^12.11.7",
     "cpy-cli": "^3.1.1",
     "mocha": "^8.1.1",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "rimraf": "^3.0.2"
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.2.0",
@@ -27,10 +28,13 @@
     "vscode-uri": "^2.1.2"
   },
   "scripts": {
-    "prepublish": "npm run compile && npm run compile-esm && npm run test",
+    "prepublishOnly": "npm run clean && npm run compile && npm run compile-esm && npm run test",
     "watch": "tsc -watch -p ./",
     "compile": "tsc -p ./",
+    "clean": "rimraf lib",
     "compile-esm": "tsc -p ./tsconfig.esm.json",
-    "test": "mocha lib/cjs/test"
+    "test": "mocha lib/cjs/test",
+    "preversion": "npm test",
+    "postversion": "git push && git push --tags"
   }
 }
