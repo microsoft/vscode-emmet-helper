@@ -8,8 +8,6 @@ import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit
 // import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
 
 import { expand, parse, extract } from './emmetCompat';
-import * as path from 'path';
-import * as fs from 'fs';
 import * as JSONC from 'jsonc-parser';
 import { cssData, htmlData } from './data';
 import { URI } from 'vscode-uri';
@@ -217,6 +215,10 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			return CompletionList.create([], true);
 		}
 
+		const isVendorAbbreviation = (abbr: string): boolean => {
+			return abbr === '-' || /^-[wmso]{1,4}-?$/.test(abbr);
+		}
+
 		if (expandedAbbr) {
 			let prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
@@ -228,8 +230,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
 			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
 
-			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
+			// Add a check here since otherwise cases like mo-
+			// end up with the suggestion `mo |;` even though it is vendor abbreviation
+			if (!completionItems.length && isVendorAbbreviation(abbreviation)) {
+				return CompletionList.create([], true);
+			}
 
+			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
 				// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
 				// Filter out those cases here.
@@ -241,7 +248,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		}
 
 		// Incomplete abbreviations that use vendor prefix 
-		if (!completionItems.length && (abbreviation === '-' || /^-[wmso]{1,4}-?$/.test(abbreviation))) {
+		if (!completionItems.length && isVendorAbbreviation(abbreviation)) {
 			return CompletionList.create([], true);
 		}
 	} else {
@@ -1000,7 +1007,6 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 		// 
 	}
 }
-
 
 function resetSettingsFromFile() {
 	customSnippetRegistry = {};

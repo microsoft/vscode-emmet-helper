@@ -171,12 +171,12 @@ describe('Extract Abbreviations', () => {
 			const position = Position.create(positionLine, positionChar);
 			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position);
 
-			assert.equal(expectedAbbr, abbreviation);
-			assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
-			assert.equal(expectedRangeStartChar, abbreviationRange.start.character);
-			assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
-			assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
-			assert.equal(filter, expectedFilter);
+			assert.strictEqual(expectedAbbr, abbreviation);
+			assert.strictEqual(expectedRangeStartLine, abbreviationRange.start.line);
+			assert.strictEqual(expectedRangeStartChar, abbreviationRange.start.character);
+			assert.strictEqual(expectedRangeEndLine, abbreviationRange.end.line);
+			assert.strictEqual(expectedRangeEndChar, abbreviationRange.end.character);
+			assert.strictEqual(filter, expectedFilter);
 		});
 	});
 	it('should extract abbreviations from document css', () => {
@@ -191,12 +191,12 @@ describe('Extract Abbreviations', () => {
 			const position = Position.create(positionLine, positionChar);
 			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
 
-			assert.equal(expectedAbbr, abbreviation);
-			assert.equal(expectedRangeStartLine, abbreviationRange.start.line);
-			assert.equal(expectedRangeStartChar, abbreviationRange.start.character);
-			assert.equal(expectedRangeEndLine, abbreviationRange.end.line);
-			assert.equal(expectedRangeEndChar, abbreviationRange.end.character);
-			assert.equal(filter, expectedFilter);
+			assert.strictEqual(expectedAbbr, abbreviation);
+			assert.strictEqual(expectedRangeStartLine, abbreviationRange.start.line);
+			assert.strictEqual(expectedRangeStartChar, abbreviationRange.start.character);
+			assert.strictEqual(expectedRangeEndLine, abbreviationRange.end.line);
+			assert.strictEqual(expectedRangeEndChar, abbreviationRange.end.character);
+			assert.strictEqual(filter, expectedFilter);
 		});
 	});
 
@@ -215,8 +215,8 @@ describe('Extract Abbreviations', () => {
 		testCases.forEach(([content, expectedAbbr, expectedFilter]) => {
 			const { abbreviation, filter } = extractAbbreviationFromText(content);
 
-			assert.equal(expectedAbbr, abbreviation);
-			assert.equal(filter, expectedFilter);
+			assert.strictEqual(expectedAbbr, abbreviation);
+			assert.strictEqual(filter, expectedFilter);
 
 		});
 	});
@@ -232,9 +232,9 @@ describe('Test Basic Expand Options', () => {
 		const syntax = 'anythingreally';
 		let expandOptions = getExpandOptions(syntax);
 
-		assert.equal(expandOptions.field, emmetSnippetField)
-		assert.equal(expandOptions.syntax, syntax);
-		assert.equal(Object.keys(expandOptions.addons).length, 0);
+		assert.strictEqual(expandOptions.field, emmetSnippetField)
+		assert.strictEqual(expandOptions.syntax, syntax);
+		assert.strictEqual(Object.keys(expandOptions.addons).length, 0);
 	});
 });
 
@@ -243,27 +243,27 @@ describe('Test addons in Expand Options', () => {
 		const syntax = 'jsx';
 		let expandOptions = getExpandOptions(syntax);
 
-		assert.equal(Object.keys(expandOptions.addons).length, 1);
-		assert.equal(expandOptions.addons['jsx'], true);
+		assert.strictEqual(Object.keys(expandOptions.addons).length, 1);
+		assert.strictEqual(expandOptions.addons['jsx'], true);
 	});
 
 	it('should add bem as addon when bem filter is provided', () => {
 		const syntax = 'anythingreally';
 		let expandOptions = getExpandOptions(syntax, {}, 'bem');
 
-		assert.equal(Object.keys(expandOptions.addons).length, 1);
-		assert.equal(expandOptions.addons['bem']['element'], '__');
+		assert.strictEqual(Object.keys(expandOptions.addons).length, 1);
+		assert.strictEqual(expandOptions.addons['bem']['element'], '__');
 	});
 
 	it('should add bem before jsx as addon when bem filter is provided', () => {
 		const syntax = 'jsx';
 		let expandOptions = getExpandOptions(syntax, {}, 'bem');
 
-		assert.equal(Object.keys(expandOptions.addons).length, 2);
-		assert.equal(Object.keys(expandOptions.addons)[0], 'bem');
-		assert.equal(Object.keys(expandOptions.addons)[1], 'jsx');
-		assert.equal(expandOptions.addons['bem']['element'], '__');
-		assert.equal(expandOptions.addons['jsx'], true);
+		assert.strictEqual(Object.keys(expandOptions.addons).length, 2);
+		assert.strictEqual(Object.keys(expandOptions.addons)[0], 'bem');
+		assert.strictEqual(Object.keys(expandOptions.addons)[1], 'jsx');
+		assert.strictEqual(expandOptions.addons['bem']['element'], '__');
+		assert.strictEqual(expandOptions.addons['jsx'], true);
 	});
 });
 
@@ -280,12 +280,12 @@ describe('Test output profile settings', () => {
 
 		const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 
-		assert.equal(profile['tag_case'], expandOptions.profile['tagCase']);
-		assert.equal(profile['attr_case'], expandOptions.profile['attributeCase']);
-		assert.equal(profile['attr_quotes'], expandOptions.profile['attributeQuotes']);
-		assert.equal(profile['tag_nl'], expandOptions.profile['format']);
-		assert.equal(profile['inline_break'], expandOptions.profile['inlineBreak']);
-		assert.equal(profile['self_closing_tag'], expandOptions.profile['selfClosingStyle']);
+		assert.strictEqual(profile['tag_case'], expandOptions.profile['tagCase']);
+		assert.strictEqual(profile['attr_case'], expandOptions.profile['attributeCase']);
+		assert.strictEqual(profile['attr_quotes'], expandOptions.profile['attributeQuotes']);
+		assert.strictEqual(profile['tag_nl'], expandOptions.profile['format']);
+		assert.strictEqual(profile['inline_break'], expandOptions.profile['inlineBreak']);
+		assert.strictEqual(profile['self_closing_tag'], expandOptions.profile['selfClosingStyle']);
 	});
 
 	it('should convert self_closing_style', () => {
@@ -294,7 +294,7 @@ describe('Test output profile settings', () => {
 
 		for (let i = 0; i < testCases.length; i++) {
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { self_closing_tag: testCases[i] } } });
-			assert.equal(expandOptions.profile['selfClosingStyle'], expectedValue[i]);
+			assert.strictEqual(expandOptions.profile['selfClosingStyle'], expectedValue[i]);
 		}
 	});
 
@@ -304,7 +304,7 @@ describe('Test output profile settings', () => {
 
 		for (let i = 0; i < testCases.length; i++) {
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { tag_nl: testCases[i] } } });
-			assert.equal(expandOptions.profile['format'], expectedValue[i]);
+			assert.strictEqual(expandOptions.profile['format'], expectedValue[i]);
 		}
 	});
 
@@ -320,7 +320,7 @@ describe('Test output profile settings', () => {
 
 		const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 		Object.keys(profile).forEach(key => {
-			assert.equal(expandOptions.profile[key], profile[key]);
+			assert.strictEqual(expandOptions.profile[key], profile[key]);
 		});
 	});
 
@@ -336,8 +336,8 @@ describe('Test output profile settings', () => {
 			}
 
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
-			assert.equal(expandOptions.profile['tagCase'], 'lower');
-			assert.equal(profile['tag_case'], 'lower');
+			assert.strictEqual(expandOptions.profile['tagCase'], 'lower');
+			assert.strictEqual(profile['tag_case'], 'lower');
 			return Promise.resolve();
 		});
 	});
@@ -352,14 +352,14 @@ describe('Test variables settings', () => {
 
 		const expandOptions = getExpandOptions('html', { variables });
 		Object.keys(variables).forEach(key => {
-			assert.equal(expandOptions.variables[key], variables[key]);
+			assert.strictEqual(expandOptions.variables[key], variables[key]);
 		});
 	});
 
 	it('should use variables from extensionsPath', () => {
 		updateExtensionsPath(extensionsPath).then(() => {
 			const expandOptions = getExpandOptions('html', {});
-			assert.equal(expandOptions.variables['lang'], 'fr');
+			assert.strictEqual(expandOptions.variables['lang'], 'fr');
 		});
 	});
 
@@ -371,7 +371,7 @@ describe('Test variables settings', () => {
 			}
 
 			const expandOptions = getExpandOptions('html', { variables });
-			assert.equal(expandOptions.variables['lang'], variables['lang']);
+			assert.strictEqual(expandOptions.variables['lang'], variables['lang']);
 		});
 	});
 });
@@ -392,7 +392,7 @@ describe('Test custom snippets', () => {
 						foundCustomSnippet = true;
 					}
 				});
-				assert.equal(foundCustomSnippet, true);
+				assert.strictEqual(foundCustomSnippet, true);
 				return Promise.resolve();
 			});
 		});
@@ -425,8 +425,8 @@ describe('Test custom snippets', () => {
 					}
 				});
 
-				assert.equal(foundCustomSnippet, true);
-				assert.equal(foundCustomSnippetInInhertitedSyntax, true);
+				assert.strictEqual(foundCustomSnippet, true);
+				assert.strictEqual(foundCustomSnippetInInhertitedSyntax, true);
 
 				return Promise.resolve();
 			});
@@ -448,7 +448,7 @@ describe('Test custom snippets', () => {
 						foundCustomSnippet = true;
 					}
 				});
-				assert.equal(foundCustomSnippet, true);
+				assert.strictEqual(foundCustomSnippet, true);
 				return Promise.resolve();
 			});
 		});
@@ -474,7 +474,7 @@ describe('Test custom snippets', () => {
 					foundCustomSnippet = true;
 				}
 			});
-			assert.equal(foundCustomSnippet, true);
+			assert.strictEqual(foundCustomSnippet, true);
 
 			// Use invalid snippets.json
 			return updateExtensionsPath(null).then(() => {
@@ -489,12 +489,12 @@ describe('Test custom snippets', () => {
 
 describe('Test emmet preferences', () => {
 	it('should use stylesheet preferences', () => {
-		assert.equal(expandAbbreviation('m10', getExpandOptions('css', { preferences: { 'css.propertyEnd': ';;' } })), 'margin: 10px;;');
-		assert.equal(expandAbbreviation('m10', getExpandOptions('scss', { preferences: { 'scss.valueSeparator': '::' } })), 'margin::10px;');
-		assert.equal(expandAbbreviation('m10', getExpandOptions('less', { preferences: { 'css.intUnit': 'pt' } })), 'margin: 10pt;');
-		assert.equal(expandAbbreviation('m10.2', getExpandOptions('css', { preferences: { 'css.floatUnit': 'ex' } })), 'margin: 10.2ex;');
-		assert.equal(expandAbbreviation('m10r', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10 /rem;');
-		assert.equal(expandAbbreviation('m10p', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10%;');
+		assert.strictEqual(expandAbbreviation('m10', getExpandOptions('css', { preferences: { 'css.propertyEnd': ';;' } })), 'margin: 10px;;');
+		assert.strictEqual(expandAbbreviation('m10', getExpandOptions('scss', { preferences: { 'scss.valueSeparator': '::' } })), 'margin::10px;');
+		assert.strictEqual(expandAbbreviation('m10', getExpandOptions('less', { preferences: { 'css.intUnit': 'pt' } })), 'margin: 10pt;');
+		assert.strictEqual(expandAbbreviation('m10.2', getExpandOptions('css', { preferences: { 'css.floatUnit': 'ex' } })), 'margin: 10.2ex;');
+		assert.strictEqual(expandAbbreviation('m10r', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10 /rem;');
+		assert.strictEqual(expandAbbreviation('m10p', getExpandOptions('css', { preferences: { 'css.unitAliases': 'e:em, p:%,r: /rem' } })), 'margin: 10%;');
 	});
 });
 
@@ -502,44 +502,44 @@ describe('Test filters (bem and comment)', () => {
 
 	it('should expand haml', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class") ${0}'); // TODO: shouldn't have space
+			assert.strictEqual(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class") ${0}'); // TODO: shouldn't have space
 			return Promise.resolve();
 		});
 	});
 
 	it('should expand attributes with []', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation('div[[a]="b"]', getExpandOptions('html', {})), '<div [a]="b">${0}</div>');
+			assert.strictEqual(expandAbbreviation('div[[a]="b"]', getExpandOptions('html', {})), '<div [a]="b">${0}</div>');
 			return Promise.resolve();
 		});
 	});
 
 	it('should expand abbreviations that are nodes with no name', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation('c', getExpandOptions('html', {})), '<!-- ${0} -->');
+			assert.strictEqual(expandAbbreviation('c', getExpandOptions('html', {})), '<!-- ${0} -->');
 			return Promise.resolve();
 		});
 	});
 
 	it('should use filters from expandOptions', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation(bemFilterExample, getExpandOptions('html', {}, 'bem')), expectedBemFilterOutput);
-			assert.equal(expandAbbreviation(commentFilterExample, getExpandOptions('html', {}, 'c')), expectedCommentFilterOutput);
-			assert.equal(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem,c')), expectedBemCommentFilterOutput);
+			assert.strictEqual(expandAbbreviation(bemFilterExample, getExpandOptions('html', {}, 'bem')), expectedBemFilterOutput);
+			assert.strictEqual(expandAbbreviation(commentFilterExample, getExpandOptions('html', {}, 'c')), expectedCommentFilterOutput);
+			assert.strictEqual(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem,c')), expectedBemCommentFilterOutput);
 			return Promise.resolve();
 		});
 	});
 
 	it('should use filters from syntaxProfiles', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation(bemFilterExample, getExpandOptions('html', {
+			assert.strictEqual(expandAbbreviation(bemFilterExample, getExpandOptions('html', {
 				syntaxProfiles: {
 					html: {
 						filters: 'html, bem'
 					}
 				}
 			})), expectedBemFilterOutput);
-			assert.equal(expandAbbreviation(commentFilterExample, getExpandOptions('html', {
+			assert.strictEqual(expandAbbreviation(commentFilterExample, getExpandOptions('html', {
 				syntaxProfiles: {
 					html: {
 						filters: 'html, c'
@@ -665,9 +665,9 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expectedAbbr);
-				assert.equal(completionList.items[0].documentation, expectedExpansionDocs);
-				assert.equal(completionList.items[0].textEdit.newText, expectedExpansion);
+				assert.strictEqual(completionList.items[0].label, expectedAbbr);
+				assert.strictEqual(completionList.items[0].documentation, expectedExpansionDocs);
+				assert.strictEqual(completionList.items[0].textEdit.newText, expectedExpansion);
 			});
 			return Promise.resolve();
 
@@ -697,8 +697,8 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expected);
-				assert.equal(completionList.items[0].filterText, abbreviation);
+				assert.strictEqual(completionList.items[0].label, expected);
+				assert.strictEqual(completionList.items[0].filterText, abbreviation);
 			});
 			return Promise.resolve();
 
@@ -731,15 +731,15 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expected);
-				assert.equal(completionList.items[0].filterText, abbreviation);
+				assert.strictEqual(completionList.items[0].label, expected);
+				assert.strictEqual(completionList.items[0].filterText, abbreviation);
 			});
 			return Promise.resolve();
 
 		});
 	});
 
-	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
+	it('should provide empty and incomplete completion list for abbreviations that just have the vendor prefix', () => {
 		return updateExtensionsPath(null).then(() => {
 
 			const testCases: [string, number, number][] = [
@@ -764,11 +764,10 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.length, 0, completionList.items.length ? completionList.items[0].label : 'all good');
-				assert.equal(completionList.isIncomplete, true);
+				assert.strictEqual(completionList.items.length, 0, completionList.items.length ? completionList.items[0].label : 'all good');
+				assert.strictEqual(completionList.isIncomplete, true);
 			});
 			return Promise.resolve();
-
 		});
 	})
 
@@ -789,10 +788,10 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.find(x => x.label === 'link').documentation, '<link rel="stylesheet" href="|">');
-				assert.equal(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${0}">');
-				assert.equal(completionList.items.find(x => x.label === 'link:css').documentation, '<link rel="stylesheet" href="style.css">');
-				assert.equal(completionList.items.find(x => x.label === 'link:css').textEdit.newText, '<link rel="stylesheet" href="${2:style}.css">');
+				assert.strictEqual(completionList.items.find(x => x.label === 'link').documentation, '<link rel="stylesheet" href="|">');
+				assert.strictEqual(completionList.items.find(x => x.label === 'link').textEdit.newText, '<link rel="stylesheet" href="${0}">');
+				assert.strictEqual(completionList.items.find(x => x.label === 'link:css').documentation, '<link rel="stylesheet" href="style.css">');
+				assert.strictEqual(completionList.items.find(x => x.label === 'link:css').textEdit.newText, '<link rel="stylesheet" href="${2:style}.css">');
 
 			});
 			return Promise.resolve();
@@ -803,7 +802,7 @@ describe('Test completions', () => {
 	it('should provide completions with escaped $ in scss', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
-				['bim$hello', 0, 9]
+				['bgi$hello', 0, 9]
 			];
 
 			testCases.forEach(([content, positionLine, positionChar]) => {
@@ -817,15 +816,16 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').documentation, 'background-image: $hello;');
-				assert.equal(completionList.items.find(x => x.label === 'background-image: $hello;').textEdit.newText, 'background-image: \\$hello;');
-
+				const foundExpansion = completionList.items.find(x => x.label === 'background-image: $hello;');
+				assert.strictEqual(foundExpansion.documentation, 'background-image: $hello;');
+				assert.strictEqual(foundExpansion.textEdit.newText, 'background-image: \\$hello;');
 			});
 			return Promise.resolve();
 
 		});
 	});
 
+	// Skipping because likely outdated
 	it.skip('should provide completions with escaped $ in html', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number, string, string][] = [
@@ -843,13 +843,10 @@ describe('Test completions', () => {
 					syntaxProfiles: {},
 					variables: {}
 				});
-
-				assert.equal(completionList.items.find(x => x.label === content).documentation, expectedDoc);
-				assert.equal(completionList.items.find(x => x.label === content).textEdit.newText, expectedSnippetText);
-
+				assert.strictEqual(completionList.items.find(x => x.label === content).documentation, expectedDoc);
+				assert.strictEqual(completionList.items.find(x => x.label === content).textEdit.newText, expectedSnippetText);
 			});
 			return Promise.resolve();
-
 		});
 	});
 
@@ -874,8 +871,8 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expectedAbbr);
-				assert.equal(completionList.items[0].documentation, expectedExpansion);
+				assert.strictEqual(completionList.items[0].label, expectedAbbr);
+				assert.strictEqual(completionList.items[0].documentation, expectedExpansion);
 			});
 			return Promise.resolve();
 
@@ -906,9 +903,9 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expectedAbbr);
-				assert.equal(completionList.items[0].documentation, expectedExpansion);
-				assert.equal(completionList.items[0].filterText, expectedFilterText);
+				assert.strictEqual(completionList.items[0].label, expectedAbbr);
+				assert.strictEqual(completionList.items[0].documentation, expectedExpansion);
+				assert.strictEqual(completionList.items[0].filterText, expectedFilterText);
 			});
 			return Promise.resolve();
 		});
@@ -925,16 +922,17 @@ describe('Test completions', () => {
 			};
 
 			const completionList1 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'm'), Position.create(0, 1), 'css', expandOptions);
-			assert.equal(completionList1.items.findIndex(x => x.label === 'margin: ;') > -1, true);
-			assert.equal(completionList1.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'margin: ;') > -1, true);
+			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'mrgstart') > -1, true);
 
 			const completionList2 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mr'), Position.create(0, 2), 'css', expandOptions);
-			assert.equal(completionList2.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
-			assert.equal(completionList2.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
+			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'mrgstart') > -1, true);
 
+			// new Emmet doesn't match mrg or mgr with margin-right
 			const completionList3 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mrg'), Position.create(0, 3), 'css', expandOptions);
-			assert.equal(completionList3.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
-			assert.equal(completionList3.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList3.items.findIndex(x => x.label === 'margin-right: ;') > -1, false);
+			assert.strictEqual(completionList3.items.findIndex(x => x.label === 'mrgstart') > -1, true);
 
 			return Promise.resolve();
 		});
@@ -966,7 +964,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.strictEqual(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 
@@ -995,7 +993,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(!completionList || !completionList.items || !completionList.items.length, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.strictEqual(!completionList || !completionList.items || !completionList.items.length, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
 			});
 			return Promise.resolve();
 
@@ -1019,9 +1017,9 @@ describe('Test completions', () => {
 			if (typeof expandedText !== 'string') {
 				return;
 			}
-			assert.equal(completionList.items[0].label, 'lorem10');
-			assert.equal(expandedText.split(' ').length, 10);
-			assert.equal(expandedText.startsWith('Lorem'), true);
+			assert.strictEqual(completionList.items[0].label, 'lorem10');
+			assert.strictEqual(expandedText.split(' ').length, 10);
+			assert.strictEqual(expandedText.startsWith('Lorem'), true);
 
 			return Promise.resolve();
 		});
@@ -1045,9 +1043,9 @@ describe('Test completions', () => {
 				return;
 			}
 
-			assert.equal(completionList.items[0].label, 'lorem*3');
-			assert.equal(expandedText.split('\n').length, 3);
-			assert.equal(expandedText.startsWith('Lorem'), true);
+			assert.strictEqual(completionList.items[0].label, 'lorem*3');
+			assert.strictEqual(expandedText.split('\n').length, 3);
+			assert.strictEqual(expandedText.startsWith('Lorem'), true);
 
 			return Promise.resolve();
 		});
@@ -1080,9 +1078,9 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expectedLabel);
-				assert.equal(completionList.items[0].documentation, expectedExpansion);
-				assert.equal(completionList.items[0].filterText, expectedFilterText);
+				assert.strictEqual(completionList.items[0].label, expectedLabel);
+				assert.strictEqual(completionList.items[0].documentation, expectedExpansion);
+				assert.strictEqual(completionList.items[0].filterText, expectedFilterText);
 			});
 			return Promise.resolve();
 		});
@@ -1116,9 +1114,9 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.equal(completionList.items[0].label, expectedLabel);
-				assert.equal(completionList.items[0].documentation, expectedExpansion);
-				assert.equal(completionList.items[0].filterText, expectedFilterText);
+				assert.strictEqual(completionList.items[0].label, expectedLabel);
+				assert.strictEqual(completionList.items[0].documentation, expectedExpansion);
+				assert.strictEqual(completionList.items[0].filterText, expectedFilterText);
 			});
 			return Promise.resolve();
 		});
@@ -1126,16 +1124,16 @@ describe('Test completions', () => {
 
 	it('should expand with multiple vendor prefixes', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
-			assert.equal(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
-			assert.equal(expandAbbreviation('brs10px', getExpandOptions('css', {})), 'border-radius: 10px;');
-			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', {})), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\nborder-radius: ${0};');
-			assert.equal(expandAbbreviation('-brs10', getExpandOptions('css', {})), '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\nborder-radius: 10px;');
-			assert.equal(expandAbbreviation('-bdts', getExpandOptions('css', {})), '-webkit-border-top-style: ${0};\n-moz-border-top-style: ${0};\n-ms-border-top-style: ${0};\n-o-border-top-style: ${0};\nborder-top-style: ${0};');
-			assert.equal(expandAbbreviation('-bdts2px', getExpandOptions('css', {})), '-webkit-border-top-style: 2px;\n-moz-border-top-style: 2px;\n-ms-border-top-style: 2px;\n-o-border-top-style: 2px;\nborder-top-style: 2px;');
-			assert.equal(expandAbbreviation('-p10-20', getExpandOptions('css', {})), '-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;\npadding: 10px 20px;');
-			assert.equal(expandAbbreviation('-p10p20', getExpandOptions('css', {})), '-webkit-padding: 10% 20px;\n-moz-padding: 10% 20px;\n-ms-padding: 10% 20px;\n-o-padding: 10% 20px;\npadding: 10% 20px;');
-			assert.equal(expandAbbreviation('-mo-brs', getExpandOptions('css', {})), '-moz-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
+			assert.strictEqual(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
+			assert.strictEqual(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
+			assert.strictEqual(expandAbbreviation('brs10px', getExpandOptions('css', {})), 'border-radius: 10px;');
+			assert.strictEqual(expandAbbreviation('-brs', getExpandOptions('css', {})), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\nborder-radius: ${0};');
+			assert.strictEqual(expandAbbreviation('-brs10', getExpandOptions('css', {})), '-webkit-border-radius: 10px;\n-moz-border-radius: 10px;\nborder-radius: 10px;');
+			assert.strictEqual(expandAbbreviation('-bdts', getExpandOptions('css', {})), '-webkit-border-top-style: ${0};\n-moz-border-top-style: ${0};\n-ms-border-top-style: ${0};\n-o-border-top-style: ${0};\nborder-top-style: ${0};');
+			assert.strictEqual(expandAbbreviation('-bdts2px', getExpandOptions('css', {})), '-webkit-border-top-style: 2px;\n-moz-border-top-style: 2px;\n-ms-border-top-style: 2px;\n-o-border-top-style: 2px;\nborder-top-style: 2px;');
+			assert.strictEqual(expandAbbreviation('-p10-20', getExpandOptions('css', {})), '-webkit-padding: 10px 20px;\n-moz-padding: 10px 20px;\n-ms-padding: 10px 20px;\n-o-padding: 10px 20px;\npadding: 10px 20px;');
+			assert.strictEqual(expandAbbreviation('-p10p20', getExpandOptions('css', {})), '-webkit-padding: 10% 20px;\n-moz-padding: 10% 20px;\n-ms-padding: 10% 20px;\n-o-padding: 10% 20px;\npadding: 10% 20px;');
+			assert.strictEqual(expandAbbreviation('-mo-brs', getExpandOptions('css', {})), '-moz-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
 
 			return Promise.resolve();
 		});
@@ -1143,10 +1141,10 @@ describe('Test completions', () => {
 
 	it('should expand with default vendor prefixes in properties', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.equal(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.webkitProperties': 'foo, bar, padding' } })), '-webkit-padding: ${0};\npadding: ${0};');
-			assert.equal(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-padding: ${0};\n-o-padding: ${0};\npadding: ${0};');
-			assert.equal(expandAbbreviation('-brs', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding', 'css.mozProperties': '', 'css.msProperties': '' } })), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
-			assert.equal(expandAbbreviation('-o-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-o-padding: ${0};\npadding: ${0};');
+			assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.webkitProperties': 'foo, bar, padding' } })), '-webkit-padding: ${0};\npadding: ${0};');
+			assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-padding: ${0};\n-o-padding: ${0};\npadding: ${0};');
+			assert.strictEqual(expandAbbreviation('-brs', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding', 'css.mozProperties': '', 'css.msProperties': '' } })), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
+			assert.strictEqual(expandAbbreviation('-o-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-o-padding: ${0};\npadding: ${0};');
 
 			return Promise.resolve();
 		});
@@ -1164,7 +1162,7 @@ describe('Test completions', () => {
 				variables: {},
 				excludeLanguages: ['html']
 			});
-			assert.equal(!completionList, true);
+			assert.strictEqual(!completionList, true);
 		});
 	});
 
@@ -1180,7 +1178,7 @@ describe('Test completions', () => {
 				variables: {},
 				showSuggestionsAsSnippets: true
 			});
-			assert.equal(completionList.items[0].kind, CompletionItemKind.Snippet);
+			assert.strictEqual(completionList.items[0].kind, CompletionItemKind.Snippet);
 		});
 	});
 
@@ -1196,8 +1194,8 @@ describe('Test completions', () => {
 				variables: {},
 				excludeLanguages: []
 			});
-			assert.equal(completionList.items.length, 1);
-			assert.equal(completionList.items[0].label, 'abbr');
+			assert.strictEqual(completionList.items.length, 1);
+			assert.strictEqual(completionList.items[0].label, 'abbr');
 		});
 	});
 })

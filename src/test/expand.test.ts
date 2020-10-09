@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { describe, it } from 'mocha';
-import { TextDocument, Position } from 'vscode-languageserver-types'
+import { TextDocument, Position } from 'vscode-languageserver-types';
 import { doComplete } from '../emmetHelper';
 
 const COMPLETE_OPTIONS = {
@@ -22,7 +22,7 @@ describe('Expand Abbreviations', () => {
 			assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
 			assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
 
-			assert.equal(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
+			assert.strictEqual(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
 		})
 	}
 
@@ -45,12 +45,17 @@ describe('Expand Abbreviations', () => {
 
 	// https://github.com/microsoft/vscode/issues/71002
 	testExpand('css', '@m', '@media ${1:screen} {\n\t${0}\n}');
+	testExpand('css', '@media', '@media ${1:screen} {\n\t${0}\n}');
 
 	// https://github.com/microsoft/vscode/issues/92120
-	testExpand('css', 'd', 'display: ${2:block};');
+	testExpand('css', 'd', 'display: ${1:block};');
 
 	// https://github.com/microsoft/vscode/issues/67971
 	testExpand('html', 'div>p+lorem3', '<div>\n\t<p>${0}</p>\n\tLorem, ipsum dolor.\n</div>');
+
+	// https://github.com/microsoft/vscode-emmet-helper/issues/37
+	// testExpand('xsl', 'inc', '<xsl:include href="" />');
+	// testExpand('html', 'br', '<br>');
 
 	testNotExpand('html', 'div*101');
 })
