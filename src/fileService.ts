@@ -52,7 +52,7 @@ const Slash = '/'.charCodeAt(0);
 const Dot = '.'.charCodeAt(0);
 
 export function isAbsolutePath(path: string) {
-	return path.charCodeAt(0) === Slash;
+	return path.charCodeAt(0) === Slash || (path.length >= 3 && path.substring(1).startsWith(":\\"));
 }
 
 export function resolvePath(uri: Uri, path: string): Uri {
