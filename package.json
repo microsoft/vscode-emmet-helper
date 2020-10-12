@@ -1,6 +1,6 @@
 {
   "name": "vscode-emmet-helper",
-  "version": "2.0.0",
+  "version": "2.0.2",
   "description": "Helper to use emmet modules in Visual Studio Code",
   "main": "./lib/cjs/emmetHelper.js",
   "module": "./lib/esm/emmetHelper.js",
@@ -18,8 +18,8 @@
     "@types/node": "^12.11.7",
     "cpy-cli": "^3.1.1",
     "mocha": "^8.1.1",
-    "typescript": "^3.9.7",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "typescript": "^3.9.7"
   },
   "dependencies": {
     "@emmetio/extract-abbreviation": "^0.2.0",
