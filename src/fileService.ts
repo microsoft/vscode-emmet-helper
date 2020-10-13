@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { URI as Uri } from 'vscode-uri';
-const pathLib = require('path');
 
 export enum FileType {
 	/**
@@ -49,11 +48,12 @@ export interface FileService {
 	stat(uri: Uri): Thenable<FileStat>;
 }
 
-const Slash = '/'.charCodeAt(0);
+// following https://nodejs.org/api/path.html#path_path_isabsolute_path
+const PathMatchRegex = new RegExp('^(/|//|\\\\\\\\|[A-Za-z]:(/|\\\\))');
 const Dot = '.'.charCodeAt(0);
 
 export function isAbsolutePath(path: string) {
-	return pathLib.isAbsolute(path);
+	return PathMatchRegex.test(path);
 }
 
 export function resolvePath(uri: Uri, path: string): Uri {
