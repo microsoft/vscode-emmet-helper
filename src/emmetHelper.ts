@@ -5,7 +5,6 @@
 
 
 import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
-// import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
 
 import { expand, parse, extract } from './emmetCompat';
 import * as JSONC from 'jsonc-parser';
@@ -13,8 +12,6 @@ import { cssData, htmlData } from './data';
 import { URI } from 'vscode-uri';
 import { FileService, joinPath, isAbsolutePath, FileType, FileStat } from './fileService';
 import { TextDecoder } from 'util';
-
-// import extract from '@emmetio/extract-abbreviation';
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
@@ -99,17 +96,6 @@ type VscodeEmmetConfiguration = {
 /**
  * The options bag to be passed to the `expand` function along with the abbreviation to expand
  */
-export interface ExpandOptions {
-	field: (index: any, placeholder: any) => string,
-	syntax: string,
-	profile: any,
-	addons: any,
-	variables: any,
-	snippets: any,
-	format: any,
-	preferences: any,
-	text?: string[]
-}
 export type HelperExpandOptions =
 	& Required<Only<
 		OldEmmetExpandOptions,
@@ -118,6 +104,7 @@ export type HelperExpandOptions =
 		| "profile"
 		| "variables"
 		| "format"
+		| "text"
 	>>
 	& {
 		snippets: Record<string, string>,
@@ -692,7 +679,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 		variables: getVariables(emmetConfig['variables']),
 		snippets: customSnippetRegistry[syntax],
 		format: formatters,
-		preferences: preferences
+		preferences: preferences,
+		text: '' // to be set by abbreviationActions.ts
 	};
 }
 
@@ -759,7 +747,7 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
  * @param abbreviation string 
  * @param options options used by the @emmetio/expand-abbreviation module to parse given abbreviation
  */
-export function parseAbbreviation(abbreviation: string, options: OldEmmetExpandOptions): any {
+export function parseAbbreviation(abbreviation: string, options: HelperExpandOptions): any {
 	return parse(abbreviation, options);
 }
 
