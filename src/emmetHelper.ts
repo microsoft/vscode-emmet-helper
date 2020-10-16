@@ -942,6 +942,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 			snippetKeyCache.set(syntax, snippetKeys);
 		});
 	} catch (e) {
+		resetSettingsFromFile();
 		throw new Error(`Error while parsing the file ${snippetsPath}`);
 	}
 
