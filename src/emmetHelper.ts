@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { TextDocument, Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
+import { Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
 
 import * as JSONC from 'jsonc-parser';

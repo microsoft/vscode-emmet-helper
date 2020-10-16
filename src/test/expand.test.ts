@@ -1,6 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'mocha';
-import { TextDocument, Position } from 'vscode-languageserver-types'
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { Position } from 'vscode-languageserver-types'
 import { doComplete } from '../emmetHelper';
 
 const COMPLETE_OPTIONS = {
