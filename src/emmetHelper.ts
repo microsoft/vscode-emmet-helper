@@ -91,7 +91,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// For example, when text at position is `a`, completions should return `a:blank`, `a:link`, `acr` etc.
 	if (!isStyleSheet(syntax)) {
 		if (!snippetKeyCache.has(syntax) || !markupSnippetKeysRegex || markupSnippetKeysRegex.length === 0) {
-			let registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
+			const registry = customSnippetRegistry[syntax] ? customSnippetRegistry[syntax] : createSnippetsRegistry(syntax);
 
 			if (!snippetKeyCache.has(syntax)) {
 				snippetKeyCache.set(syntax, registry.all({ type: 'string' }).map(snippet => {
@@ -107,13 +107,13 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	let extractedValue = extractAbbreviation(document, position, { syntax, lookAhead: !isStyleSheet(syntax) });
+	const extractedValue = extractAbbreviation(document, position, { syntax, lookAhead: !isStyleSheet(syntax) });
 	if (!extractedValue) {
 		return;
 	}
-	let { abbreviationRange, abbreviation, filter } = extractedValue;
-	let currentLineTillPosition = getCurrentLine(document, position).substr(0, position.character);
-	let currentWord = getCurrentWord(currentLineTillPosition);
+	const { abbreviationRange, abbreviation, filter } = extractedValue;
+	const currentLineTillPosition = getCurrentLine(document, position).substr(0, position.character);
+	const currentWord = getCurrentWord(currentLineTillPosition);
 
 	// Dont attempt to expand open tags
 	if (currentWord === abbreviation
@@ -125,8 +125,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// `preferences` is supported in Emmet config to allow backward compatibility
 	// `getExpandOptions` converts it into a format understandable by new modules
 	// We retain a copy here to be used by the vendor prefixing feature
-	let expandOptions = getExpandOptions(syntax, emmetConfig, filter);
-	let preferences = expandOptions['preferences'];
+	const expandOptions = getExpandOptions(syntax, emmetConfig, filter);
+	const preferences = expandOptions['preferences'];
 	delete expandOptions['preferences'];
 
 	let expandedText: string;
@@ -160,7 +160,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (isStyleSheet(syntax)) {
-		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
+		const { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
 		createExpandedAbbr(syntax, abbreviationWithoutPrefix);
 
 		// When abbr is longer than usual emmet snippets and matches better with existing css property, then no emmet
@@ -170,7 +170,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		}
 
 		if (expandedAbbr) {
-			let prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
+			const prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
 			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
 			expandedAbbr.documentation = replaceTabStopsWithCursors(prefixedExpandedText);
 			expandedAbbr.label = removeTabStops(expandedText);
@@ -200,16 +200,16 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		createExpandedAbbr(syntax, abbreviation);
 
 		let tagToFindMoreSuggestionsFor = abbreviation;
-		let newTagMatches = abbreviation.match(/(>|\+)([\w:-]+)$/);
+		const newTagMatches = abbreviation.match(/(>|\+)([\w:-]+)$/);
 		if (newTagMatches && newTagMatches.length === 3) {
 			tagToFindMoreSuggestionsFor = newTagMatches[2];
 		}
 
-		let commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+		const commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
-			let abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)), tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			const abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)), tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
 
 			// Workaround for the main expanded abbr not appearing before the snippet suggestions
 			if (expandedAbbr && abbreviationSuggestions.length > 0 && tagToFindMoreSuggestionsFor !== abbreviation) {
@@ -238,13 +238,13 @@ function makeSnippetSuggestion(snippetKeys: string[], prefix: string, abbreviati
 	if (!prefix || !snippetKeys) {
 		return [];
 	}
-	let snippetCompletions = [];
+	const snippetCompletions = [];
 	snippetKeys.forEach(snippetKey => {
 		if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
 			return;
 		}
 
-		let currentAbbr = abbreviation + snippetKey.substr(prefix.length);
+		const currentAbbr = abbreviation + snippetKey.substr(prefix.length);
 		let expandedAbbr;
 		try {
 			expandedAbbr = expand(currentAbbr, expandOptions);
@@ -255,7 +255,7 @@ function makeSnippetSuggestion(snippetKeys: string[], prefix: string, abbreviati
 			return;
 		}
 
-		let item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
+		const item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
 		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
 		item.detail = snippetDetail;
 		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedAbbr)));
@@ -268,7 +268,7 @@ function makeSnippetSuggestion(snippetKeys: string[], prefix: string, abbreviati
 
 function getCurrentWord(currentLineTillPosition: string): string {
 	if (currentLineTillPosition) {
-		let matches = currentLineTillPosition.match(/[\w,:,-,\.]*$/)
+		const matches = currentLineTillPosition.match(/[\w,:,-,\.]*$/)
 		if (matches) {
 			return matches[0];
 		}
@@ -297,7 +297,7 @@ function addFinalTabStop(text): string {
 	let foundLastStop = false;
 	let replaceWithLastStop = false;
 	let i = 0;
-	let n = text.length;
+	const n = text.length;
 
 	try {
 		while (i < n && !foundLastStop) {
@@ -354,8 +354,8 @@ function addFinalTabStop(text): string {
 
 	if (replaceWithLastStop && !foundLastStop) {
 		for (let i = 0; i < maxTabStopRanges.length; i++) {
-			let rangeStart = maxTabStopRanges[i].numberStart;
-			let rangeEnd = maxTabStopRanges[i].numberEnd;
+			const rangeStart = maxTabStopRanges[i].numberStart;
+			const rangeEnd = maxTabStopRanges[i].numberEnd;
 			text = text.substr(0, rangeStart) + '0' + text.substr(rangeEnd);
 		}
 	}
@@ -364,8 +364,8 @@ function addFinalTabStop(text): string {
 }
 
 function getCurrentLine(document: TextDocument, position: Position): string {
-	let offset = document.offsetAt(position);
-	let text = document.getText();
+	const offset = document.offsetAt(position);
+	const text = document.getText();
 	let start = 0;
 	let end = text.length;
 	for (let i = offset - 1; i >= 0; i--) {
@@ -390,7 +390,7 @@ let profilesFromFile = {};
 export const emmetSnippetField = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
 
 export function isStyleSheet(syntax): boolean {
-	let stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
+	const stylesheetSyntaxes = ['css', 'scss', 'sass', 'less', 'stylus'];
 	return (stylesheetSyntaxes.indexOf(syntax) > -1);
 }
 
@@ -463,7 +463,7 @@ export function extractAbbreviationFromText(text: string, syntax?: string): { ab
 	const { pos, filter } = getFilters(text, text.length);
 
 	try {
-		let extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ? { syntax: 'stylesheet', lookAhead: false } : true;
+		const extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ? { syntax: 'stylesheet', lookAhead: false } : true;
 		const result = extract(text, pos, extractOptions);
 		return {
 			abbreviation: result.abbreviation,
@@ -515,7 +515,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	// Unresolved css abbreviations get expanded to a blank property value
 	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
 	if (isStyleSheet(syntax)) {
-		let after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
+		const after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
 		return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
@@ -562,13 +562,13 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
 
 	// Fetch snippet registry
-	let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+	const baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 	if (!customSnippetRegistry[syntax] && customSnippetRegistry[baseSyntax]) {
 		customSnippetRegistry[syntax] = customSnippetRegistry[baseSyntax];
 	}
 
 	// Fetch Profile
-	let profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
+	const profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
 	let filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
 	filtersFromProfile = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
 
@@ -593,7 +593,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	}
 
 	// Fetch Add Ons
-	let addons = {};
+	const addons = {};
 	if (filter && filter.split(',').find(x => x.trim() === 'bem') || filtersFromProfile.indexOf('bem') > -1) {
 		addons['bem'] = { element: '__' };
 		if (emmetConfig['preferences']['bem.elementSeparator']) {
@@ -608,7 +608,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	}
 
 	// Fetch Formatters
-	let formatters = getFormatters(syntax, emmetConfig['preferences']);
+	const formatters = getFormatters(syntax, emmetConfig['preferences']);
 	if (filter && filter.split(',').find(x => x.trim() === 'c') || filtersFromProfile.indexOf('c') > -1) {
 		if (!formatters['comment']) {
 			formatters['comment'] = {
@@ -620,9 +620,9 @@ export function getExpandOptions(syntax: string, emmetConfig?: object, filter?: 
 	}
 
 	// If the user doesn't provide specific properties for a vendor, use the default values
-	let preferences = emmetConfig['preferences'];
+	const preferences = emmetConfig['preferences'];
 	for (const v in vendorPrefixes) {
-		let vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
+		const vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
 		if (vendorProperties == null) {
 			preferences['css.' + vendorPrefixes[v] + 'Properties'] = defaultVendorProperties[v];
 		}
@@ -652,7 +652,7 @@ function splitVendorPrefix(abbreviation: string): { prefixOptions: string, abbre
 		abbreviation = abbreviation.substr(1);
 		let pref = "-";
 		if (/^[wmso]*-./.test(abbreviation)) {
-			let index = abbreviation.indexOf("-");
+			const index = abbreviation.indexOf("-");
 			if (index > -1) {
 				pref += abbreviation.substr(0, index + 1);
 				abbreviation = abbreviation.substr(index + 1);
@@ -676,13 +676,13 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
 
 	if (vendors == "-") {
 		let defaultVendors = "-";
-		let property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
+		const property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
 		if (!property) {
 			return expandedProperty;
 		}
 
 		for (const v in vendorPrefixes) {
-			let vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
+			const vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
 			if (vendorProperties && vendorProperties.split(',').find(x => x.trim() === property)) defaultVendors += v;
 		}
 
@@ -715,10 +715,10 @@ export function parseAbbreviation(abbreviation: string, options: ExpandOptions):
  */
 export function expandAbbreviation(abbreviation: any, options: ExpandOptions): string {
 	let expandedText;
-	let preferences = options['preferences'];
+	const preferences = options['preferences'];
 	delete options['preferences'];
 	if (isStyleSheet(options['syntax']) && typeof abbreviation === 'string') {
-		let { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
+		const { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
 		expandedText = expand(abbreviationWithoutPrefix, options);
 		expandedText = applyVendorPrefixes(expandedText, prefixOptions, preferences);
 	} else {
@@ -735,9 +735,9 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
 	if (!profilesFromSettings) {
 		profilesFromSettings = {};
 	}
-	let profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
+	const profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
-	let options = profilesConfig[syntax];
+	const options = profilesConfig[syntax];
 	if (!options || typeof options === 'string') {
 		if (options === 'xhtml') {
 			return {
@@ -746,8 +746,8 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
 		}
 		return {};
 	}
-	let newOptions = {};
-	for (let key in options) {
+	const newOptions = {};
+	for (const key in options) {
 		switch (key) {
 			case 'tag_case':
 				newOptions['tagCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
@@ -800,8 +800,8 @@ function getFormatters(syntax: string, preferences: any) {
 	}
 
 	if (!isStyleSheet(syntax)) {
-		let commentFormatter = {};
-		for (let key in preferences) {
+		const commentFormatter = {};
+		for (const key in preferences) {
 			switch (key) {
 				case 'filter.commentAfter':
 					commentFormatter['after'] = preferences[key];
@@ -826,10 +826,10 @@ function getFormatters(syntax: string, preferences: any) {
 	} else if (fuzzySearchMinScore < 0) {
 		fuzzySearchMinScore = 0
 	}
-	let stylesheetFormatter = {
+	const stylesheetFormatter = {
 		'fuzzySearchMinScore': fuzzySearchMinScore
 	};
-	for (let key in preferences) {
+	for (const key in preferences) {
 		switch (key) {
 			case 'css.floatUnit':
 				stylesheetFormatter['floatUnit'] = preferences[key];
@@ -838,13 +838,13 @@ function getFormatters(syntax: string, preferences: any) {
 				stylesheetFormatter['intUnit'] = preferences[key];
 				break;
 			case 'css.unitAliases':
-				let unitAliases = {};
+				const unitAliases = {};
 				preferences[key].split(',').forEach(alias => {
 					if (!alias || !alias.trim() || alias.indexOf(':') === -1) {
 						return;
 					}
-					let aliasName = alias.substr(0, alias.indexOf(':'));
-					let aliasValue = alias.substr(aliasName.length + 1);
+					const aliasName = alias.substr(0, alias.indexOf(':'));
+					const aliasValue = alias.substr(aliasName.length + 1);
 					if (!aliasName.trim() || !aliasValue) {
 						return;
 					}
@@ -894,18 +894,18 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 
 	if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
 		resetSettingsFromFile();
-		return Promise.reject(`The directory ${emmetExtensionsPath} doesnt exist. Update emmet.extensionsPath setting`);
+		return Promise.reject(`The directory ${emmetExtensionsPath} doesn't exist. Update emmet.extensionsPath setting`);
 	}
 
-	let snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
-	let profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
+	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
+	const profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
 
 	try {
 		const snippetsData = await fs.readFile(snippetsPath);
 		const snippetsDataStr = new TextDecoder().decode(snippetsData);
 
-		let errors: JSONC.ParseError[] = [];
-		let snippetsJson = JSONC.parse(snippetsDataStr, errors);
+		const errors: JSONC.ParseError[] = [];
+		const snippetsJson = JSONC.parse(snippetsDataStr, errors);
 		if (errors.length > 0) {
 			throw new Error(`Found error ${JSONC.printParseErrorCode(errors[0].error)} while parsing the file ${snippetsPath} at offset ${errors[0].offset}`);
 		}
@@ -916,7 +916,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 			if (!snippetsJson[syntax]['snippets']) {
 				return;
 			}
-			let baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
+			const baseSyntax = isStyleSheet(syntax) ? 'css' : 'html';
 			let customSnippets = snippetsJson[syntax]['snippets'];
 			if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
 				customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
@@ -924,7 +924,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 			if (!isStyleSheet(syntax)) {
 				// In Emmet 2.0 all snippets should be valid abbreviations
 				// Convert old snippets that do not follow this format to new format
-				for (let snippetKey in customSnippets) {
+				for (const snippetKey in customSnippets) {
 					if (customSnippets.hasOwnProperty(snippetKey)
 						&& customSnippets[snippetKey].startsWith('<')
 						&& customSnippets[snippetKey].endsWith('>')) {
@@ -937,7 +937,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 
 			customSnippetRegistry[syntax] = createSnippetsRegistry(syntax, customSnippets);
 
-			let snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
+			const snippetKeys: string[] = customSnippetRegistry[syntax].all({ type: 'string' }).map(snippet => {
 				return snippet.key;
 			});
 			snippetKeyCache.set(syntax, snippetKeys);

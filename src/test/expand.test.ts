@@ -23,7 +23,7 @@ describe('Expand Abbreviations', () => {
 			assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
 			assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
 
-			assert.equal(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
+			assert.strictEqual(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
 		})
 	}
 
