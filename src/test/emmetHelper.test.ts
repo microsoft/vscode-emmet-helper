@@ -1,5 +1,6 @@
-import { TextDocument, Position, CompletionItemKind } from 'vscode-languageserver-types'
+import { Position, CompletionItemKind } from 'vscode-languageserver-types'
 import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath as updateExtensionsPathHelper, doComplete, expandAbbreviation } from '../emmetHelper';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { describe, it } from 'mocha';
 import assert from 'assert';
 import * as path from 'path';
