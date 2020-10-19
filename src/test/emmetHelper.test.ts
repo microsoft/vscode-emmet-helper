@@ -8,6 +8,7 @@ import * as util from 'util';
 import * as fs from 'fs';
 import { FileService, FileType } from '../fileService';
 import { URI } from 'vscode-uri';
+import { ExtractOptions } from 'emmet';
 
 const extensionsPath = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile');
 const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
@@ -190,7 +191,8 @@ describe('Extract Abbreviations', () => {
 		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedRangeStartLine, expectedRangeStartChar, expectedRangeEndLine, expectedRangeEndChar, expectedFilter]) => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, content);
 			const position = Position.create(positionLine, positionChar);
-			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
+			const extractOptions: Partial<ExtractOptions> = { type: 'stylesheet', lookAhead: false };
+			const { abbreviationRange, abbreviation, filter } = extractAbbreviation(document, position, extractOptions);
 
 			assert.strictEqual(expectedAbbr, abbreviation);
 			assert.strictEqual(expectedRangeStartLine, abbreviationRange.start.line);

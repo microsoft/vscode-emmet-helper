@@ -14,7 +14,7 @@ import { URI } from 'vscode-uri';
 import { FileService, joinPath, isAbsolutePath, FileType, FileStat } from './fileService';
 import { TextDecoder } from 'util';
 
-import extract from '@emmetio/extract-abbreviation';
+import { extract, ExtractOptions } from 'emmet';
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
@@ -107,7 +107,9 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		markupSnippetKeys = snippetKeyCache.get(syntax);
 	}
 
-	const extractedValue = extractAbbreviation(document, position, { syntax, lookAhead: !isStyleSheet(syntax) });
+	const isStyleSheetRes = isStyleSheet(syntax);
+	const extractOptions: Partial<ExtractOptions> = { lookAhead: !isStyleSheetRes, type: isStyleSheetRes ? 'stylesheet' : 'markup' };
+	const extractedValue = extractAbbreviation(document, position, extractOptions);
 	if (!extractedValue) {
 		return;
 	}
@@ -422,23 +424,14 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
  * @param position The Position in the given document from where abbreviation needs to be extracted
  * @param options The options to pass to the @emmetio/extract-abbreviation module
  */
-export function extractAbbreviation(document: TextDocument, position: Position, options?: boolean | { lookAhead?: boolean, syntax?: string }): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, options?: Partial<ExtractOptions>): { abbreviation: string, abbreviationRange: Range, filter: string } {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
 
 	try {
-		let extractOptions = options;
-		if (typeof extractOptions !== 'boolean') {
-			extractOptions = extractOptions || {};
-			extractOptions = {
-				syntax: (isStyleSheet(extractOptions.syntax) || extractOptions.syntax === 'stylesheet') ? 'stylesheet' : 'markup',
-				lookAhead: extractOptions.lookAhead
-			};
-		}
-
-		const result = extract(currentLine, pos, extractOptions);
+		const result = extract(currentLine, pos, options);
 		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
 		return {
 			abbreviationRange: rangeToReplace,
@@ -463,7 +456,8 @@ export function extractAbbreviationFromText(text: string, syntax?: string): { ab
 	const { pos, filter } = getFilters(text, text.length);
 
 	try {
-		const extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ? { syntax: 'stylesheet', lookAhead: false } : true;
+		const extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ?
+			{ syntax: 'stylesheet', lookAhead: false } : { lookAhead: true };
 		const result = extract(text, pos, extractOptions);
 		return {
 			abbreviation: result.abbreviation,
@@ -1022,7 +1016,8 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		},
 		onCssPropertyValue: (context) => {
 			if (context && context.propertyValue) {
-				const extractedResults = extractAbbreviation(document, position, { syntax: 'css', lookAhead: false });
+				const extractOptions: Partial<ExtractOptions> = { lookAhead: false, type: 'stylesheet' };
+				const extractedResults = extractAbbreviation(document, position, extractOptions);
 				if (!extractedResults) {
 					return;
 				}
