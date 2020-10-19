@@ -6,7 +6,7 @@
 
 import { Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { expand, createSnippetsRegistry, parse } from './expand/expand-full';
+import { expand, createSnippetsRegistry } from './expand/expand-full';
 
 import * as JSONC from 'jsonc-parser';
 import { cssData, htmlData } from './data';
@@ -14,7 +14,9 @@ import { URI } from 'vscode-uri';
 import { FileService, joinPath, isAbsolutePath, FileType, FileStat } from './fileService';
 import { TextDecoder } from 'util';
 
-import { extract, ExtractOptions } from 'emmet';
+import { Config, extract, ExtractOptions, parseMarkup, parseStylesheet } from 'emmet';
+import { CSSAbbreviation } from '@emmetio/css-abbreviation';
+import { Abbreviation } from '@emmetio/abbreviation';
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
@@ -696,10 +698,12 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
 /**
  * Parses given abbreviation using given options and returns a tree
  * @param abbreviation string 
- * @param options options used by the @emmetio/expand-abbreviation module to parse given abbreviation
+ * @param options options used by the emmet module to parse given abbreviation
  */
-export function parseAbbreviation(abbreviation: string, options: ExpandOptions): any {
-	return parse(abbreviation, options);
+export function parseAbbreviation(abbreviation: string, options: Config): CSSAbbreviation | Abbreviation {
+	return (options.type === 'stylesheet') ?
+		parseStylesheet(abbreviation, options) :
+		parseMarkup(abbreviation, options);
 }
 
 /**
