@@ -372,7 +372,7 @@ export const emmetSnippetField = (index, placeholder) => `\${${index}${placehold
 
 /** Returns whether or not syntax is a supported stylesheet syntax, like CSS */
 export function isStyleSheet(syntax: string): boolean {
-	return syntaxes.stylesheet.indexOf(syntax) > -1;
+	return syntaxes.stylesheet.includes(syntax);
 }
 
 /** Returns the syntax type, either markup (e.g. for HTML) or stylesheet (e.g. for CSS) */
@@ -481,7 +481,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		if (abbreviation.endsWith(':')) {
 			return false;
 		}
-		if (abbreviation.indexOf('#') > -1) {
+		if (abbreviation.includes('#')) {
 			return hexColorRegex.test(abbreviation) || propertyHexColorRegex.test(abbreviation);
 		}
 		return cssAbbreviationRegex.test(abbreviation);
@@ -507,7 +507,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 		return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
-	if (commonlyUsedTags.indexOf(abbreviation.toLowerCase()) > -1 || markupSnippetKeys.indexOf(abbreviation) > -1) {
+	if (commonlyUsedTags.includes(abbreviation.toLowerCase()) || markupSnippetKeys.includes(abbreviation)) {
 		return false;
 	}
 
@@ -554,8 +554,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	const profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
 	const filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
 	const trimmedFilters = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
-	const bemEnabled = (filter && filter.split(',').some(x => x.trim() === 'bem')) || trimmedFilters.indexOf('bem') > -1
-	const commentEnabled = (filter && filter.split(',').some(x => x.trim() === 'c')) || trimmedFilters.indexOf('c') > -1;
+	const bemEnabled = (filter && filter.split(',').some(x => x.trim() === 'bem')) || trimmedFilters.includes('bem');
+	const commentEnabled = (filter && filter.split(',').some(x => x.trim() === 'c')) || trimmedFilters.includes('c');
 
 	// Fetch formatters
 	const formatters = getFormatters(syntax, emmetConfig['preferences']);
@@ -642,11 +642,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	}
 
 	const combinedOptions = {};
-	Object.keys(defaultVSCodeOptions).forEach(key => {
+	[ ...Object.keys(defaultVSCodeOptions), ...Object.keys(userPreferenceOptions) ].forEach(key => {
 		combinedOptions[key] = userPreferenceOptions[key] ?? defaultVSCodeOptions[key];
-	});
-	Object.keys(userPreferenceOptions).forEach(key => {
-		combinedOptions[key] = combinedOptions[key] ?? userPreferenceOptions[key];
 	});
 	const mergedAliases = { ...defaultVSCodeOptions['stylesheet.unitAliases'], ...userPreferenceOptions['stylesheet.unitAliases'] };
 	combinedOptions['stylesheet.unitAliases'] = mergedAliases;
@@ -891,7 +888,7 @@ function getFormatters(syntax: string, preferences: any) {
 			case 'css.unitAliases':
 				const unitAliases = {};
 				preferences[key].split(',').forEach(alias => {
-					if (!alias || !alias.trim() || alias.indexOf(':') === -1) {
+					if (!alias || !alias.trim() || !alias.includes(':')) {
 						return;
 					}
 					const aliasName = alias.substr(0, alias.indexOf(':'));
@@ -1024,7 +1021,7 @@ function resetSettingsFromFile() {
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
 export function getEmmetMode(language: string, excludedLanguages: string[] = []): string | undefined {
-	if (!language || excludedLanguages.indexOf(language) > -1) {
+	if (!language || excludedLanguages.includes(language)) {
 		return;
 	}
 	if (/\b(typescriptreact|javascriptreact|jsx-tags)\b/.test(language)) { // treat tsx like jsx
@@ -1036,7 +1033,7 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	if (language === 'jade') {
 		return 'pug';
 	}
-	if (syntaxes.markup.indexOf(language) > -1 || syntaxes.stylesheet.indexOf(language) > -1) {
+	if (syntaxes.markup.includes(language) || syntaxes.stylesheet.includes(language)) {
 		return language;
 	}
 }

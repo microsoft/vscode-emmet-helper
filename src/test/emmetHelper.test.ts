@@ -525,7 +525,7 @@ describe('Test completions', () => {
 				variables: {}
 			});
 			const expectedItems = ['dl', 'dt', 'dd', 'div'];
-			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All common tags starting with d not found');
+			assert.ok(expectedItems.every(x => completionList.items.some(y => y.label === x)), 'All common tags starting with d not found');
 			return Promise.resolve();
 		});
 	});
@@ -886,12 +886,12 @@ describe('Test completions', () => {
 			};
 
 			const completionList1 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'm'), Position.create(0, 1), 'css', expandOptions);
-			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'margin: ;') > -1, true);
-			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList1.items.some(x => x.label === 'margin: ;'), true);
+			assert.strictEqual(completionList1.items.some(x => x.label === 'mrgstart'), true);
 
 			const completionList2 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mr'), Position.create(0, 2), 'css', expandOptions);
-			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
-			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList2.items.some(x => x.label === 'margin-right: ;'), true);
+			assert.strictEqual(completionList2.items.some(x => x.label === 'mrgstart'), true);
 
 			return Promise.resolve();
 		});
