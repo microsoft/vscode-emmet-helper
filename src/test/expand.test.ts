@@ -38,8 +38,6 @@ describe('Expand Abbreviations', () => {
 		})
 	}
 
-	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick="props.onClick">${0}</button>');
-	testExpand('css', 'd', 'display: ${2:block};');
-
-	testNotExpand('html', 'div*101');
+	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick={props.onClick}>${0}</button>');
+	testExpand('css', 'd', 'display: ${1:block};');
 })

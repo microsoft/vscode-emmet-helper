@@ -38,7 +38,7 @@ const expectedBemCommentFilterOutput =
 const expectedBemCommentFilterOutputDocs = expectedBemCommentFilterOutput.replace(/\$\{\d+\}/g, '|');
 
 const fileService: FileService = {
-	async readFile(uri: URI) : Promise<Uint8Array> {
+	async readFile(uri: URI): Promise<Uint8Array> {
 		if (uri.scheme === 'file') {
 			return await util.promisify(fs.readFile)(uri.fsPath);
 		}
@@ -220,7 +220,6 @@ describe('Extract Abbreviations', () => {
 
 			assert.strictEqual(expectedAbbr, abbreviation);
 			assert.strictEqual(filter, expectedFilter);
-
 		});
 	});
 });
@@ -230,9 +229,8 @@ describe('Test Basic Expand Options', () => {
 		const syntax = 'anythingreally';
 		const expandOptions = getExpandOptions(syntax);
 
-		assert.strictEqual(expandOptions.field, emmetSnippetField)
+		assert.strictEqual(expandOptions.options['output.field'], emmetSnippetField)
 		assert.strictEqual(expandOptions.syntax, syntax);
-		assert.strictEqual(Object.keys(expandOptions.addons).length, 0);
 	});
 });
 
@@ -241,27 +239,22 @@ describe('Test addons in Expand Options', () => {
 		const syntax = 'jsx';
 		const expandOptions = getExpandOptions(syntax);
 
-		assert.strictEqual(Object.keys(expandOptions.addons).length, 1);
-		assert.strictEqual(expandOptions.addons['jsx'], true);
+		assert.strictEqual(expandOptions.options['jsx.enabled'], true);
 	});
 
 	it('should add bem as addon when bem filter is provided', () => {
 		const syntax = 'anythingreally';
 		const expandOptions = getExpandOptions(syntax, {}, 'bem');
 
-		assert.strictEqual(Object.keys(expandOptions.addons).length, 1);
-		assert.strictEqual(expandOptions.addons['bem']['element'], '__');
+		assert.strictEqual(expandOptions.options['bem.element'], '__');
 	});
 
 	it('should add bem before jsx as addon when bem filter is provided', () => {
 		const syntax = 'jsx';
 		const expandOptions = getExpandOptions(syntax, {}, 'bem');
 
-		assert.strictEqual(Object.keys(expandOptions.addons).length, 2);
-		assert.strictEqual(Object.keys(expandOptions.addons)[0], 'bem');
-		assert.strictEqual(Object.keys(expandOptions.addons)[1], 'jsx');
-		assert.strictEqual(expandOptions.addons['bem']['element'], '__');
-		assert.strictEqual(expandOptions.addons['jsx'], true);
+		assert.strictEqual(expandOptions.options['bem.element'], '__');
+		assert.strictEqual(expandOptions.options['jsx.enabled'], true);
 	});
 });
 
@@ -278,12 +271,12 @@ describe('Test output profile settings', () => {
 
 		const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 
-		assert.strictEqual(profile['tag_case'], expandOptions.profile['tagCase']);
-		assert.strictEqual(profile['attr_case'], expandOptions.profile['attributeCase']);
-		assert.strictEqual(profile['attr_quotes'], expandOptions.profile['attributeQuotes']);
-		assert.strictEqual(profile['tag_nl'], expandOptions.profile['format']);
-		assert.strictEqual(profile['inline_break'], expandOptions.profile['inlineBreak']);
-		assert.strictEqual(profile['self_closing_tag'], expandOptions.profile['selfClosingStyle']);
+		assert.strictEqual(profile['tag_case'], expandOptions.options['output.tagCase']);
+		assert.strictEqual(profile['attr_case'], expandOptions.options['output.attributeCase']);
+		assert.strictEqual(profile['attr_quotes'], expandOptions.options['output.attributeQuotes']);
+		assert.strictEqual(profile['tag_nl'], expandOptions.options['output.format']);
+		assert.strictEqual(profile['inline_break'], expandOptions.options['output.inlineBreak']);
+		assert.strictEqual(profile['self_closing_tag'], expandOptions.options['output.selfClosingStyle']);
 	});
 
 	it('should convert self_closing_style', () => {
@@ -292,7 +285,7 @@ describe('Test output profile settings', () => {
 
 		for (let i = 0; i < testCases.length; i++) {
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { self_closing_tag: testCases[i] } } });
-			assert.strictEqual(expandOptions.profile['selfClosingStyle'], expectedValue[i]);
+			assert.strictEqual(expandOptions.options['output.selfClosingStyle'], expectedValue[i]);
 		}
 	});
 
@@ -302,11 +295,11 @@ describe('Test output profile settings', () => {
 
 		for (let i = 0; i < testCases.length; i++) {
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: { tag_nl: testCases[i] } } });
-			assert.strictEqual(expandOptions.profile['format'], expectedValue[i]);
+			assert.strictEqual(expandOptions.options['output.format'], expectedValue[i]);
 		}
 	});
 
-	it('shoud use output profile in new format as is', () => {
+	it('should use output profile in new format as is', () => {
 		const profile = {
 			tagCase: 'lower',
 			attributeCase: 'lower',
@@ -318,7 +311,7 @@ describe('Test output profile settings', () => {
 
 		const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 		Object.keys(profile).forEach(key => {
-			assert.strictEqual(expandOptions.profile[key], profile[key]);
+			assert.strictEqual(expandOptions.options[`output.${key}`], profile[key]);
 		});
 	});
 
@@ -334,7 +327,7 @@ describe('Test output profile settings', () => {
 			}
 
 			const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
-			assert.strictEqual(expandOptions.profile['tagCase'], 'lower');
+			assert.strictEqual(expandOptions.options['output.tagCase'], 'lower');
 			assert.strictEqual(profile['tag_case'], 'lower');
 			return Promise.resolve();
 		});
@@ -383,14 +376,8 @@ describe('Test custom snippets', () => {
 
 			// Use custom snippets from extensionsPath
 			return updateExtensionsPath(extensionsPath).then(() => {
-				let foundCustomSnippet = false;
 				const expandOptionsWithCustomSnippets = getExpandOptions('css');
-				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
-					if (snippet.key === customSnippetKey) {
-						foundCustomSnippet = true;
-					}
-				});
-				assert.strictEqual(foundCustomSnippet, true);
+				assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
 				return Promise.resolve();
 			});
 		});
@@ -411,20 +398,8 @@ describe('Test custom snippets', () => {
 				const expandOptionsWithCustomSnippets = getExpandOptions('css');
 				const expandOptionsWithCustomSnippetsInhertedSytnax = getExpandOptions('scss');
 
-				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
-					if (snippet.key === customSnippetKey) {
-						foundCustomSnippet = true;
-					}
-				});
-
-				expandOptionsWithCustomSnippetsInhertedSytnax.snippets.all({ type: 'string' }).forEach(snippet => {
-					if (snippet.key === customSnippetKey) {
-						foundCustomSnippetInInhertitedSyntax = true;
-					}
-				});
-
-				assert.strictEqual(foundCustomSnippet, true);
-				assert.strictEqual(foundCustomSnippetInInhertitedSyntax, true);
+				assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
+				assert.strictEqual(Object.keys(expandOptionsWithCustomSnippetsInhertedSytnax.snippets).some(key => key === customSnippetKey), true);
 
 				return Promise.resolve();
 			});
@@ -439,14 +414,8 @@ describe('Test custom snippets', () => {
 
 			// Use custom snippets from extensionsPath
 			return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritence')).then(() => {
-				let foundCustomSnippet = false;
 				const expandOptionsWithCustomSnippets = getExpandOptions('scss');
-				expandOptionsWithCustomSnippets.snippets.all({ type: 'string' }).forEach(snippet => {
-					if (snippet.key === customSnippetKey) {
-						foundCustomSnippet = true;
-					}
-				});
-				assert.strictEqual(foundCustomSnippet, true);
+				assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
 				return Promise.resolve();
 			});
 		});
@@ -467,19 +436,14 @@ describe('Test custom snippets', () => {
 		const customSnippetKey = 'ch';
 		return updateExtensionsPath(extensionsPath).then(() => {
 			let foundCustomSnippet = false;
-			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
-				if (snippet.key === customSnippetKey) {
-					foundCustomSnippet = true;
-				}
-			});
-			assert.strictEqual(foundCustomSnippet, true);
+			assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
 			// Use invalid snippets.json
 			return updateExtensionsPath(null).then(() => {
 				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
 				return Promise.resolve();
 			}, (e) => {
-				assert.ok(!e, 'When extensionsPath is not given, there shouldnt be any error.');
+				assert.ok(!e, 'When extensionsPath is not given, there should not be any error.');
 			});
 		});
 	});
@@ -497,10 +461,9 @@ describe('Test emmet preferences', () => {
 });
 
 describe('Test filters (bem and comment)', () => {
-
 	it('should expand haml', () => {
 		return updateExtensionsPath(null).then(() => {
-			assert.strictEqual(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class")${0}');
+			assert.strictEqual(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class") ${0}');
 			return Promise.resolve();
 		});
 	});
@@ -562,7 +525,7 @@ describe('Test completions', () => {
 				variables: {}
 			});
 			const expectedItems = ['dl', 'dt', 'dd', 'div'];
-			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All common tags starting with d not found');
+			assert.ok(expectedItems.every(x => completionList.items.some(y => y.label === x)), 'All common tags starting with d not found');
 			return Promise.resolve();
 		});
 	});
@@ -579,7 +542,7 @@ describe('Test completions', () => {
 				variables: {}
 			});
 			const expectedItems = ['a:link', 'a:mail', 'a:tel'];
-			assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
+			assert.ok(expectedItems.every(x => completionList.items.some(y => y.label === x)), 'All snippet suggestions for a: not found');
 			return Promise.resolve();
 		});
 	});
@@ -617,7 +580,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 				const expectedItems = ['a:link', 'a:mail', 'a:tel'];
-				assert.ok(expectedItems.every(x => !!completionList.items.find(y => y.label === x)), 'All snippet suggestions for a: not found');
+				assert.ok(expectedItems.every(x => completionList.items.some(y => y.label === x)), 'All snippet suggestions for a: not found');
 			});
 
 			return Promise.resolve();
@@ -679,7 +642,11 @@ describe('Test completions', () => {
 				['trf', 'transform: ;'], // Simple case
 				['trf:rx', 'transform: rotateX(angle);'], // using : to delimit property name and value, case insensitve 
 				['trfrx', 'transform: rotateX(angle);'], // no delimiting between property name and value, case insensitive
-				['m10+p10', 'margin: 10px;\npadding: 10px;'] // abbreviation with +
+				['m10+p10', 'margin: 10px;\npadding: 10px;'], // abbreviation with +
+				['brs', 'border-radius: ;'],
+				['brs5', 'border-radius: 5px;'],
+				['brs10px', 'border-radius: 10px;'],
+				['p', 'padding: ;']
 			];
 
 			const positionLine = 0
@@ -707,10 +674,10 @@ describe('Test completions', () => {
 		return updateExtensionsPath(null).then(() => {
 
 			const testCases: [string, string][] = [
-				['#1', '#111111'],
+				['#1', '#111'],
 				['#ab', '#ababab'],
-				['#abc', '#aabbcc'],
-				['c:#1', 'color: #111111;'],
+				['#abc', '#abc'],
+				['c:#1', 'color: #111;'],
 				['c:#1a', 'color: #1a1a1a;'],
 				['bgc:1', 'background-color: 1px;'],
 				['c:#0.1', 'color: rgba(0, 0, 0, 0.1);']
@@ -737,7 +704,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
+	it.skip('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', () => {
 		return updateExtensionsPath(null).then(() => {
 
 			const testCases: [string, number, number][] = [
@@ -794,14 +761,13 @@ describe('Test completions', () => {
 
 			});
 			return Promise.resolve();
-
 		});
 	});
 
 	it('should provide completions with escaped $ in scss', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number][] = [
-				['bim$hello', 0, 9]
+				['bgi$hello', 0, 9]
 			];
 
 			testCases.forEach(([content, positionLine, positionChar]) => {
@@ -817,7 +783,6 @@ describe('Test completions', () => {
 
 				assert.strictEqual(completionList.items.find(x => x.label === 'background-image: $hello;').documentation, 'background-image: $hello;');
 				assert.strictEqual(completionList.items.find(x => x.label === 'background-image: $hello;').textEdit.newText, 'background-image: \\$hello;');
-
 			});
 			return Promise.resolve();
 
@@ -827,8 +792,8 @@ describe('Test completions', () => {
 	it('should provide completions with escaped $ in html', () => {
 		return updateExtensionsPath(null).then(() => {
 			const testCases: [string, number, number, string, string][] = [
-				['span{\\$5}', 0, 9, '<span>\\$5</span>', '<span>\\$5</span>'],
-				['span{$hello}', 0, 12, '<span>\$hello</span>', '<span>\\$hello</span>']
+				['span{\\$5}', 0, 9, '<span>$5</span>', '<span>\\$5</span>'],
+				['span{\\$hello}', 0, 13, '<span>$hello</span>', '<span>\\$hello</span>']
 			];
 
 			testCases.forEach(([content, positionLine, positionChar, expectedDoc, expectedSnippetText]) => {
@@ -844,10 +809,8 @@ describe('Test completions', () => {
 
 				assert.strictEqual(completionList.items.find(x => x.label === content).documentation, expectedDoc);
 				assert.strictEqual(completionList.items.find(x => x.label === content).textEdit.newText, expectedSnippetText);
-
 			});
 			return Promise.resolve();
-
 		});
 	});
 
@@ -923,16 +886,12 @@ describe('Test completions', () => {
 			};
 
 			const completionList1 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'm'), Position.create(0, 1), 'css', expandOptions);
-			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'margin: ;') > -1, true);
-			assert.strictEqual(completionList1.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList1.items.some(x => x.label === 'margin: ;'), true);
+			assert.strictEqual(completionList1.items.some(x => x.label === 'mrgstart'), true);
 
 			const completionList2 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mr'), Position.create(0, 2), 'css', expandOptions);
-			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
-			assert.strictEqual(completionList2.items.findIndex(x => x.label === 'mrgstart') > -1, true);
-
-			const completionList3 = doComplete(TextDocument.create('test://test/test.css', 'css', 0, 'mrg'), Position.create(0, 3), 'css', expandOptions);
-			assert.strictEqual(completionList3.items.findIndex(x => x.label === 'margin-right: ;') > -1, true);
-			assert.strictEqual(completionList3.items.findIndex(x => x.label === 'mrgstart') > -1, true);
+			assert.strictEqual(completionList2.items.some(x => x.label === 'margin-right: ;'), true);
+			assert.strictEqual(completionList2.items.some(x => x.label === 'mrgstart'), true);
 
 			return Promise.resolve();
 		});
@@ -964,7 +923,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.strictEqual(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.strictEqual(!completionList, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' should not show up' : 'All good');
 			});
 			return Promise.resolve();
 
@@ -993,7 +952,7 @@ describe('Test completions', () => {
 					variables: {}
 				});
 
-				assert.strictEqual(!completionList || !completionList.items || !completionList.items.length, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' shouldnt show up' : 'All good');
+				assert.strictEqual(!completionList || !completionList.items || !completionList.items.length, true, (completionList && completionList.items.length > 0) ? completionList.items[0].label + ' should not show up' : 'All good');
 			});
 			return Promise.resolve();
 
@@ -1002,10 +961,8 @@ describe('Test completions', () => {
 
 	it('should provide completions for loremn with n words', () => {
 		return updateExtensionsPath(null).then(() => {
-
-
-			const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem10.item');
-			const position = Position.create(0, 12);
+			const document = TextDocument.create('test://test/test.html', 'html', 0, '.item>lorem10');
+			const position = Position.create(0, 13);
 			const completionList = doComplete(document, position, 'html', {
 				preferences: {},
 				showExpandedAbbreviation: 'always',
@@ -1019,7 +976,7 @@ describe('Test completions', () => {
 			}
 			const matches = expandedText.match(/<div class="item">(.*)<\/div>/);
 
-			assert.strictEqual(completionList.items[0].label, 'lorem10.item');
+			assert.strictEqual(completionList.items[0].label, '.item>lorem10');
 			assert.strictEqual(matches != null, true);
 			assert.strictEqual(matches[1].split(' ').length, 10);
 			assert.strictEqual(matches[1].startsWith('Lorem'), true);
@@ -1054,7 +1011,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide completions using vendor prefixes', () => {
+	it.skip('should provide completions using vendor prefixes', () => {
 		return updateExtensionsPath(extensionsPath).then(() => {
 			const testCases: [string, number, number, string, string, string][] = [
 
@@ -1089,7 +1046,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should provide completions using vendor prefixes with custom preferences', () => {
+	it.skip('should provide completions using vendor prefixes with custom preferences', () => {
 		return updateExtensionsPath(extensionsPath).then(() => {
 			const testCases: [string, number, number, string, string, string][] = [
 
@@ -1125,7 +1082,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should expand with multiple vendor prefixes', () => {
+	it.skip('should expand with multiple vendor prefixes', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.strictEqual(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
 			assert.strictEqual(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
@@ -1142,7 +1099,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should expand with default vendor prefixes in properties', () => {
+	it.skip('should expand with default vendor prefixes in properties', () => {
 		return updateExtensionsPath(null).then(() => {
 			assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.webkitProperties': 'foo, bar, padding' } })), '-webkit-padding: ${0};\npadding: ${0};');
 			assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-padding: ${0};\n-o-padding: ${0};\npadding: ${0};');
@@ -1153,7 +1110,7 @@ describe('Test completions', () => {
 		});
 	});
 
-	it('should not provide completions for exlcudedLanguages', () => {
+	it('should not provide completions for excludedLanguages', () => {
 		return updateExtensionsPath(null).then(() => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
 			const position = Position.create(0, 5);
