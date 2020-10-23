@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { UserConfig } from 'emmet';
+import { Options, UserConfig } from 'emmet';
 import { describe, it } from 'mocha';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types'
@@ -39,14 +39,15 @@ function testExpand(syntax: string, abbrev: string, expanded: string) {
 	});
 }
 
-function testWrap(abbrev: string, text: string | string[], expanded: string) {
+function testWrap(abbrev: string, text: string | string[], expanded: string, options?: Partial<Options>) {
 	it(`should wrap ${text} with ${abbrev} to obtain\n${expanded}`, async () => {
 		const syntax = 'html';
 		const type = getSyntaxType(syntax);
 		const config: UserConfig = {
 			type,
 			syntax,
-			text
+			text,
+			options
 		};
 		const expandedRes = expandAbbreviation(abbrev, config);
 		assert.strictEqual(expanded, expandedRes);
@@ -108,4 +109,24 @@ describe('Wrap Abbreviations (with internal nodes)', () => {
 	testWrap('ul*', ['<li>test1</li>', '<li>test2</li>'], '<ul>\n\t<li>test1</li>\n</ul>\n<ul>\n\t<li>test2</li>\n</ul>');
 	testWrap('div', 'teststring', '<div>teststring</div>');
 	testWrap('div', 'test\nstring', '<div>\n\ttest\n\tstring\n</div>');
+});
+
+describe('Wrap Abbreviations (more advanced)', () => {
+	// https://github.com/microsoft/vscode/issues/45724
+	testWrap('ul>li{hello}', 'Hello world', '<ul>\n\t<li>helloHello world</li>\n</ul>');
+	testWrap('ul>li{hello}+li.bye', 'Hello world', '<ul>\n\t<li>hello</li>\n\t<li class="bye">Hello world</li>\n</ul>');
+
+	// https://github.com/microsoft/vscode/issues/65469
+	// VS Code has to trim empty entries, for example:
+	testWrap('p*', ['first line', '', 'second line'].filter(s => s.length), '<p>first line</p>\n<p>second line</p>');
+
+	// https://github.com/microsoft/vscode/issues/78015
+	// (upstream issue)
+	// testWrap('ul>li*', ['one', 'two'], '<ul>\n\t<li>one</li>\n\t<li>two</li>\n</ul>', { "output.format": false });
+
+	// https://github.com/microsoft/vscode/issues/54711
+	// https://github.com/microsoft/vscode/issues/107592
+	// (upstream issue)
+	// testWrap('a', 'www.google.it', '<a href="www.google.it">www.google.it</a>');
+	// testWrap('a', 'http://www.site.com/en-us/download/details.aspx?id=12345', '<a href="http://www.site.com/en-us/download/details.aspx?id=12345">http://www.site.com/en-us/download/details.aspx?id=12345</a>');
 });

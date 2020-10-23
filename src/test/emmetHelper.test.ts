@@ -630,6 +630,29 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should not provide html completions for xml', async () => {
+		// https://github.com/microsoft/vscode/issues/97632
+		await updateExtensionsPath(null);
+		const testCases: [string] = ['a'];
+		const positionLine = 0;
+		testCases.forEach(abbreviation => {
+			const document = TextDocument.create('test://test/test.xml', 'xml', 0, abbreviation);
+			const position = Position.create(positionLine, abbreviation.length);
+			const completionList = doComplete(document, position, 'xml', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: true,
+				syntaxProfiles: {},
+				variables: {}
+			});
+
+			assert.strictEqual(completionList.items.some(item => item.label === 'a:blank'), false);
+			assert.strictEqual(completionList.items.some(item => item.label === 'a:link'), false);
+			assert.strictEqual(completionList.items.some(item => item.label === 'a:mail'), false);
+			assert.strictEqual(completionList.items.some(item => item.label === 'a:tel'), false);
+		});
+	});
+
 	it('should provide hex color completions css', async () => {
 		await updateExtensionsPath(null);
 		const testCases: [string, string][] = [

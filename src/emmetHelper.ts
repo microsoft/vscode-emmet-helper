@@ -391,7 +391,10 @@ export function getDefaultSnippets(syntax: string): SnippetsMap {
 	const syntaxToUse = isStyleSheet(syntax) ? getDefaultSyntax(syntax) : syntax;
 	const emptyUserConfig: UserConfig = { type: syntaxType, syntax: syntaxToUse };
 	const resolvedConfig: Config = resolveConfig(emptyUserConfig);
-	return resolvedConfig.snippets;
+
+	// https://github.com/microsoft/vscode/issues/97632
+	// don't return markup (HTML) snippets for XML
+	return syntax === 'xml' ? {} : resolvedConfig.snippets;
 }
 
 function getFilters(text: string, pos: number): { pos: number, filter: string } {
