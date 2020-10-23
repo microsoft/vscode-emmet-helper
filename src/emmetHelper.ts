@@ -642,7 +642,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	}
 
 	const combinedOptions = {};
-	[ ...Object.keys(defaultVSCodeOptions), ...Object.keys(userPreferenceOptions) ].forEach(key => {
+	[...Object.keys(defaultVSCodeOptions), ...Object.keys(userPreferenceOptions)].forEach(key => {
 		combinedOptions[key] = userPreferenceOptions[key] ?? defaultVSCodeOptions[key];
 	});
 	const mergedAliases = { ...defaultVSCodeOptions['stylesheet.unitAliases'], ...userPreferenceOptions['stylesheet.unitAliases'] };

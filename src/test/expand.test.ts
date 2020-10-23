@@ -1,8 +1,9 @@
 import assert from 'assert';
+import { UserConfig } from 'emmet';
 import { describe, it } from 'mocha';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types'
-import { doComplete } from '../emmetHelper';
+import { doComplete, expandAbbreviation, getSyntaxType } from '../emmetHelper';
 
 const COMPLETE_OPTIONS = {
 	preferences: {},
@@ -12,32 +13,99 @@ const COMPLETE_OPTIONS = {
 	variables: {}
 }
 
+function testExpandWithCompletion(syntax: string, abbrev: string, expanded: string) {
+	it(`should expand ${abbrev} to\n${expanded}`, async () => {
+		const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
+		const position = Position.create(0, abbrev.length);
+
+		const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+
+		assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
+		assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
+
+		assert.strictEqual(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
+	});
+}
+
+function testExpand(syntax: string, abbrev: string, expanded: string) {
+	it(`should wrap ${abbrev} to obtain\n${expanded}`, async () => {
+		const type = getSyntaxType(syntax);
+		const config: UserConfig = {
+			type,
+			syntax
+		}
+		const expandedRes = expandAbbreviation(abbrev, config);
+		assert.strictEqual(expanded, expandedRes);
+	});
+}
+
+function testWrap(abbrev: string, text: string | string[], expanded: string) {
+	it(`should wrap ${text} with ${abbrev} to obtain\n${expanded}`, async () => {
+		const syntax = 'html';
+		const type = getSyntaxType(syntax);
+		const config: UserConfig = {
+			type,
+			syntax,
+			text
+		};
+		const expandedRes = expandAbbreviation(abbrev, config);
+		assert.strictEqual(expanded, expandedRes);
+	});
+}
+
 describe('Expand Abbreviations', () => {
-	function testExpand(syntax: string, abbrev: string, expanded: string) {
-		it(`should expand ${abbrev} to ${expanded}`, async () => {
-			const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
-			const position = Position.create(0, abbrev.length);
+	// https://github.com/microsoft/vscode/issues/59951
+	testExpandWithCompletion('scss', 'fsz18', 'font-size: 18px;');
 
-			const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+	// https://github.com/microsoft/vscode/issues/63703
+	testExpandWithCompletion('jsx', 'button[onClick={props.onClick}]', '<button onClick={props.onClick}>${0}</button>');
 
-			assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
-			assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
+	// https://github.com/microsoft/vscode/issues/67971
+	testExpandWithCompletion('html', 'div>p+lorem3', '<div>\n\t<p>${0}</p>\n\tLorem, ipsum dolor.\n</div>');
 
-			assert.strictEqual(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
-		})
-	}
+	// https://github.com/microsoft/vscode/issues/69168
+	testExpandWithCompletion('html', 'ul>li{my list $@-}*3', '<ul>\n\t<li>my list 3</li>\n\t<li>my list 2</li>\n\t<li>my list 1</li>\n</ul>');
 
-	function testNotExpand(syntax: string, abbrev: string) {
-		it(`should not expand ${abbrev}`, async () => {
-			const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
-			const position = Position.create(0, abbrev.length);
+	// https://github.com/microsoft/vscode/issues/74505
+	testExpandWithCompletion('css', '@f', '@font-face {\n\tfont-family: ${0};\n\tsrc: url(${0});\n}');
+	testExpandWithCompletion('css', '@i', '@import url(${0});');
+	testExpandWithCompletion('css', '@import', '@import url(${0});');
+	testExpandWithCompletion('css', '@kf', '@keyframes ${1:identifier} {\n\t${0}\n}');
+	testExpandWithCompletion('css', '@', '@media ${1:screen} {\n\t${0}\n}');
+	testExpandWithCompletion('css', '@m', '@media ${1:screen} {\n\t${0}\n}');
 
-			const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+	// https://github.com/microsoft/vscode/issues/92120
+	testExpandWithCompletion('css', 'd', 'display: ${1:block};');
 
-			assert.ok(!completionList);
-		})
-	}
+	// escaped dollar signs should not change after going through Emmet expansion only
+	// NOTE: VS Code automatically removes the backslashes after the expansion
+	testExpand('html', 'span{\\$5}', '<span>\\$5</span>');
+	testExpand('html', 'span{\\$hello}', '<span>\\$hello</span>');
+	testExpand('html', 'ul>li.item$*2{test\\$}', '<ul>\n\t<li class="item1">test\\$</li>\n\t<li class="item2">test\\$</li>\n</ul>');
+});
 
-	testExpand('jsx', 'button[onClick={props.onClick}]', '<button onClick={props.onClick}>${0}</button>');
-	testExpand('css', 'd', 'display: ${1:block};');
-})
+describe('Wrap Abbreviations (basic)', () => {
+	// basic cases
+	testWrap('ul>li', 'test', '<ul>\n\t<li>test</li>\n</ul>');
+	testWrap('ul>li', ['test'], '<ul>\n\t<li>test</li>\n</ul>');
+	testWrap('ul>li', ['test1', 'test2'], '<ul>\n\t<li>\n\t\ttest1\n\t\ttest2\n\t</li>\n</ul>');
+
+	// dollar signs should be escaped when wrapped (specific to VS Code)
+	testWrap('ul>li*', ['test$', 'test$'], '<ul>\n\t<li>test\\$</li>\n\t<li>test\\$</li>\n</ul>');
+	testWrap('ul>li*', ['$1', '$2'], '<ul>\n\t<li>\\$1</li>\n\t<li>\\$2</li>\n</ul>');
+	testWrap('ul>li.item$*', ['test$', 'test$'], '<ul>\n\t<li class="item1">test\\$</li>\n\t<li class="item2">test\\$</li>\n</ul>');
+
+	// https://github.com/emmetio/expand-abbreviation/issues/17
+	testWrap('ul', '<li>test1</li>\n<li>test2</li>', '<ul>\n\t<li>test1</li>\n\t<li>test2</li>\n</ul>');
+});
+
+describe('Wrap Abbreviations (with internal nodes)', () => {
+	// wrapping elements where the internals contain nodes should result in proper indentation
+	testWrap('ul', '<li>test</li>', '<ul>\n\t<li>test</li>\n</ul>');
+	testWrap('ul', ['<li>test1</li>', '<li>test2</li>'], '<ul>\n\t<li>test1</li>\n\t<li>test2</li>\n</ul>');
+	testWrap('ul>li', '<span>test</span>', '<ul>\n\t<li>\n\t\t<span>test</span>\n\t</li>\n</ul>');
+	testWrap('ul>li>div', '<p><span>test</span></p>', '<ul>\n\t<li>\n\t\t<div>\n\t\t\t<p><span>test</span></p>\n\t\t</div>\n\t</li>\n</ul>');
+	testWrap('ul*', ['<li>test1</li>', '<li>test2</li>'], '<ul>\n\t<li>test1</li>\n</ul>\n<ul>\n\t<li>test2</li>\n</ul>');
+	testWrap('div', 'teststring', '<div>teststring</div>');
+	testWrap('div', 'test\nstring', '<div>\n\ttest\n\tstring\n</div>');
+});
