@@ -483,6 +483,47 @@ describe('Test custom snippets', () => {
 			});
 		});
 	});
+
+	it('should reset custom snippets when non-existent extensionsPath is given', () => {
+		const customSnippetKey = 'ch';
+		return updateExtensionsPath(extensionsPath).then(() => {
+			let foundCustomSnippet = false;
+			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
+				if (snippet.key === customSnippetKey) {
+					foundCustomSnippet = true;
+				}
+			});
+			assert.strictEqual(foundCustomSnippet, true);
+
+			return updateExtensionsPath(extensionsPath + 'path').then(() => {
+				assert.ok(false, 'There should be an error as extensionPath was faulty');
+			}, (e) => {
+				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+				return Promise.resolve();
+			});
+		});
+	});
+
+	it('should reset custom snippets when directory with no snippets is given', () => {
+		const customSnippetKey = 'ch';
+		return updateExtensionsPath(extensionsPath).then(() => {
+			let foundCustomSnippet = false;
+			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
+				if (snippet.key === customSnippetKey) {
+					foundCustomSnippet = true;
+				}
+			});
+			assert.strictEqual(foundCustomSnippet, true);
+
+			const extensionsPathParent = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData');
+			return updateExtensionsPath(extensionsPathParent).then(() => {
+				assert.ok(false, 'There should be an error as extensionPath was faulty');
+			}, (e) => {
+				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+				return Promise.resolve();
+			});
+		});
+	});
 });
 
 describe('Test emmet preferences', () => {
