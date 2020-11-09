@@ -16,6 +16,10 @@ import { TextDecoder } from 'util';
 
 import { extract, ExtractOptions } from 'emmet';
 
+import * as nls from 'vscode-nls';
+
+const localize = nls.loadMessageBundle();
+
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
 // */
@@ -155,7 +159,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
 		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-		expandedAbbr.detail = 'Emmet Abbreviation';
+		expandedAbbr.detail = localize('Emmet abbreviation', "Emmet Abbreviation");
 		expandedAbbr.label = abbreviation;
 		expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
 		completionItems = [expandedAbbr];
