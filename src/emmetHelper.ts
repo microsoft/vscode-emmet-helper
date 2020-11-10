@@ -943,9 +943,14 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 		emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
 	}
 
-	if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
+	try {
+		// the fs.stat call itself could throw, so we wrap this part up into a try-catch
+		if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
+			throw new Error();
+		}
+	} catch (e) {
 		resetSettingsFromFile();
-		return Promise.reject(`The directory ${emmetExtensionsPath} doesn't exist. Update emmet.extensionsPath setting`);
+		throw new Error(`The directory ${emmetExtensionsPath} doesn't exist. Update emmet.extensionsPath setting`);
 	}
 
 	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
