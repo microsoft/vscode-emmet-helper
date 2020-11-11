@@ -344,26 +344,22 @@ describe('Test variables settings', () => {
 		});
 	});
 
-	it('should use variables from the extensionsPath', () => {
-		updateExtensionsPath(extensionsPath).then(() => {
-			const expandOptions = getExpandOptions('html', {});
-			if (!expandOptions.variables || expandOptions.variables['lang'] !== 'fr') {
-				assert.ok(false, 'Most likely a Mocha error. Please run tests again.');
-			}
-			assert.strictEqual(expandOptions.variables['lang'], 'fr');
-		});
+	it('should use variables from the extensionsPath', async () => {
+		await updateExtensionsPath(extensionsPath);
+
+		const expandOptions = getExpandOptions('html', {});
+		assert.strictEqual(expandOptions.variables['lang'], 'fr');
 	});
 
-	it('should use given variables that override ones from extensionsPath', () => {
-		updateExtensionsPath(extensionsPath).then(() => {
-			const variables = {
-				lang: 'en',
-				charset: 'UTF-8'
-			}
-			const expandOptions = getExpandOptions('html', { variables });
+	it('should use given variables that override ones from extensionsPath', async () => {
+		await updateExtensionsPath(extensionsPath);
 
-			assert.strictEqual(expandOptions.variables['lang'], variables['lang']);
-		});
+		const variables = {
+			lang: 'en',
+			charset: 'UTF-8'
+		}
+		const expandOptions = getExpandOptions('html', { variables });
+		assert.strictEqual(expandOptions.variables['lang'], variables['lang']);
 	});
 });
 
@@ -411,67 +407,53 @@ describe('Test custom snippets', () => {
 		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
 	});
 
-	it('should throw error when snippets file from extensionsPath has invalid json', () => {
-		// Use invalid snippets.json
-		return updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-invalid-json')).then(() => {
-			assert.ok(false, 'updateExtensionsPath method should have failed for invalid json but it didnt');
-		}, (e) => {
+	it('should throw error when snippets file from extensionsPath has invalid json', async () => {
+		const invalidJsonPath = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-invalid-json');
+		try {
+			await updateExtensionsPath(invalidJsonPath);
+			return Promise.reject('There should be an error as snippets file contained invalid json');
+		} catch (e) {
 			assert.ok(e);
-		});
+		}
 	});
 
 	it('should reset custom snippets when no extensionsPath is given', async () => {
 		const customSnippetKey = 'ch';
 		await updateExtensionsPath(extensionsPath);
-
 		assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
-		return updateExtensionsPath(null).then(() => {
-			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
-		}, (e) => {
-			assert.ok(!e, 'When extensionsPath is not given, there should not be any error.');
-		});
+		await updateExtensionsPath(null);
+		assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
 	});
 
-	it('should reset custom snippets when non-existent extensionsPath is given', () => {
+	it('should reset custom snippets when non-existent extensionsPath is given', async () => {
 		const customSnippetKey = 'ch';
-		return updateExtensionsPath(extensionsPath).then(() => {
-			let foundCustomSnippet = false;
-			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
-				if (snippet.key === customSnippetKey) {
-					foundCustomSnippet = true;
-				}
-			});
-			assert.strictEqual(foundCustomSnippet, true);
+		await updateExtensionsPath(extensionsPath);
+		assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
-			return updateExtensionsPath(extensionsPath + 'path').then(() => {
-				assert.ok(false, 'There should be an error as extensionPath was faulty');
-			}, (e) => {
-				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
-				return Promise.resolve();
-			});
-		});
+		try {
+			await updateExtensionsPath(extensionsPath + 'path');
+			return Promise.reject('There should be an error as extensionPath was faulty');
+		} catch (e) {
+			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+		}
 	});
 
-	it('should reset custom snippets when directory with no snippets is given', () => {
+	it('should reset custom snippets when directory with no snippets is given', async () => {
 		const customSnippetKey = 'ch';
-		return updateExtensionsPath(extensionsPath).then(() => {
-			let foundCustomSnippet = false;
-			getExpandOptions('scss').snippets.all({ type: 'string' }).forEach(snippet => {
-				if (snippet.key === customSnippetKey) {
-					foundCustomSnippet = true;
-				}
-			});
-			assert.strictEqual(foundCustomSnippet, true);
+		await updateExtensionsPath(extensionsPath);
 
-			const extensionsPathParent = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData');
-			return updateExtensionsPath(extensionsPathParent).then(() => {
-				assert.ok(false, 'There should be an error as extensionPath was faulty');
-			}, (e) => {
-				assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
-				return Promise.resolve();
-			});
-		});
+		const foundCustomSnippet = Object.keys(getExpandOptions('scss').snippets)
+			.some(key => key === customSnippetKey);
+		assert.strictEqual(foundCustomSnippet, true);
+
+		const extensionsPathParent = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData');
+		try {
+			await updateExtensionsPath(extensionsPathParent);
+			return Promise.reject('There should be an error as extensionPath was faulty');
+		} catch (e) {
+			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+		}
 	});
 });
 
@@ -495,7 +477,6 @@ describe('Test filters (bem and comment)', () => {
 	it('should expand attributes with []', async () => {
 		await updateExtensionsPath(null);
 		assert.strictEqual(expandAbbreviation('div[[a]="b"]', getExpandOptions('html', {})), '<div [a]="b">${0}</div>');
-
 	});
 
 	it('should expand abbreviations that are nodes with no name', async () => {
