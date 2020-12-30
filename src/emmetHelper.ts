@@ -200,6 +200,12 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			}
 			completionItems = completionItems.concat(abbreviationSuggestions);
 		}
+
+		// https://github.com/microsoft/vscode/issues/66680
+		if (syntax === 'html' && completionItems.length >= 2 && abbreviation.includes(":")
+			&& expandedAbbr && expandedAbbr.textEdit.newText === `<${abbreviation}>\${0}</${abbreviation}>`) {
+			completionItems = completionItems.filter(item => item.label !== abbreviation);
+		}
 	}
 
 	if (emmetConfig.showSuggestionsAsSnippets === true) {
@@ -587,6 +593,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		// 'output.selfClosingStyle': profile['selfClosingStyle'],
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
+		'markup.href': true,
 		'comment.enabled': false,
 		'comment.trigger': ['id', 'class'],
 		'comment.before': '',
@@ -627,6 +634,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'output.selfClosingStyle': profile['selfClosingStyle'],
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
+		// 'markup.href': boolean,
 		'comment.enabled': commentEnabled,
 		'comment.trigger': preferences['filter.commentTrigger'],
 		'comment.before': preferences['filter.commentBefore'],

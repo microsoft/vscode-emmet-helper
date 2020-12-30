@@ -580,6 +580,23 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should not provide link:m as a suggestion', async () => {
+		// https://github.com/microsoft/vscode/issues/66680
+		await updateExtensionsPath(null);
+		const abbr = 'link:m';
+		const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
+		const position = Position.create(0, abbr.length);
+		const completionList = doComplete(document, position, 'html', {
+			preferences: {},
+			showExpandedAbbreviation: 'always',
+			showAbbreviationSuggestions: true,
+			syntaxProfiles: {},
+			variables: {}
+		});
+
+		assert.strictEqual(completionList.items.every(x => x.label !== 'link:m'), true);
+	});
+
 	it('should provide completions html', async () => {
 		await updateExtensionsPath(null);
 		const bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
@@ -595,7 +612,6 @@ describe('Test completions', () => {
 			['<div>custom:tag</div>', 0, 15, 'custom:tag', '<custom:tag>|</custom:tag>', '<custom:tag>\${0}</custom:tag>'],
 			['<div>sp</div>', 0, 7, 'span', '<span>|</span>', '<span>\${0}</span>'],
 			['<div>SP</div>', 0, 7, 'SPan', '<SPan>|</SPan>', '<SPan>\${0}</SPan>'],
-			['<div>u:l:l</div>', 0, 10, 'u:l:l', '<u:l:l>|</u:l:l>', '<u:l:l>\${0}</u:l:l>'],
 			['<div>u-l-z</div>', 0, 10, 'u-l-z', '<u-l-z>|</u-l-z>', '<u-l-z>\${0}</u-l-z>'],
 			['<div>div.foo_</div>', 0, 13, 'div.foo_', '<div class="foo_">|</div>', '<div class="foo_">\${0}</div>'],
 			[bemFilterExampleWithInlineFilter, 0, bemFilterExampleWithInlineFilter.length, bemFilterExampleWithInlineFilter, expectedBemFilterOutputDocs, expectedBemFilterOutput],

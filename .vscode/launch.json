@@ -10,11 +10,9 @@
             "name": "Mocha Tests",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
             "args": [
-                "-u",
-                "tdd",
-                "--timeout",
-                "999999",
-                "--colors",
+                "-u", "tdd",
+                "--timeout", "999999",
+                "--colors", "--recursive",
                 "${workspaceFolder}/lib/cjs/test/**/*.test.js"
             ],
             "console": "integratedTerminal",
