@@ -597,6 +597,23 @@ describe('Test completions', () => {
 		assert.strictEqual(completionList.items.every(x => x.label !== 'link:m'), true);
 	});
 
+	it('should not provide marginright as a suggestion SCSS', async () => {
+		// https://github.com/microsoft/vscode-emmet-helper/issues/42
+		await updateExtensionsPath(null);
+		const abbr = 'marginright';
+		const document = TextDocument.create('test://test/test.scss', 'scss', 0, abbr);
+		const position = Position.create(0, abbr.length);
+		const completionList = doComplete(document, position, 'scss', {
+			preferences: {},
+			showExpandedAbbreviation: 'always',
+			showAbbreviationSuggestions: true,
+			syntaxProfiles: {},
+			variables: {}
+		});
+
+		assert.strictEqual(completionList, undefined);
+	});
+
 	it('should provide completions html', async () => {
 		await updateExtensionsPath(null);
 		const bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';

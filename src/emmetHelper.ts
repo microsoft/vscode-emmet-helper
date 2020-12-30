@@ -517,7 +517,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
 	if (isStyleSheet(syntax)) {
 		const after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
-		return expandedText === `${abbreviation}: \${1}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
+		return expandedText === `${abbreviation}: \${0}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
 	if (commonlyUsedTags.includes(abbreviation.toLowerCase()) || markupSnippetKeys.includes(abbreviation)) {
