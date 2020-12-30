@@ -631,7 +631,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'output.compactBoolean': profile['compactBooleanAttributes'] ?? preferences['profile.allowCompactBoolean'],
 		// 'output.booleanAttributes': string[],
 		// 'output.reverseAttributes': boolean,
-		'output.selfClosingStyle': profile['selfClosingStyle'],
+		'output.selfClosingStyle': profile['selfClosingStyle'] ?? getClosingStyle(syntax),
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
 		// 'markup.href': boolean,
@@ -681,6 +681,15 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		maxRepeat: 1000,
 		// cache: null
 	};
+}
+
+function getClosingStyle(syntax: string): string {
+	switch (syntax) {
+		case 'xhtml': return 'xhtml';
+		case 'xml': return 'xml';
+		case 'xsl': return 'xml';
+		default: return 'html';
+	}
 }
 
 function splitVendorPrefix(abbreviation: string): { prefixOptions: string, abbreviationWithoutPrefix: string } {

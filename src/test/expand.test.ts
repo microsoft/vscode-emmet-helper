@@ -95,6 +95,9 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('css', 'opa1', 'opacity: 1;');
 	testExpandWithCompletion('css', 'opa.a', 'opacity: .a;');
 
+	// https://github.com/microsoft/vscode-emmet-helper/issues/37
+	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>')
+
 	// escaped dollar signs should not change after going through Emmet expansion only
 	// VS Code automatically removes the backslashes after the expansion
 	testExpand('html', 'span{\\$5}', '<span>\\$5</span>');
