@@ -788,6 +788,26 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should provide completions for scss', async () => {
+		await updateExtensionsPath(null);
+		const testCases: [string, number, number][] = [
+			['m:a', 0, 3]
+		];
+		testCases.forEach(([content, positionLine, positionChar]) => {
+			const document = TextDocument.create('test://test/test.scss', 'scss', 0, content);
+			const position = Position.create(positionLine, positionChar);
+			const completionList = doComplete(document, position, 'scss', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+
+			assert.strictEqual(completionList.items.find(x => x.label === 'margin: auto;').documentation, 'margin: auto;');
+		});
+	});
+
 	it('should provide completions with escaped $ in scss', async () => {
 		await updateExtensionsPath(null);
 		const testCases: [string, number, number][] = [
