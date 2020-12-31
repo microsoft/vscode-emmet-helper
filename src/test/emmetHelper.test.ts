@@ -1002,6 +1002,28 @@ describe('Test completions', () => {
 		assert.strictEqual(expandedText.startsWith('Lorem'), true);
 	});
 
+	it('should provide completions for lorem*2 with 2 lines', async () => {
+		// https://github.com/microsoft/vscode/issues/52345
+		await updateExtensionsPath(null);
+		const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*2');
+		const position = Position.create(0, 12);
+		const completionList = doComplete(document, position, 'html', {
+			preferences: {},
+			showExpandedAbbreviation: 'always',
+			showAbbreviationSuggestions: false,
+			syntaxProfiles: {},
+			variables: {}
+		});
+		const expandedText = completionList.items[0].documentation;
+		if (typeof expandedText !== 'string') {
+			return;
+		}
+
+		assert.strictEqual(completionList.items[0].label, 'lorem*2');
+		assert.strictEqual(expandedText.split('\n').length, 2);
+		assert.strictEqual(expandedText.startsWith('Lorem'), true);
+	});
+
 	it.skip('should provide completions using vendor prefixes', async () => {
 		await updateExtensionsPath(extensionsPath);
 		const testCases: [string, number, number, string, string, string][] = [

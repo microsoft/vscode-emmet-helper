@@ -149,11 +149,26 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	testExpand('html', 'a[href="https://example.com"]>div>p{test here}', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
 	testWrap('a[href="https://example.com"]>div', '<b>test here</b>', '<a href="https://example.com">\n\t<div><b>test here</b></div>\n</a>');
 	testWrap('a[href="https://example.com"]>div', '<p>test here</p>', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
+	
+	// these are technically supposed to collapse into a single line, but
+	// as per 78015 we'll assert that this is the proper behaviour
+	testWrap('h1', '<div><span>test</span></div>', '<h1>\n\t<div><span>test</span></div>\n</h1>', { 'output.format': false });
+	testWrap('h1', '<div>\n\t<span>test</span>\n</div>', '<h1>\n\t<div>\n\t\t<span>test</span>\n\t</div>\n</h1>', { 'output.format': false });
 
 	// https://github.com/microsoft/vscode/issues/54711
 	// https://github.com/microsoft/vscode/issues/107592
 	testWrap('a', 'www.google.it', '<a href="http://www.google.it">www.google.it</a>');
-	testWrap('a', 'http://google.com', '<a href="http://google.com">http://google.com</a>');
+	testWrap('a', 'http://example.com', '<a href="http://example.com">http://example.com</a>');
 	testWrap('a', 'http://www.site.com/en-us/download/details.aspx?id=12345', '<a href="http://www.site.com/en-us/download/details.aspx?id=12345">http://www.site.com/en-us/download/details.aspx?id=12345</a>');
 	testWrap('a[href=]', 'test@example.com', '<a href="mailto:test@example.com">test@example.com</a>');
+
+	// stranger cases involving elements within the a
+	testWrap('a[href=http://example.com]>div', 'test',
+		'<a href="http://example.com">\n\t<div>test</div>\n</a>');
+	testWrap('a[href=http://example.com]>div', '<b>test</b>',
+		'<a href="http://example.com">\n\t<div><b>test</b></div>\n</a>');
+	testWrap('a[href=http://example.com]>div', '<p>test</p>',
+		'<a href="http://example.com">\n\t<div>\n\t\t<p>test</p>\n\t</div>\n</a>');
+	testWrap('a[href=http://example.com]>div', '<ul>\n\t<li>Hello world</li>\n</ul>',
+		'<a href="http://example.com">\n\t<div>\n\t\t<ul>\n\t\t\t<li>Hello world</li>\n\t\t</ul>\n\t</div>\n</a>');
 });
