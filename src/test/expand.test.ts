@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { Options, UserConfig } from 'emmet';
 import { describe, it } from 'mocha';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types'
 import { doComplete, expandAbbreviation, getSyntaxType } from '../emmetHelper';
 
@@ -23,7 +23,7 @@ function testExpandWithCompletion(syntax: string, abbrev: string, expanded: stri
 		assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
 		assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
 
-		assert.strictEqual(expanded, TextDocument.applyEdits(document, [completionList.items[0].textEdit]));
+		assert.strictEqual(expanded, TextDocument.applyEdits(document, [<TextEdit>completionList.items[0].textEdit]));
 	});
 }
 
@@ -143,6 +143,12 @@ describe('Wrap Abbreviations (more advanced)', () => {
 
 	// https://github.com/microsoft/vscode/issues/78015
 	testWrap('ul>li*', ['one', 'two'], '<ul><li>one</li><li>two</li></ul>', { "output.format": false });
+
+	// issue where wrapping with link was causing text nodes to repeat twice
+	testExpand('html', 'a[href="https://example.com"]>div>b{test here}', '<a href="https://example.com">\n\t<div><b>test here</b></div>\n</a>');
+	testExpand('html', 'a[href="https://example.com"]>div>p{test here}', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
+	testWrap('a[href="https://example.com"]>div', '<b>test here</b>', '<a href="https://example.com">\n\t<div><b>test here</b></div>\n</a>');
+	testWrap('a[href="https://example.com"]>div', '<p>test here</p>', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
 
 	// https://github.com/microsoft/vscode/issues/54711
 	// https://github.com/microsoft/vscode/issues/107592
