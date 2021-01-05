@@ -502,9 +502,9 @@ dir-glob@^2.2.2:
   dependencies:
     path-type "^3.0.0"
 
-emmet@rzhao271/emmet#refs/heads/rzhao271/vscode:
+"emmet@https://github.com/rzhao271/emmet.git#refs/heads/rzhao271/vscode":
   version "2.3.0"
-  resolved "https://codeload.github.com/rzhao271/emmet/tar.gz/094ccbfac477206c1532057df0fb4be6b8eec5a2"
+  resolved "https://github.com/rzhao271/emmet.git#1b2df677d8925ef5ea6da9df8845968403979a0a"
   dependencies:
     "@emmetio/abbreviation" "^2.2.0"
     "@emmetio/css-abbreviation" "^2.1.2"
