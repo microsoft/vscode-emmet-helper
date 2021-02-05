@@ -398,7 +398,7 @@ export function getDefaultSyntax(syntax: string): string {
 /** Returns the default snippets that Emmet suggests */
 export function getDefaultSnippets(syntax: string): SnippetsMap {
 	const syntaxType = getSyntaxType(syntax);
-	const syntaxToUse = isStyleSheet(syntax) ? getDefaultSyntax(syntax) : syntax;
+	const syntaxToUse = isStyleSheet(syntax) ? 'css' : syntax;
 	const emptyUserConfig: UserConfig = { type: syntaxType, syntax: syntaxToUse };
 	const resolvedConfig: Config = resolveConfig(emptyUserConfig);
 
@@ -517,7 +517,8 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
 	if (isStyleSheet(syntax)) {
 		const after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
-		return expandedText === `${abbreviation}: \${0}${after}` || expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
+		return expandedText === `${abbreviation}: \${0}${after}` ||
+			expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
 	if (commonlyUsedTags.includes(abbreviation.toLowerCase()) || markupSnippetKeys.includes(abbreviation)) {
@@ -574,6 +575,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	const formatters = getFormatters(syntax, emmetConfig['preferences']);
 	const unitAliases: SnippetsMap = (formatters?.stylesheet && formatters.stylesheet['unitAliases']) || {};
 
+	// These options are the default values provided by vscode for 
+	// extension preferences
 	const defaultVSCodeOptions: Partial<Options> = {
 		// inlineElements: string[],
 		// 'output.indent': string,
@@ -605,8 +608,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		// 'stylesheet.keywords': string[],
 		// 'stylesheet.unitless': string[],
 		// 'stylesheet.shortHex': boolean,
-		'stylesheet.between': ': ',
-		'stylesheet.after': ';',
+		'stylesheet.between': syntax === 'stylus' ? ' ' : ': ',
+		'stylesheet.after': (syntax === 'sass' || syntax === 'stylus') ? '' : ';',
 		'stylesheet.intUnit': 'px',
 		'stylesheet.floatUnit': 'em',
 		'stylesheet.unitAliases': { e: 'em', p: '%', x: 'ex', r: 'rem' },
@@ -615,6 +618,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'stylesheet.fuzzySearchMinScore': 0.3,
 	};
 
+	// These options come from user prefs in the vscode repo
 	const userPreferenceOptions: Partial<Options> = {
 		// inlineElements: string[],
 		// 'output.indent': string,

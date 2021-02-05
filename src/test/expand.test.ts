@@ -27,6 +27,22 @@ function testExpandWithCompletion(syntax: string, abbrev: string, expanded: stri
 	});
 }
 
+function testCountCompletions(syntax: string, abbrev: string, expectedNumCompletions: number) {
+	it(`should expand ${abbrev} with ${expectedNumCompletions} completions`, async () => {
+		const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
+		const position = Position.create(0, abbrev.length);
+
+		const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+
+		if (expectedNumCompletions) {
+			assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
+			assert.strictEqual(completionList.items.length, expectedNumCompletions);
+		} else {
+			assert.strictEqual(completionList, undefined);
+		}
+	});
+}
+
 function testExpand(syntax: string, abbrev: string, expanded: string) {
 	it(`should expand ${abbrev} to\n${expanded}`, async () => {
 		const type = getSyntaxType(syntax);
@@ -53,21 +69,6 @@ function testWrap(abbrev: string, text: string | string[], expanded: string, opt
 		assert.strictEqual(expanded, expandedRes);
 	});
 }
-
-describe('html abbreviation shows up only once', () => {
-	const abbrev = 'htm';
-	const expanded = '<html></html>';
-	const syntax = 'html';
-	it(`should expand ${abbrev} to\n${expanded}`, async () => {
-		const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
-		const position = Position.create(0, abbrev.length);
-
-		const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
-
-		assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
-		assert.ok(completionList.items.length == 1, `completion list must show up only once for ${abbrev}`);
-	});
-});
 
 describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', 'ul>li', '<ul>\n\t<li>${0}</li>\n</ul>');
@@ -109,6 +110,18 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('css', 'opa.1', 'opacity: 0.1;');
 	testExpandWithCompletion('css', 'opa1', 'opacity: 1;');
 	testExpandWithCompletion('css', 'opa.a', 'opacity: .a;');
+
+	// https://github.com/microsoft/vscode/issues/115623
+	testCountCompletions('html', 'html', 1);
+	testCountCompletions('html', 'body', 1);
+
+	// https://github.com/microsoft/vscode/issues/115839
+	testExpandWithCompletion('css', 'bgc', 'background-color: #${1:fff};');
+	testExpandWithCompletion('sass', 'bgc', 'background-color: #${1:fff}');
+
+	// https://github.com/microsoft/vscode/issues/115854
+	testCountCompletions('sass', 'bkco', 0);
+	testCountCompletions('sass', 'bgc', 1);
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>')
