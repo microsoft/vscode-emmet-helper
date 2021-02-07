@@ -31,7 +31,7 @@ export { FileService, FileType, FileStat }
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
-const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.\{]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z\.]/;
 const commonlyUsedTags = [...htmlData.tags, 'lorem'];
