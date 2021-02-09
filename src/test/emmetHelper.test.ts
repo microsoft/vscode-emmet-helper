@@ -101,7 +101,7 @@ describe('Validate Abbreviations', () => {
 			'div{ a (b) c}',
 			'div{ a (b) c}+div{ a (( }'
 		];
-		const cssAbbreviations = ['#123', '#abc'];
+		const cssAbbreviations = ['#123', '#abc', 'bd1#s'];
 		htmlAbbreviations.forEach(abbr => {
 			assert(isAbbreviationValid('html', abbr), `${abbr} should be treated as valid abbreviation`);
 		});
