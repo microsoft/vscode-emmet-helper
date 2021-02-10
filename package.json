@@ -22,7 +22,7 @@
     "typescript": "^3.9.7"
   },
   "dependencies": {
-    "emmet": "https://github.com/rzhao271/emmet.git#1b2df677d8925ef5ea6da9df8845968403979a0a",
+    "emmet": "^2.3.0",
     "jsonc-parser": "^2.3.0",
     "vscode-languageserver-textdocument": "^1.0.1",
     "vscode-languageserver-types": "^3.15.1",
