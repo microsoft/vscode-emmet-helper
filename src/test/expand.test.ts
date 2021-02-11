@@ -138,7 +138,7 @@ describe('Expand Abbreviations', () => {
 	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a class="dropdown-item" href="#">foo</a>', { "output.reverseAttributes": true });
 
   	// https://github.com/microsoft/vscode/issues/114923
-	testExpand('html', 'figcaption', '<figcaption></figcaption>');
+	testExpandWithCompletion('html', 'figcaption', '<figcaption></figcaption>');
 });
 
 describe('Wrap Abbreviations (basic)', () => {
