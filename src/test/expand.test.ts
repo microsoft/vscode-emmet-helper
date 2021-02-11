@@ -131,6 +131,9 @@ describe('Expand Abbreviations', () => {
 	testExpand('html', 'span{\\$5}', '<span>\\$5</span>');
 	testExpand('html', 'span{\\$hello}', '<span>\\$hello</span>');
 	testExpand('html', 'ul>li.item$*2{test\\$}', '<ul>\n\t<li class="item1">test\\$</li>\n\t<li class="item2">test\\$</li>\n</ul>');
+
+	// https://github.com/microsoft/vscode/issues/114923
+	testExpand('html', 'figcaption', '<figcaption></figcaption>');
 });
 
 describe('Wrap Abbreviations (basic)', () => {
