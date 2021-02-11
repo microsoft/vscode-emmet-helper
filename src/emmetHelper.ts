@@ -31,7 +31,7 @@ export { FileService, FileType, FileStat }
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
-const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
+const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.\{]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z\.]/;
 const commonlyUsedTags = [...htmlData.tags, 'lorem'];
@@ -108,7 +108,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	let expandedAbbr: CompletionItem;
 	let completionItems: CompletionItem[] = [];
 
-	// Create completion item after expanding given abbreviation 
+	// Create completion item after expanding given abbreviation
 	// if abbreviation is valid and expanded value is not noise
 	const createExpandedAbbr = (syntax: string, abbr: string) => {
 		if (!isAbbreviationValid(syntax, abbreviation)) {
@@ -192,7 +192,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			if (expandedAbbr && abbreviationSuggestions.length > 0 && tagToFindMoreSuggestionsFor !== abbreviation) {
 				expandedAbbr.sortText = '0' + expandedAbbr.label;
 				abbreviationSuggestions.forEach(item => {
-					// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey 
+					// Workaround for snippet suggestions items getting filtered out as the complete abbr does not start with snippetKey
 					item.filterText = abbreviation
 					// Workaround for the main expanded abbr not appearing before the snippet suggestions
 					item.sortText = '9' + abbreviation;
@@ -215,7 +215,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 }
 
 /**
- * Create & return snippets for snippet keys that start with given prefix	
+ * Create & return snippets for snippet keys that start with given prefix
  */
 function makeSnippetSuggestion(
 	snippetKeys: string[],
@@ -455,7 +455,7 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
 }
 
 /**
- * Extracts abbreviation from the given text		
+ * Extracts abbreviation from the given text
  * @param text Text from which abbreviation needs to be extracted
  * @param syntax Syntax used to extract the abbreviation from the given text
  */
@@ -495,7 +495,11 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 			return false;
 		}
 		if (abbreviation.includes('#')) {
-			return hexColorRegex.test(abbreviation) || propertyHexColorRegex.test(abbreviation);
+			if (abbreviation.startsWith('#')) {
+				return hexColorRegex.test(abbreviation);
+			} else if (commonlyUsedTags.includes(abbreviation.substring(0, abbreviation.indexOf('#')))) {
+				return false;
+			}
 		}
 		return cssAbbreviationRegex.test(abbreviation);
 	}
@@ -575,7 +579,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	const formatters = getFormatters(syntax, emmetConfig['preferences']);
 	const unitAliases: SnippetsMap = (formatters?.stylesheet && formatters.stylesheet['unitAliases']) || {};
 
-	// These options are the default values provided by vscode for 
+	// These options are the default values provided by vscode for
 	// extension preferences
 	const defaultVSCodeOptions: Partial<Options> = {
 		// inlineElements: string[],
@@ -592,7 +596,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		// 'output.inlineBreak': profile['inlineBreak'],
 		'output.compactBoolean': false,
 		// 'output.booleanAttributes': string[],
-		// 'output.reverseAttributes': boolean,
+		'output.reverseAttributes': false,
 		// 'output.selfClosingStyle': profile['selfClosingStyle'],
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
@@ -634,7 +638,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'output.inlineBreak': profile['inlineBreak'],
 		'output.compactBoolean': profile['compactBooleanAttributes'] ?? preferences['profile.allowCompactBoolean'],
 		// 'output.booleanAttributes': string[],
-		// 'output.reverseAttributes': boolean,
+		'output.reverseAttributes': preferences['output.reverseAttributes'],
 		'output.selfClosingStyle': profile['selfClosingStyle'] ?? getClosingStyle(syntax),
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
@@ -767,7 +771,7 @@ function applyVendorPrefixes(expandedProperty: string, vendors: string, preferen
 
 /**
  * Parses given abbreviation using given options and returns a tree
- * @param abbreviation string 
+ * @param abbreviation string
  * @param options options used by the emmet module to parse given abbreviation
  */
 export function parseAbbreviation(abbreviation: string, options: UserConfig): StylesheetAbbreviation | MarkupAbbreviation {
@@ -805,7 +809,7 @@ export function expandAbbreviation(abbreviation: string | MarkupAbbreviation | S
 
 /**
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
- * @param syntax 
+ * @param syntax
  */
 function getProfile(syntax: string, profilesFromSettings: object): any {
 	if (!profilesFromSettings) {
@@ -1031,7 +1035,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 		const profilesDataStr = new TextDecoder().decode(profilesData);
 		profilesFromFile = JSON.parse(profilesDataStr);
 	} catch (e) {
-		// 
+		//
 	}
 }
 
@@ -1047,10 +1051,10 @@ function resetSettingsFromFile() {
 /**
 * Get the corresponding emmet mode for given vscode language mode
 * Eg: jsx for typescriptreact/javascriptreact or pug for jade
-* If the language is not supported by emmet or has been exlcuded via `exlcudeLanguages` setting, 
+* If the language is not supported by emmet or has been exlcuded via `exlcudeLanguages` setting,
 * then nothing is returned
-* 
-* @param language 
+*
+* @param language
 * @param exlcudedLanguages Array of language ids that user has chosen to exlcude for emmet
 */
 export function getEmmetMode(language: string, excludedLanguages: string[] = []): string | undefined {
@@ -1071,7 +1075,6 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	}
 }
 
-const propertyHexColorRegex = /^[a-zA-Z]+:?#[\d.a-fA-F]{0,6}$/;
 const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
 const onlyLetters = /^[a-z,A-Z]+$/;
 
@@ -1127,6 +1130,3 @@ export function getEmmetCompletionParticipants(document: TextDocument, position:
 		}
 	};
 }
-
-
-

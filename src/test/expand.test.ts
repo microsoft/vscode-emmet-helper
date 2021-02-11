@@ -43,12 +43,13 @@ function testCountCompletions(syntax: string, abbrev: string, expectedNumComplet
 	});
 }
 
-function testExpand(syntax: string, abbrev: string, expanded: string) {
+function testExpand(syntax: string, abbrev: string, expanded: string, options?: Partial<Options>) {
 	it(`should expand ${abbrev} to\n${expanded}`, async () => {
 		const type = getSyntaxType(syntax);
 		const config: UserConfig = {
 			type,
-			syntax
+			syntax,
+			options
 		}
 		const expandedRes = expandAbbreviation(abbrev, config);
 		assert.strictEqual(expanded, expandedRes);
@@ -132,7 +133,11 @@ describe('Expand Abbreviations', () => {
 	testExpand('html', 'span{\\$hello}', '<span>\\$hello</span>');
 	testExpand('html', 'ul>li.item$*2{test\\$}', '<ul>\n\t<li class="item1">test\\$</li>\n\t<li class="item2">test\\$</li>\n</ul>');
 
-	// https://github.com/microsoft/vscode/issues/114923
+	// `output.reverseAttributes` emmet option
+	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a href="#" class="dropdown-item">foo</a>', { "output.reverseAttributes": false });
+	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a class="dropdown-item" href="#">foo</a>', { "output.reverseAttributes": true });
+
+  // https://github.com/microsoft/vscode/issues/114923
 	testExpand('html', 'figcaption', '<figcaption></figcaption>');
 });
 
@@ -180,7 +185,7 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	testExpand('html', 'a[href="https://example.com"]>div>p{test here}', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
 	testWrap('a[href="https://example.com"]>div', '<b>test here</b>', '<a href="https://example.com">\n\t<div><b>test here</b></div>\n</a>');
 	testWrap('a[href="https://example.com"]>div', '<p>test here</p>', '<a href="https://example.com">\n\t<div>\n\t\t<p>test here</p>\n\t</div>\n</a>');
-	
+
 	// these are technically supposed to collapse into a single line, but
 	// as per 78015 we'll assert that this is the proper behaviour
 	testWrap('h1', '<div><span>test</span></div>', '<h1>\n\t<div><span>test</span></div>\n</h1>', { 'output.format': false });
