@@ -139,6 +139,10 @@ describe('Expand Abbreviations', () => {
 
   	// https://github.com/microsoft/vscode/issues/114923
 	testExpandWithCompletion('html', 'figcaption', '<figcaption>${0}</figcaption>');
+
+	// https://github.com/microsoft/vscode/issues/72594
+	testExpand('css', 'c#1', 'color: #111;', { "stylesheet.shortHex": true });
+	testExpand('css', 'c#1', 'color: #111111;', { "stylesheet.shortHex": false });
 });
 
 describe('Wrap Abbreviations (basic)', () => {
