@@ -92,6 +92,10 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/69168
 	testExpandWithCompletion('html', 'ul>li{my list $@-}*3', '<ul>\n\t<li>my list 3</li>\n\t<li>my list 2</li>\n\t<li>my list 1</li>\n</ul>');
 
+	// https://github.com/microsoft/vscode/issues/72594
+	testExpand('css', 'c#1', 'color: #111;', { "stylesheet.shortHex": true });
+	testExpand('css', 'c#1', 'color: #111111;', { "stylesheet.shortHex": false });
+
 	// https://github.com/microsoft/vscode/issues/74505
 	testExpandWithCompletion('css', '@f', '@font-face {\n\tfont-family: ${0};\n\tsrc: url(${0});\n}');
 	testExpandWithCompletion('css', '@i', '@import url(${0});');
@@ -111,6 +115,9 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('css', 'opa.1', 'opacity: 0.1;');
 	testExpandWithCompletion('css', 'opa1', 'opacity: 1;');
 	testExpandWithCompletion('css', 'opa.a', 'opacity: .a;');
+
+	// https://github.com/microsoft/vscode/issues/114923
+	testExpandWithCompletion('html', 'figcaption', '<figcaption>${0}</figcaption>');
 
 	// https://github.com/microsoft/vscode/issues/115623
 	testCountCompletions('html', 'html', 1);
@@ -136,9 +143,6 @@ describe('Expand Abbreviations', () => {
 	// `output.reverseAttributes` emmet option
 	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a href="#" class="dropdown-item">foo</a>', { "output.reverseAttributes": false });
 	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a class="dropdown-item" href="#">foo</a>', { "output.reverseAttributes": true });
-
-  	// https://github.com/microsoft/vscode/issues/114923
-	testExpandWithCompletion('html', 'figcaption', '<figcaption>${0}</figcaption>');
 });
 
 describe('Wrap Abbreviations (basic)', () => {
