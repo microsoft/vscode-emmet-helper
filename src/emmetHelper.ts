@@ -955,7 +955,7 @@ function getFormatters(syntax: string, preferences: any) {
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
 	let emmetExtensionsArray: string[];
 
-	if (Array.isArray(emmetExtensionsPathSetting)){
+	if (Array.isArray(emmetExtensionsPathSetting)) {
 		emmetExtensionsArray = emmetExtensionsPathSetting;
 	} else {
 		emmetExtensionsArray = [emmetExtensionsPathSetting];
@@ -963,7 +963,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 
 	let emmetExtensionsPathUri: URI | undefined;
 	let findValidPath = false;
-	for (let emmetExtensionsPath of emmetExtensionsArray){
+	for (let emmetExtensionsPath of emmetExtensionsArray) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}
@@ -996,7 +996,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 		break;
 	}
 
-	if (!findValidPath){
+	if (!findValidPath) {
 		resetSettingsFromFile();
 		throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
 	}
