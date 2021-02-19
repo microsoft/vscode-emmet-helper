@@ -1067,9 +1067,6 @@ function resetSettingsFromFile() {
 	variablesFromFile = {};
 }
 
-function isValidExtensionsPath(path: string){
-	
-}
 
 /**
 * Get the corresponding emmet mode for given vscode language mode
