@@ -950,36 +950,53 @@ function getFormatters(syntax: string, preferences: any) {
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  */
-export async function updateExtensionsPath(emmetExtensionsPath: string | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
-	if (emmetExtensionsPath) {
-		emmetExtensionsPath = emmetExtensionsPath.trim();
-	}
-	if (!emmetExtensionsPath) {
-		resetSettingsFromFile();
-		return Promise.resolve();
+export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	let emmetExtensionsArray: string[];
+
+	if (Array.isArray(emmetExtensionsPathSetting)){
+		emmetExtensionsArray = emmetExtensionsPathSetting;
+	} else {
+		emmetExtensionsArray = [emmetExtensionsPathSetting];
 	}
 
 	let emmetExtensionsPathUri: URI | undefined;
-	if (emmetExtensionsPath[0] === '~') {
-		if (homeDir) {
-			emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+	let findValidPath = false;
+	for (let emmetExtensionsPath of emmetExtensionsArray){
+		if (emmetExtensionsPath) {
+			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}
-	} else if (!isAbsolutePath(emmetExtensionsPath)) {
-		if (workspaceFolderPath) {
-			emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+		if (!emmetExtensionsPath) {
+			resetSettingsFromFile();
+			return Promise.resolve();
 		}
-	} else {
-		emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
+
+		if (emmetExtensionsPath[0] === '~') {
+			if (homeDir) {
+				emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+			}
+		} else if (!isAbsolutePath(emmetExtensionsPath)) {
+			if (workspaceFolderPath) {
+				emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+			}
+		} else {
+			emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
+		}
+
+		try {
+			// the fs.stat call itself could throw, so we wrap this part up into a try-catch
+			if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
+				throw new Error();
+			}
+		} catch (e) {
+			continue;
+		}
+		findValidPath = true;
+		break;
 	}
 
-	try {
-		// the fs.stat call itself could throw, so we wrap this part up into a try-catch
-		if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
-			throw new Error();
-		}
-	} catch (e) {
+	if (!findValidPath){
 		resetSettingsFromFile();
-		throw new Error(`The directory ${emmetExtensionsPath} doesn't exist. Update emmet.extensionsPath setting`);
+		throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
 	}
 
 	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
@@ -1046,6 +1063,10 @@ function resetSettingsFromFile() {
 	stylesheetCustomSnippetsKeyCache.clear();
 	profilesFromFile = {};
 	variablesFromFile = {};
+}
+
+function isValidExtensionsPath(path: string){
+	
 }
 
 /**
