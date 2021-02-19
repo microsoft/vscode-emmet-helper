@@ -69,7 +69,7 @@ export interface VSCodeEmmetConfig {
  * @param syntax Emmet supported language
  * @param emmetConfig Emmet Configurations as derived from VS Code
  */
-export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: VSCodeEmmetConfig): CompletionList {
+export function doComplete(document: TextDocument, position: Position, syntax: string, emmetConfig: VSCodeEmmetConfig): CompletionList | undefined {
 	if (emmetConfig.showExpandedAbbreviation === 'never' || !getEmmetMode(syntax, emmetConfig.excludeLanguages)) {
 		return;
 	}
