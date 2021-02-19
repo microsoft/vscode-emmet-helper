@@ -455,6 +455,20 @@ describe('Test custom snippets', () => {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
 		}
 	});
+
+	it('should use the first valid custom snippets from an array of extensions path', async () => {
+		const customSnippetKey = 'ch';
+		await updateExtensionsPath(null);
+		const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
+		assert(!expandOptionsWithoutCustomSnippets.snippets);
+
+		// Use custom snippets from extensionsPathArray
+		const extensionsPathArray = ["./this/is/not/valid", extensionsPath]
+		await updateExtensionsPath(extensionsPath);
+		const expandOptionsWithCustomSnippets = getExpandOptions('css');
+
+		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
+	});
 });
 
 describe('Test emmet preferences', () => {
