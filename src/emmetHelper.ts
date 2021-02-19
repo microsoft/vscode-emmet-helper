@@ -962,7 +962,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 	}
 
 	let emmetExtensionsPathUri: URI | undefined;
-	let findValidPath = false;
+	let hasValidPath = false;
 	for (let emmetExtensionsPath of emmetExtensionsArray) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
@@ -992,11 +992,11 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 		} catch (e) {
 			continue;
 		}
-		findValidPath = true;
+		hasValidPath = true;
 		break;
 	}
 
-	if (!findValidPath) {
+	if (!hasValidPath) {
 		resetSettingsFromFile();
 		throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
 	}
