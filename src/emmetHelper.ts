@@ -998,7 +998,11 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 
 	if (!hasValidPath) {
 		resetSettingsFromFile();
-		throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
+		if (Array.isArray(emmetExtensionsPathSetting)) {
+			throw new Error(`All of the directories in the array doesn't exist. Update emmet.extensionsPath setting`);
+		} else {
+			throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
+		}
 	}
 
 	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
