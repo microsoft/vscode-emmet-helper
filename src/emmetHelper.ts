@@ -999,9 +999,9 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 	if (!hasValidPath) {
 		resetSettingsFromFile();
 		if (Array.isArray(emmetExtensionsPathSetting)) {
-			throw new Error(`All of the directories in the array doesn't exist. Update emmet.extensionsPath setting`);
+			throw new Error(localize("Emmet extensionsPath plural directories error", "All of the directories in the array doesn't exist. Update emmet.extensionsPath setting"));
 		} else {
-			throw new Error(`The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`);
+			throw new Error(localize("Emmet extensionsPath single directory error", `The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`));
 		}
 	}
 
@@ -1050,7 +1050,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 		});
 	} catch (e) {
 		resetSettingsFromFile();
-		throw new Error(`Error while parsing the file ${snippetsPath}`);
+		throw new Error(localize("Emmet extensionsPath parsing error", `Error while parsing the file ${snippetsPath}`));
 	}
 
 	try {
