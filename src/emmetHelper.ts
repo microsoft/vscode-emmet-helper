@@ -544,13 +544,20 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 		return false;
 	}
 
-	const dotMatches = abbreviation.match(/^([a-z,A-Z,\d]*)\.$/)
+	const dotMatches = abbreviation.match(/^([a-z,A-Z,\d]*)\.$/);
 	if (dotMatches) {
 		// Valid html tags such as `div.`
 		if (dotMatches[1] && htmlData.tags.includes(dotMatches[1])) {
-			return false
+			return false;
 		}
 		return true;
+	}
+
+	// Fix for https://github.com/microsoft/vscode/issues/89746
+	// PascalCase tags are common in jsx code, which should not be treated as noise.
+	// Eg: MyAwesomComponent -> <MyAwesomComponent></MyAwesomComponent>
+	if (syntax === 'jsx' && /^([A-Z][A-Za-z0-9]*)+$/.test(abbreviation)) {
+		return false;
 	}
 
 	// Unresolved html abbreviations get expanded as if it were a tag
