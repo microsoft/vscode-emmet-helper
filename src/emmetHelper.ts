@@ -956,37 +956,60 @@ function getFormatters(syntax: string, preferences: any) {
 
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
+ * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath, support multiple path setting
+ * https://github.com/microsoft/vscode/issues/116741
  */
-export async function updateExtensionsPath(emmetExtensionsPath: string | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
-	if (emmetExtensionsPath) {
-		emmetExtensionsPath = emmetExtensionsPath.trim();
-	}
-	if (!emmetExtensionsPath) {
-		resetSettingsFromFile();
-		return Promise.resolve();
+export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	let emmetExtensionsArray: string[];
+
+	if (Array.isArray(emmetExtensionsPathSetting)) {
+		emmetExtensionsArray = emmetExtensionsPathSetting;
+	} else {
+		emmetExtensionsArray = [emmetExtensionsPathSetting];
 	}
 
 	let emmetExtensionsPathUri: URI | undefined;
-	if (emmetExtensionsPath[0] === '~') {
-		if (homeDir) {
-			emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+	let hasValidPath = false;
+	for (let emmetExtensionsPath of emmetExtensionsArray) {
+		if (emmetExtensionsPath) {
+			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}
-	} else if (!isAbsolutePath(emmetExtensionsPath)) {
-		if (workspaceFolderPath) {
-			emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+		if (!emmetExtensionsPath) {
+			resetSettingsFromFile();
+			return Promise.resolve();
 		}
-	} else {
-		emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
+
+		if (emmetExtensionsPath[0] === '~') {
+			if (homeDir) {
+				emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+			}
+		} else if (!isAbsolutePath(emmetExtensionsPath)) {
+			if (workspaceFolderPath) {
+				emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+			}
+		} else {
+			emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
+		}
+
+		try {
+			// the fs.stat call itself could throw, so we wrap this part up into a try-catch
+			if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
+				throw new Error();
+			}
+		} catch (e) {
+			continue;
+		}
+		hasValidPath = true;
+		break;
 	}
 
-	try {
-		// the fs.stat call itself could throw, so we wrap this part up into a try-catch
-		if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
-			throw new Error();
-		}
-	} catch (e) {
+	if (!hasValidPath) {
 		resetSettingsFromFile();
-		throw new Error(`The directory ${emmetExtensionsPath} doesn't exist. Update emmet.extensionsPath setting`);
+		if (Array.isArray(emmetExtensionsPathSetting)) {
+			throw new Error(localize("Emmet extensionsPath plural directories error", "All of the directories in the array doesn't exist. Update emmet.extensionsPath setting"));
+		} else {
+			throw new Error(localize("Emmet extensionsPath single directory error", `The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`));
+		}
 	}
 
 	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
@@ -1034,7 +1057,7 @@ export async function updateExtensionsPath(emmetExtensionsPath: string | undefin
 		});
 	} catch (e) {
 		resetSettingsFromFile();
-		throw new Error(`Error while parsing the file ${snippetsPath}`);
+		throw new Error(localize("Emmet extensionsPath parsing error", `Error while parsing the file ${snippetsPath}`));
 	}
 
 	try {
@@ -1054,6 +1077,7 @@ function resetSettingsFromFile() {
 	profilesFromFile = {};
 	variablesFromFile = {};
 }
+
 
 /**
 * Get the corresponding emmet mode for given vscode language mode

@@ -77,7 +77,7 @@ const fileService: FileService = {
 	}
 }
 
-function updateExtensionsPath(extPath: string): Promise<void> {
+function updateExtensionsPath(extPath: string | string[]): Promise<void> {
 	return updateExtensionsPathHelper(extPath, fileService, URI.file('/home/projects/test'))
 }
 
@@ -453,6 +453,31 @@ describe('Test custom snippets', () => {
 			return Promise.reject('There should be an error as extensionPath was faulty');
 		} catch (e) {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+		}
+	});
+
+	// https://github.com/microsoft/vscode/issues/116741
+	it('should use the first valid custom snippets from an array of extensions path', async () => {
+		const customSnippetKey = 'ch';
+		await updateExtensionsPath(null);
+		const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
+		assert(!expandOptionsWithoutCustomSnippets.snippets);
+
+		// Use custom snippets from extensionsPathArray
+		const extensionsPathArray = ["./this/is/not/valid", extensionsPath]
+		await updateExtensionsPath(extensionsPathArray);
+		const expandOptionsWithCustomSnippets = getExpandOptions('css');
+
+		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
+	});
+
+	it('should throw error when all extensionsPath in the array are invalid', async () => {
+		const extensionsPathArray = ["./this/is/not/valid", "./this/is/also/not/valid"]
+		try {
+			await updateExtensionsPath(extensionsPathArray);
+			return Promise.reject('There should be an error as no valid path is found in the array');
+		} catch (e) {
+			assert.ok(e);
 		}
 	});
 });
