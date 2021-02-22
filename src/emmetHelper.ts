@@ -956,8 +956,7 @@ function getFormatters(syntax: string, preferences: any) {
 
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
- * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath, support multiple path setting
- * https://github.com/microsoft/vscode/issues/116741
+ * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
 	let emmetExtensionsArray: string[];
