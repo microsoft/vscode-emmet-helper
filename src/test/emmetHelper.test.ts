@@ -954,6 +954,28 @@ describe('Test completions', () => {
 		});
 	});
 
+	it('should provide completions for pascal-case tags when typing (jsx)', async () => {
+		await updateExtensionsPath(null);
+		const testCases: [string, number, number, string, string][] = [
+			['<div>Router</div>', 0, 11, 'Router', '<Router>|</Router>', ],
+			['<div>MyAwesomeComponent</div>', 0, 23, 'MyAwesomeComponent', '<MyAwesomeComponent>|</MyAwesomeComponent>'],
+		];
+		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
+			const document = TextDocument.create('test://test/test.jsx', 'jsx', 0, content);
+			const position = Position.create(positionLine, positionChar);
+			const completionList = doComplete(document, position, 'jsx', {
+				preferences: {},
+				showExpandedAbbreviation: 'always',
+				showAbbreviationSuggestions: false,
+				syntaxProfiles: {},
+				variables: {}
+			});
+
+			assert.strictEqual(completionList.items[0].label, expectedAbbr);
+			assert.strictEqual(completionList.items[0].documentation, expectedExpansion);
+		});
+	})
+
 	it('should not provide completions as they would noise when typing (css)', async () => {
 		await updateExtensionsPath(null);
 		const testCases: [string, number, number][] = [
