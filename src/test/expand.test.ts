@@ -119,6 +119,9 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/114923
 	testExpandWithCompletion('html', 'figcaption', '<figcaption>${0}</figcaption>');
 
+	// https://github.com/microsoft/vscode/issues/117154
+	testExpandWithCompletion('html', 'hgroup', '<hgroup>${0}</hgroup>');
+
 	// https://github.com/microsoft/vscode/issues/115623
 	testCountCompletions('html', 'html', 1);
 	testCountCompletions('html', 'body', 1);
