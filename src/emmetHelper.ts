@@ -525,12 +525,20 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 			expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
-	if (commonlyUsedTags.includes(abbreviation.toLowerCase()) || markupSnippetKeys.includes(abbreviation)) {
+	// we don't want common html tags suggested for xml
+	if (syntax === 'xml' &&
+		commonlyUsedTags.includes(abbreviation.toLowerCase())) {
+		return true;
+	}
+
+	if (commonlyUsedTags.includes(abbreviation.toLowerCase()) ||
+		markupSnippetKeys.includes(abbreviation)) {
 		return false;
 	}
 
 	// Custom tags can have - or :
-	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation) && !abbreviation.endsWith(':')) {
+	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation) &&
+		!abbreviation.endsWith(':')) {
 		return false;
 	}
 
@@ -1048,7 +1056,6 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 			} else {
 				stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
 			}
-
 			customSnippetsRegistry[syntax] = parseSnippets(customSnippets);
 
 			const snippetKeys: string[] = Object.keys(customSnippetsRegistry[syntax]);

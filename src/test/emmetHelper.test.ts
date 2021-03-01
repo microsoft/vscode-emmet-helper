@@ -726,6 +726,7 @@ describe('Test completions', () => {
 				variables: {}
 			});
 
+			assert.strictEqual(completionList.items.some(item => item.label === 'a'), false);
 			assert.strictEqual(completionList.items.some(item => item.label === 'a:blank'), false);
 			assert.strictEqual(completionList.items.some(item => item.label === 'a:link'), false);
 			assert.strictEqual(completionList.items.some(item => item.label === 'a:mail'), false);
