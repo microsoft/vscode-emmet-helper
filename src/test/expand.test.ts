@@ -143,6 +143,9 @@ describe('Expand Abbreviations', () => {
 	// `output.reverseAttributes` emmet option
 	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a href="#" class="dropdown-item">foo</a>', { "output.reverseAttributes": false });
 	testExpand('html', 'a.dropdown-item[href=#]{foo}', '<a class="dropdown-item" href="#">foo</a>', { "output.reverseAttributes": true });
+
+	// https://github.com/microsoft/vscode/issues/117154
+	testExpandWithCompletion('html', 'hgroup', '<hgroup>${0}</hgroup>');
 });
 
 describe('Wrap Abbreviations (basic)', () => {
