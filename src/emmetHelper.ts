@@ -182,8 +182,10 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			tagToFindMoreSuggestionsFor = newTagMatches[2];
 		}
 
-		const commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
-		completionItems = completionItems.concat(commonlyUsedTagSuggestions);
+		if (syntax !== 'xml') {
+			const commonlyUsedTagSuggestions = makeSnippetSuggestion(commonlyUsedTags, tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
+			completionItems = completionItems.concat(commonlyUsedTagSuggestions);
+		}
 
 		if (emmetConfig.showAbbreviationSuggestions === true) {
 			const abbreviationSuggestions = makeSnippetSuggestion(markupSnippetKeys.filter(x => !commonlyUsedTags.includes(x)), tagToFindMoreSuggestionsFor, abbreviation, abbreviationRange, expandOptions, 'Emmet Abbreviation');
@@ -527,7 +529,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 
 	// we don't want common html tags suggested for xml
 	if (syntax === 'xml' &&
-		commonlyUsedTags.includes(abbreviation.toLowerCase())) {
+		commonlyUsedTags.some(tag => tag.startsWith(abbreviation.toLowerCase()))) {
 		return true;
 	}
 

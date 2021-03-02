@@ -713,7 +713,7 @@ describe('Test completions', () => {
 	it('should not provide html completions for xml', async () => {
 		// https://github.com/microsoft/vscode/issues/97632
 		await updateExtensionsPath(null);
-		const testCases: [string] = ['a'];
+		const testCases: string[] = ['a', 'bo', 'body'];
 		const positionLine = 0;
 		testCases.forEach(abbreviation => {
 			const document = TextDocument.create('test://test/test.xml', 'xml', 0, abbreviation);
@@ -726,11 +726,7 @@ describe('Test completions', () => {
 				variables: {}
 			});
 
-			assert.strictEqual(completionList.items.some(item => item.label === 'a'), false);
-			assert.strictEqual(completionList.items.some(item => item.label === 'a:blank'), false);
-			assert.strictEqual(completionList.items.some(item => item.label === 'a:link'), false);
-			assert.strictEqual(completionList.items.some(item => item.label === 'a:mail'), false);
-			assert.strictEqual(completionList.items.some(item => item.label === 'a:tel'), false);
+			assert.strictEqual(completionList, undefined);
 		});
 	});
 
