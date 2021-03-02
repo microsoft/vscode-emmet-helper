@@ -30,7 +30,7 @@
     "vscode-uri": "^2.1.2"
   },
   "scripts": {
-    "prepublishOnly": "npm run clean && npm run compile && npm run compile-esm && npm run test",
+    "prepublishOnly": "npm run clean && yarn && npm run compile && npm run compile-esm && npm run test",
     "watch": "tsc -watch -p ./",
     "compile": "tsc -p ./",
     "clean": "rimraf lib",
