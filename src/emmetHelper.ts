@@ -966,6 +966,7 @@ function getFormatters(syntax: string, preferences: any) {
 
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
+ * TODO: The input type of this setting has been changed on the vscode side. To support users with old version, the old input types are still accripted by this function.
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
