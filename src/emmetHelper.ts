@@ -968,18 +968,16 @@ function getFormatters(syntax: string, preferences: any) {
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
-export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
-	let emmetExtensionsArray: string[];
-
-	if (Array.isArray(emmetExtensionsPathSetting)) {
-		emmetExtensionsArray = emmetExtensionsPathSetting;
-	} else {
-		emmetExtensionsArray = [emmetExtensionsPathSetting];
+export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	if (!emmetExtensionsPathSetting.length) {
+		// Do nothing if the input array is an empty arra, since it means that users don't specify any settings
+		resetSettingsFromFile();
+		return Promise.resolve();
 	}
 
 	let emmetExtensionsPathUri: URI | undefined;
 	let hasValidPath = false;
-	for (let emmetExtensionsPath of emmetExtensionsArray) {
+	for (let emmetExtensionsPath of emmetExtensionsPathSetting) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}

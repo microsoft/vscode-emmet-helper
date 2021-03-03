@@ -10,7 +10,7 @@ import { FileService, FileType } from '../fileService';
 import { URI } from 'vscode-uri';
 import { ExtractOptions } from 'emmet';
 
-const extensionsPath = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile');
+const extensionsPath = [path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile')];
 const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
 const expectedBemFilterOutput =
 	`<ul class="search-form search-form_wide">
@@ -77,7 +77,7 @@ const fileService: FileService = {
 	}
 }
 
-function updateExtensionsPath(extPath: string | string[]): Promise<void> {
+function updateExtensionsPath(extPath: string[]): Promise<void> {
 	return updateExtensionsPathHelper(extPath, fileService, URI.file('/home/projects/test'))
 }
 
@@ -366,7 +366,7 @@ describe('Test variables settings', () => {
 describe('Test custom snippets', () => {
 	it('should use custom snippets for given syntax from extensionsPath', async () => {
 		const customSnippetKey = 'ch';
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
@@ -380,7 +380,7 @@ describe('Test custom snippets', () => {
 	it('should use custom snippets inherited from base syntax from extensionsPath', async () => {
 		const customSnippetKey = 'ch';
 
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
@@ -396,12 +396,12 @@ describe('Test custom snippets', () => {
 
 	it('should use custom snippets for given syntax in the absence of base syntax from extensionsPath', async () => {
 		const customSnippetKey = 'ch';
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const expandOptionsWithoutCustomSnippets = getExpandOptions('scss');
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 		// Use custom snippets from extensionsPath
-		await updateExtensionsPath(path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritence'));
+		await updateExtensionsPath([path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritence')]);
 		const expandOptionsWithCustomSnippets = getExpandOptions('scss');
 
 		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
@@ -410,7 +410,7 @@ describe('Test custom snippets', () => {
 	it('should throw error when snippets file from extensionsPath has invalid json', async () => {
 		const invalidJsonPath = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-invalid-json');
 		try {
-			await updateExtensionsPath(invalidJsonPath);
+			await updateExtensionsPath([invalidJsonPath]);
 			return Promise.reject('There should be an error as snippets file contained invalid json');
 		} catch (e) {
 			assert.ok(e);
@@ -422,7 +422,7 @@ describe('Test custom snippets', () => {
 		await updateExtensionsPath(extensionsPath);
 		assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
 	});
 
@@ -432,7 +432,7 @@ describe('Test custom snippets', () => {
 		assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
 		try {
-			await updateExtensionsPath(extensionsPath + 'path');
+			await updateExtensionsPath(["./this/is/not/valid"]);
 			return Promise.reject('There should be an error as extensionPath was faulty');
 		} catch (e) {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
@@ -449,7 +449,7 @@ describe('Test custom snippets', () => {
 
 		const extensionsPathParent = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData');
 		try {
-			await updateExtensionsPath(extensionsPathParent);
+			await updateExtensionsPath([extensionsPathParent]);
 			return Promise.reject('There should be an error as extensionPath was faulty');
 		} catch (e) {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
@@ -459,12 +459,12 @@ describe('Test custom snippets', () => {
 	// https://github.com/microsoft/vscode/issues/116741
 	it('should use the first valid custom snippets from an array of extensions path', async () => {
 		const customSnippetKey = 'ch';
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const expandOptionsWithoutCustomSnippets = getExpandOptions('css');
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 		// Use custom snippets from extensionsPathArray
-		const extensionsPathArray = ["./this/is/not/valid", extensionsPath]
+		const extensionsPathArray = ["./this/is/not/valid"].concat(extensionsPath);
 		await updateExtensionsPath(extensionsPathArray);
 		const expandOptionsWithCustomSnippets = getExpandOptions('css');
 
@@ -495,29 +495,29 @@ describe('Test emmet preferences', () => {
 
 describe('Test filters (bem and comment)', () => {
 	it('should expand haml', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation('ul[data="class"]', getExpandOptions('haml', {})), '%ul(data="class") ${0}');
 	});
 
 	it('should expand attributes with []', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation('div[[a]="b"]', getExpandOptions('html', {})), '<div [a]="b">${0}</div>');
 	});
 
 	it('should expand abbreviations that are nodes with no name', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation('c', getExpandOptions('html', {})), '<!-- ${0} -->');
 	});
 
 	it('should use filters from expandOptions', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation(bemFilterExample, getExpandOptions('html', {}, 'bem')), expectedBemFilterOutput);
 		assert.strictEqual(expandAbbreviation(commentFilterExample, getExpandOptions('html', {}, 'c')), expectedCommentFilterOutput);
 		assert.strictEqual(expandAbbreviation(bemCommentFilterExample, getExpandOptions('html', {}, 'bem,c')), expectedBemCommentFilterOutput);
 	});
 
 	it('should use filters from syntaxProfiles', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation(bemFilterExample, getExpandOptions('html', {
 			syntaxProfiles: {
 				html: {
@@ -537,7 +537,7 @@ describe('Test filters (bem and comment)', () => {
 
 describe('Test completions', () => {
 	it('should provide multiple common tags completions in html', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'd');
 		const position = Position.create(0, 1);
 		const completionList = doComplete(document, position, 'html', {
@@ -553,7 +553,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide multiple snippet suggestions in html', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'a:');
 		const position = Position.create(0, 2);
 		const completionList = doComplete(document, position, 'html', {
@@ -569,7 +569,7 @@ describe('Test completions', () => {
 	});
 
 	it('should not provide any suggestions in html for class names or id', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases = ['div.col', 'div#col'];
 		testCases.forEach(abbr => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
@@ -587,7 +587,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide multiple snippet suggestions in html for nested abbreviations', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases = ['ul>a:', 'ul+a:'];
 		testCases.forEach(abbr => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
@@ -607,7 +607,7 @@ describe('Test completions', () => {
 
 	it('should not provide link:m as a suggestion', async () => {
 		// https://github.com/microsoft/vscode/issues/66680
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const abbr = 'link:m';
 		const document = TextDocument.create('test://test/test.html', 'html', 0, abbr);
 		const position = Position.create(0, abbr.length);
@@ -624,7 +624,7 @@ describe('Test completions', () => {
 
 	it('should not provide marginright as a suggestion SCSS', async () => {
 		// https://github.com/microsoft/vscode-emmet-helper/issues/42
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const abbr = 'marginright';
 		const document = TextDocument.create('test://test/test.scss', 'scss', 0, abbr);
 		const position = Position.create(0, abbr.length);
@@ -640,7 +640,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions html', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const bemFilterExampleWithInlineFilter = bemFilterExample + '|bem';
 		const commentFilterExampleWithInlineFilter = commentFilterExample + '|c';
 		const bemCommentFilterExampleWithInlineFilter = bemCommentFilterExample + '|bem|c';
@@ -682,7 +682,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions css', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, string][] = [
 			['trf', 'transform: ;'],
 			['trf:rx', 'transform: rotateX(angle);'],
@@ -712,7 +712,7 @@ describe('Test completions', () => {
 
 	it('should not provide html completions for xml', async () => {
 		// https://github.com/microsoft/vscode/issues/97632
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: string[] = ['a', 'bo', 'body'];
 		const positionLine = 0;
 		testCases.forEach(abbreviation => {
@@ -731,7 +731,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide hex color completions css', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, string][] = [
 			['#1', '#111'],
 			['#ab', '#ababab'],
@@ -759,7 +759,7 @@ describe('Test completions', () => {
 	});
 
 	it.skip('should provide empty incomplete completion list for abbreviations that just have the vendor prefix', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['-', 0, 1],
 			['-m-', 0, 3],
@@ -787,7 +787,7 @@ describe('Test completions', () => {
 	})
 
 	it('should provide completions for text that are prefix for snippets, ensure $ doesnt get escaped', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['<div> l </div>', 0, 7]
 		];
@@ -811,7 +811,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions for scss', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['m:a', 0, 3]
 		];
@@ -831,7 +831,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions with escaped $ in scss', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['bgi$hello', 0, 9]
 		];
@@ -852,7 +852,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions with escaped $ in html', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number, string, string][] = [
 			['span{\\$5}', 0, 9, '<span>$5</span>', '<span>\\$5</span>'],
 			['span{\\$hello}', 0, 13, '<span>$hello</span>', '<span>\\$hello</span>']
@@ -948,7 +948,7 @@ describe('Test completions', () => {
 	});
 
 	it('should not provide completions as they would noise when typing (html)', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['<div>abc</div>', 0, 8],
 			['<div>Abc</div>', 0, 8],
@@ -977,9 +977,9 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions for pascal-case tags when typing (jsx)', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number, string, string][] = [
-			['<div>Router</div>', 0, 11, 'Router', '<Router>|</Router>', ],
+			['<div>Router</div>', 0, 11, 'Router', '<Router>|</Router>',],
 			['<div>MyAwesomeComponent</div>', 0, 23, 'MyAwesomeComponent', '<MyAwesomeComponent>|</MyAwesomeComponent>'],
 		];
 		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
@@ -999,7 +999,7 @@ describe('Test completions', () => {
 	})
 
 	it('should not provide completions as they would noise when typing (css)', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const testCases: [string, number, number][] = [
 			['background', 0, 10],
 			['font-family', 0, 11],
@@ -1023,7 +1023,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions for loremn with n words', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, '.item>lorem10');
 		const position = Position.create(0, 13);
 		const completionList = doComplete(document, position, 'html', {
@@ -1046,7 +1046,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions for lorem*n with n lines', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*3');
 		const position = Position.create(0, 12);
 		const completionList = doComplete(document, position, 'html', {
@@ -1068,7 +1068,7 @@ describe('Test completions', () => {
 
 	it('should provide completions for lorem*2 with 2 lines', async () => {
 		// https://github.com/microsoft/vscode/issues/52345
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'lorem*2');
 		const position = Position.create(0, 12);
 		const completionList = doComplete(document, position, 'html', {
@@ -1150,7 +1150,7 @@ describe('Test completions', () => {
 	});
 
 	it.skip('should expand with multiple vendor prefixes', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation('brs', getExpandOptions('css', {})), 'border-radius: ${0};');
 		assert.strictEqual(expandAbbreviation('brs5', getExpandOptions('css', {})), 'border-radius: 5px;');
 		assert.strictEqual(expandAbbreviation('brs10px', getExpandOptions('css', {})), 'border-radius: 10px;');
@@ -1164,7 +1164,7 @@ describe('Test completions', () => {
 	});
 
 	it.skip('should expand with default vendor prefixes in properties', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.webkitProperties': 'foo, bar, padding' } })), '-webkit-padding: ${0};\npadding: ${0};');
 		assert.strictEqual(expandAbbreviation('-p', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding' } })), '-webkit-padding: ${0};\n-o-padding: ${0};\npadding: ${0};');
 		assert.strictEqual(expandAbbreviation('-brs', getExpandOptions('css', { preferences: { 'css.oProperties': 'padding', 'css.webkitProperties': 'padding', 'css.mozProperties': '', 'css.msProperties': '' } })), '-webkit-border-radius: ${0};\n-moz-border-radius: ${0};\n-ms-border-radius: ${0};\n-o-border-radius: ${0};\nborder-radius: ${0};');
@@ -1172,7 +1172,7 @@ describe('Test completions', () => {
 	});
 
 	it('should not provide completions for excludedLanguages', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
 		const position = Position.create(0, 5);
 		const completionList = doComplete(document, position, 'html', {
@@ -1188,7 +1188,7 @@ describe('Test completions', () => {
 	});
 
 	it('should provide completions with kind snippet when showSuggestionsAsSnippets is enabled', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'ul>li');
 		const position = Position.create(0, 5);
 		const completionList = doComplete(document, position, 'html', {
@@ -1204,7 +1204,7 @@ describe('Test completions', () => {
 	});
 
 	it('should not provide double completions for commonly used tags that are also snippets', async () => {
-		await updateExtensionsPath(null);
+		await updateExtensionsPath([]);
 		const document = TextDocument.create('test://test/test.html', 'html', 0, 'abb');
 		const position = Position.create(0, 3);
 		const completionList = doComplete(document, position, 'html', {
