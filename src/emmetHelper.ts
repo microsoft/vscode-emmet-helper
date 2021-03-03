@@ -981,6 +981,10 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}
+		if (!emmetExtensionsPath) {
+			resetSettingsFromFile();
+			return Promise.resolve();
+		}
 
 		if (emmetExtensionsPath[0] === '~') {
 			if (homeDir) {
