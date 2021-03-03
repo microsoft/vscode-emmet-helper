@@ -464,7 +464,7 @@ describe('Test custom snippets', () => {
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 		// Use custom snippets from extensionsPathArray
-		const extensionsPathArray = ["./this/is/not/valid", extensionsPath[0]]
+		const extensionsPathArray = ["./this/is/not/valid"].concat(extensionsPath);
 		await updateExtensionsPath(extensionsPathArray);
 		const expandOptionsWithCustomSnippets = getExpandOptions('css');
 
@@ -979,7 +979,7 @@ describe('Test completions', () => {
 	it('should provide completions for pascal-case tags when typing (jsx)', async () => {
 		await updateExtensionsPath([]);
 		const testCases: [string, number, number, string, string][] = [
-			['<div>Router</div>', 0, 11, 'Router', '<Router>|</Router>', ],
+			['<div>Router</div>', 0, 11, 'Router', '<Router>|</Router>',],
 			['<div>MyAwesomeComponent</div>', 0, 23, 'MyAwesomeComponent', '<MyAwesomeComponent>|</MyAwesomeComponent>'],
 		];
 		testCases.forEach(([content, positionLine, positionChar, expectedAbbr, expectedExpansion]) => {
