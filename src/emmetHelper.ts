@@ -969,7 +969,7 @@ function getFormatters(syntax: string, preferences: any) {
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
-	if (!emmetExtensionsPathSetting.length){
+	if (!emmetExtensionsPathSetting.length) {
 		// Do nothing if the input array is an empty arra, since it means that users don't specify any settings
 		resetSettingsFromFile();
 		return Promise.resolve();
