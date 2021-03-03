@@ -979,6 +979,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string | 
 		return Promise.resolve();
 	}
 
+	// Transform the all input type to array
 	if (Array.isArray(emmetExtensionsPathSetting)) {
 		emmetExtensionsArray = emmetExtensionsPathSetting;
 	} else {
