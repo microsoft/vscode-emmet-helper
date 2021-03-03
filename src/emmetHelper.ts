@@ -971,6 +971,13 @@ function getFormatters(syntax: string, preferences: any) {
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
 	let emmetExtensionsArray: string[];
 
+	if (Array.isArray(emmetExtensionsPathSetting) && !emmetExtensionsPathSetting.length){
+		// default value of emmet.extensionsPath has been changed to empty array
+		// Do nothing if the input array is an empty array, since it means that users don't specify any settings
+		resetSettingsFromFile();
+		return Promise.resolve();
+	}
+
 	if (Array.isArray(emmetExtensionsPathSetting)) {
 		emmetExtensionsArray = emmetExtensionsPathSetting;
 	} else {
