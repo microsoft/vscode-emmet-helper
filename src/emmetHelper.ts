@@ -966,35 +966,20 @@ function getFormatters(syntax: string, preferences: any) {
 
 /**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
- * TODO: The input type of this setting has been changed on the vscode side. To support users with old version, the old input types are still accripted by this function.
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
-export async function updateExtensionsPath(emmetExtensionsPathSetting: string | string[] | undefined | null, fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
-	let emmetExtensionsArray: string[];
-
-	if (Array.isArray(emmetExtensionsPathSetting) && !emmetExtensionsPathSetting.length){
-		// default value of emmet.extensionsPath has been changed to empty array
-		// Do nothing if the input array is an empty array, since it means that users don't specify any settings
+export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	if (!emmetExtensionsPathSetting.length){
+		// Do nothing if the input array is an empty arra, since it means that users don't specify any settings
 		resetSettingsFromFile();
 		return Promise.resolve();
 	}
 
-	// Transform the all input type to array
-	if (Array.isArray(emmetExtensionsPathSetting)) {
-		emmetExtensionsArray = emmetExtensionsPathSetting;
-	} else {
-		emmetExtensionsArray = [emmetExtensionsPathSetting];
-	}
-
 	let emmetExtensionsPathUri: URI | undefined;
 	let hasValidPath = false;
-	for (let emmetExtensionsPath of emmetExtensionsArray) {
+	for (let emmetExtensionsPath of emmetExtensionsPathSetting) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
-		}
-		if (!emmetExtensionsPath) {
-			resetSettingsFromFile();
-			return Promise.resolve();
 		}
 
 		if (emmetExtensionsPath[0] === '~') {
