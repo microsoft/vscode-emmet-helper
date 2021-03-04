@@ -1,9 +1,19 @@
 name: Unit Tests
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 jobs:
   yarn:
-    name: Yarn
-    runs-on: [ubuntu-latest, windows-latest]
+    name: yarn-ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run yarn
+      run: |
+        yarn && yarn compile && yarn test
+    name: yarn-windows
+    runs-on: windows-latest
     steps:
     - name: Run yarn
       run: |
