@@ -1,13 +1,14 @@
 name: Unit Tests
 on: push
 jobs:
-  yarn:
+  yarn-ubuntu:
     name: yarn-ubuntu
     runs-on: ubuntu-latest
     steps:
     - name: Run yarn
       run: |
         yarn && yarn compile && yarn test
+  yarn-windows:
     name: yarn-windows
     runs-on: windows-latest
     steps:
