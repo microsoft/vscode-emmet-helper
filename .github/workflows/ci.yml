@@ -3,7 +3,7 @@ on: [push, pull_request]
 jobs:
   yarn:
     name: Yarn
-    runs-on: [ubuntu-latest, window-latest]
+    runs-on: [ubuntu-latest, windows-latest]
     steps:
     - name: Run yarn
       run: |
