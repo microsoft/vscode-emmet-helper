@@ -1,13 +1,5 @@
 name: Unit Tests
-on:
-  push:
-    branches:
-      - main
-    tags:
-      - v*
-  pull_request:
-    branches:
-      - '*'
+on: push
 jobs:
   yarn:
     name: yarn-ubuntu
