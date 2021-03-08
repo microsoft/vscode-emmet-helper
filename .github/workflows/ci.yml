@@ -1,0 +1,21 @@
+name: run-tests
+on: push
+jobs:
+  yarn-ubuntu:
+    name: yarn-ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Run yarn
+      run: |
+        yarn && yarn compile && yarn test
+  yarn-windows:
+    name: yarn-windows
+    runs-on: windows-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Run yarn
+      run: |
+        yarn && yarn compile && yarn test
