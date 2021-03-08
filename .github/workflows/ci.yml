@@ -1,4 +1,4 @@
-name: Unit Tests
+name: run-tests
 on: push
 jobs:
   yarn-ubuntu:
