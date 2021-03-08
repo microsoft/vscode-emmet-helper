@@ -6,7 +6,6 @@
 
 import { Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
 import { TextDocument } from 'vscode-languageserver-textdocument';
-
 import * as JSONC from 'jsonc-parser';
 import { cssData, htmlData } from './data';
 import { URI } from 'vscode-uri';
@@ -32,6 +31,8 @@ const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
 const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.\{]/;
+// take off { for jsx because it interferes with the language
+const jsxAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
 const cssAbbreviationRegex = /^-?[a-z,A-Z,!,@,#]/;
 const htmlAbbreviationRegex = /[a-z,A-Z\.]/;
 const commonlyUsedTags = [...htmlData.tags, 'lorem'];
@@ -515,6 +516,9 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return false;
 	}
 
+	if (syntax === 'jsx') {
+		return (jsxAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
+	}
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 

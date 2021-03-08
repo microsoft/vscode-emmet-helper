@@ -131,8 +131,17 @@ describe('Expand Abbreviations', () => {
 	testCountCompletions('sass', 'bkco', 0);
 	testCountCompletions('sass', 'bgc', 1);
 
+	// https://github.com/microsoft/vscode/issues/115946
+	testExpandWithCompletion('html', '{test}*3', 'test\ntest\ntest');
+
 	// https://github.com/microsoft/vscode/issues/117154
 	testExpandWithCompletion('html', 'hgroup', '<hgroup>${0}</hgroup>');
+
+	// https://github.com/microsoft/vscode/issues/118363
+	testCountCompletions('jsx', '{test}', 0);
+	testCountCompletions('jsx', '{test}*2', 0);
+	// this case shouldn't come up in everyday coding, but including it here for reference
+	testExpandWithCompletion('jsx', 'import{test}*2', '<import>test</import>\n<import>test</import>');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>')
