@@ -526,7 +526,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 		const after = options['stylesheet.after'] ?? ';';
 
 		// Remove overlapping between `abbreviation` and `between`, if any
-		let endPrefixIndex = abbreviation.indexOf(between[0], abbreviation.length - between.length);
+		let endPrefixIndex = abbreviation.indexOf(between[0], Math.max(abbreviation.length - between.length, 0));
 		endPrefixIndex = endPrefixIndex >= 0 ? endPrefixIndex : abbreviation.length;
 		const abbr = abbreviation.substring(0, endPrefixIndex);
 
