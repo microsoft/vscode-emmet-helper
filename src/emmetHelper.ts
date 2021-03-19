@@ -121,7 +121,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		} catch (e) {
 		}
 
-		if (!expandedText || isExpandedTextNoise(syntax, abbr, expandedText)) {
+		if (!expandedText || isExpandedTextNoise(syntax, abbr, expandedText, expandOptions.options)) {
 			return;
 		}
 
@@ -493,10 +493,6 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 		return false;
 	}
 	if (isStyleSheet(syntax)) {
-		// Fix for https://github.com/Microsoft/vscode/issues/1623 in new emmet
-		if (abbreviation.endsWith(':')) {
-			return false;
-		}
 		if (abbreviation.includes('#')) {
 			if (abbreviation.startsWith('#')) {
 				return hexColorRegex.test(abbreviation);
@@ -522,12 +518,19 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
-function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string): boolean {
+function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string, options: Partial<Options>): boolean {
 	// Unresolved css abbreviations get expanded to a blank property value
 	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
 	if (isStyleSheet(syntax)) {
-		const after = (syntax === 'sass' || syntax === 'stylus') ? '' : ';';
-		return expandedText === `${abbreviation}: \${0}${after}` ||
+		const between = options['stylesheet.between'] ?? ': ';
+		const after = options['stylesheet.after'] ?? ';';
+
+		// Remove overlapping between `abbreviation` and `between`, if any
+		let endPrefixIndex = abbreviation.indexOf(between[0], Math.max(abbreviation.length - between.length, 0));
+		endPrefixIndex = endPrefixIndex >= 0 ? endPrefixIndex : abbreviation.length;
+		const abbr = abbreviation.substring(0, endPrefixIndex);
+
+		return expandedText === `${abbr}${between}\${0}${after}` ||
 			expandedText.replace(/\s/g, '') === abbreviation.replace(/\s/g, '') + after;
 	}
 
