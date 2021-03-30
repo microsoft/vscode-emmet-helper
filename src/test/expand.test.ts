@@ -3,7 +3,7 @@ import { Options, UserConfig } from 'emmet';
 import { describe, it } from 'mocha';
 import { TextDocument, TextEdit } from 'vscode-languageserver-textdocument';
 import { Position } from 'vscode-languageserver-types'
-import { doComplete, expandAbbreviation, getSyntaxType } from '../emmetHelper';
+import { doComplete, expandAbbreviation, getSyntaxType, VSCodeEmmetConfig } from '../emmetHelper';
 
 const COMPLETE_OPTIONS = {
 	preferences: {},
@@ -13,12 +13,12 @@ const COMPLETE_OPTIONS = {
 	variables: {}
 }
 
-function testExpandWithCompletion(syntax: string, abbrev: string, expanded: string) {
+function testExpandWithCompletion(syntax: string, abbrev: string, expanded: string, options?: VSCodeEmmetConfig) {
 	it(`should expand ${abbrev} to\n${expanded}`, async () => {
 		const document = TextDocument.create(`test://test/test.${syntax}`, syntax, 0, abbrev);
 		const position = Position.create(0, abbrev.length);
 
-		const completionList = doComplete(document, position, syntax, COMPLETE_OPTIONS);
+		const completionList = doComplete(document, position, syntax, options ?? COMPLETE_OPTIONS);
 
 		assert.ok(completionList && completionList.items, `completion list exists for ${abbrev}`);
 		assert.ok(completionList.items.length > 0, `completion list is not empty for ${abbrev}`);
@@ -142,6 +142,16 @@ describe('Expand Abbreviations', () => {
 	testCountCompletions('jsx', '{test}*2', 0);
 	// this case shouldn't come up in everyday coding, but including it here for reference
 	testExpandWithCompletion('jsx', 'import{test}*2', '<import>test</import>\n<import>test</import>');
+
+	// https://github.com/microsoft/vscode/issues/119088
+	testExpand('html', 'span*3', '<span></span><span></span><span></span>', { "output.inlineBreak": 0 });
+	testExpand('html', 'span*3', '<span></span>\n<span></span>\n<span></span>', { "output.inlineBreak": 1 });
+
+	// https://github.com/microsoft/vscode/issues/119937
+	testExpand('html', 'div[a. b.]', '<div a b></div>', { "output.compactBoolean": true, "markup.href": true });
+	testExpand('jsx', 'div[a. b.]', '<div a b></div>', { "output.compactBoolean": true, "jsx.enabled": true, "markup.href": true });
+	testExpand('html', 'div[a. b.]', '<div a="a" b="b"></div>', { "output.compactBoolean": false, "markup.href": true });
+	testExpand('jsx', 'div[a. b.]', '<div a="a" b="b"></div>', { "output.compactBoolean": false, "jsx.enabled": true, "markup.href": true });
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>')
