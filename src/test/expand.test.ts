@@ -97,12 +97,15 @@ describe('Expand Abbreviations', () => {
 	testExpand('css', 'c#1', 'color: #111111;', { "stylesheet.shortHex": false });
 
 	// https://github.com/microsoft/vscode/issues/74505
-	testExpandWithCompletion('css', '@f', '@font-face {\n\tfont-family: ${0};\n\tsrc: url(${0});\n}');
+	testExpandWithCompletion('css', '@f', '@font-face {\n\tfont-family: ${1};\n\tsrc: url(${0});\n}');
 	testExpandWithCompletion('css', '@i', '@import url(${0});');
 	testExpandWithCompletion('css', '@import', '@import url(${0});');
 	testExpandWithCompletion('css', '@kf', '@keyframes ${1:identifier} {\n\t${0}\n}');
 	testExpandWithCompletion('css', '@', '@media ${1:screen} {\n\t${0}\n}');
 	testExpandWithCompletion('css', '@m', '@media ${1:screen} {\n\t${0}\n}');
+
+	// https://github.com/microsoft/vscode/issues/84608
+	// testExpandWithCompletion('css', 'bg:n', 'background: none;');
 
 	// https://github.com/microsoft/vscode/issues/92120
 	testExpandWithCompletion('css', 'd', 'display: ${1:block};');
@@ -148,10 +151,14 @@ describe('Expand Abbreviations', () => {
 	testExpand('html', 'span*3', '<span></span>\n<span></span>\n<span></span>', { "output.inlineBreak": 1 });
 
 	// https://github.com/microsoft/vscode/issues/119937
-	testExpand('html', 'div[a. b.]', '<div a b></div>', { "output.compactBoolean": true, "markup.href": true });
-	testExpand('jsx', 'div[a. b.]', '<div a b></div>', { "output.compactBoolean": true, "jsx.enabled": true, "markup.href": true });
-	testExpand('html', 'div[a. b.]', '<div a="a" b="b"></div>', { "output.compactBoolean": false, "markup.href": true });
-	testExpand('jsx', 'div[a. b.]', '<div a="a" b="b"></div>', { "output.compactBoolean": false, "jsx.enabled": true, "markup.href": true });
+	testExpandWithCompletion('html', 'div[a. b.]', '<div a b>${0}</div>', { "preferences": { "profile.allowCompactBoolean": true }});
+	// testExpandWithCompletion('jsx', 'div[a. b.]', '<div a b>${0}</div>', { "preferences": { "profile.allowCompactBoolean": true }});
+	testExpandWithCompletion('html', 'div[a. b.]', '<div a="a" b="b">${0}</div>', { "preferences": { "profile.allowCompactBoolean": false }});
+	testExpandWithCompletion('jsx', 'div[a. b.]', '<div a="a" b="b">${0}</div>', { "preferences": { "profile.allowCompactBoolean": false }});
+
+	// https://github.com/microsoft/vscode/issues/120356
+	testExpandWithCompletion('jsx', 'MyComponent/', '<MyComponent />');
+	testExpandWithCompletion('html', 'MyComponent/', '<MyComponent>');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>')

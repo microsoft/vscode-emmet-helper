@@ -720,6 +720,7 @@ function getClosingStyle(syntax: string): string {
 		case 'xhtml': return 'xhtml';
 		case 'xml': return 'xml';
 		case 'xsl': return 'xml';
+		case 'jsx': return 'xhtml';
 		default: return 'html';
 	}
 }
