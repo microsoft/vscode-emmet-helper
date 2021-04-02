@@ -401,8 +401,7 @@ export function getDefaultSyntax(syntax: string): string {
 /** Returns the default snippets that Emmet suggests */
 export function getDefaultSnippets(syntax: string): SnippetsMap {
 	const syntaxType = getSyntaxType(syntax);
-	const syntaxToUse = isStyleSheet(syntax) ? 'css' : syntax;
-	const emptyUserConfig: UserConfig = { type: syntaxType, syntax: syntaxToUse };
+	const emptyUserConfig: UserConfig = { type: syntaxType, syntax };
 	const resolvedConfig: Config = resolveConfig(emptyUserConfig);
 
 	// https://github.com/microsoft/vscode/issues/97632
