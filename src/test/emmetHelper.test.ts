@@ -401,7 +401,7 @@ describe('Test custom snippets', () => {
 		assert(!expandOptionsWithoutCustomSnippets.snippets);
 
 		// Use custom snippets from extensionsPath
-		await updateExtensionsPath([path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritence')]);
+		await updateExtensionsPath([path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritance')]);
 		const expandOptionsWithCustomSnippets = getExpandOptions('scss');
 
 		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
@@ -426,20 +426,20 @@ describe('Test custom snippets', () => {
 		assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was not given');
 	});
 
-	it('should reset custom snippets when non-existent extensionsPath is given', async () => {
+	it('should do nothing when non-existent extensionsPath is given', async () => {
 		const customSnippetKey = 'ch';
 		await updateExtensionsPath(extensionsPath);
 		assert.strictEqual(Object.keys(getExpandOptions('scss').snippets).some(key => key === customSnippetKey), true);
 
 		try {
 			await updateExtensionsPath(["./this/is/not/valid"]);
-			return Promise.reject('There should be an error as extensionPath was faulty');
-		} catch (e) {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+		} catch (e) {
+			throw new Error('There should not be an error');
 		}
 	});
 
-	it('should reset custom snippets when directory with no snippets is given', async () => {
+	it('should do nothing when directory with no snippets is given', async () => {
 		const customSnippetKey = 'ch';
 		await updateExtensionsPath(extensionsPath);
 
@@ -450,9 +450,9 @@ describe('Test custom snippets', () => {
 		const extensionsPathParent = path.join(path.normalize(path.join(__dirname, '../../..')), 'testData');
 		try {
 			await updateExtensionsPath([extensionsPathParent]);
-			return Promise.reject('There should be an error as extensionPath was faulty');
-		} catch (e) {
 			assert.ok(!getExpandOptions('scss').snippets, 'There should be no custom snippets as extensionPath was faulty');
+		} catch (e) {
+			throw new Error('There should not be an error');
 		}
 	});
 
@@ -471,13 +471,30 @@ describe('Test custom snippets', () => {
 		assert.strictEqual(Object.keys(expandOptionsWithCustomSnippets.snippets).some(key => key === customSnippetKey), true);
 	});
 
-	it('should throw error when all extensionsPath in the array are invalid', async () => {
+	// https://github.com/microsoft/vscode/issues/117515
+	it('should override earlier snippets with later snippets', async () => {
+		const extensionsPathArray = [
+			path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile'),
+			path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-without-inheritance')
+		];
+		try {
+			await updateExtensionsPath(extensionsPathArray);
+			const expandOptions = getExpandOptions('css');
+			assert.ok(expandOptions);
+			assert.ok(expandOptions.snippets);
+			assert.strictEqual(expandOptions.snippets['hello'], 'margin: 100px;');
+		} catch (e) {
+			throw new Error('There should not be an error');
+		}
+	});
+
+	// https://github.com/microsoft/vscode/issues/120435
+	it('should do nothing when all extensionsPath in the array are invalid', async () => {
 		const extensionsPathArray = ["./this/is/not/valid", "./this/is/also/not/valid"]
 		try {
 			await updateExtensionsPath(extensionsPathArray);
-			return Promise.reject('There should be an error as no valid path is found in the array');
 		} catch (e) {
-			assert.ok(e);
+			throw new Error('There should not be an error');
 		}
 	});
 });

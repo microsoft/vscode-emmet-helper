@@ -140,6 +140,10 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/117154
 	testExpandWithCompletion('html', 'hgroup', '<hgroup>${0}</hgroup>');
 
+	// https://github.com/microsoft/vscode/issues/117648
+	// testExpandWithCompletion('css', 'gtc', 'grid-template-columns: repeat();');
+	// testExpandWithCompletion('sass', 'gtc', 'grid-template-columns: repeat()');
+
 	// https://github.com/microsoft/vscode/issues/118363
 	testCountCompletions('jsx', '{test}', 0);
 	testCountCompletions('jsx', '{test}*2', 0);

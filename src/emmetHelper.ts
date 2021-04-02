@@ -977,24 +977,19 @@ function getFormatters(syntax: string, preferences: any) {
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+	resetSettingsFromFile();
+
 	if (!emmetExtensionsPathSetting.length) {
-		// Do nothing if the input array is an empty arra, since it means that users don't specify any settings
-		resetSettingsFromFile();
-		return Promise.resolve();
+		return;
 	}
 
 	let emmetExtensionsPathUri: URI | undefined;
-	let hasValidPath = false;
 	for (let emmetExtensionsPath of emmetExtensionsPathSetting) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
 		}
-		if (!emmetExtensionsPath) {
-			resetSettingsFromFile();
-			return Promise.resolve();
-		}
 
-		if (emmetExtensionsPath[0] === '~') {
+		if (emmetExtensionsPath.length && emmetExtensionsPath[0] === '~') {
 			if (homeDir) {
 				emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
 			}
@@ -1007,41 +1002,95 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		}
 
 		try {
-			// the fs.stat call itself could throw, so we wrap this part up into a try-catch
 			if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
-				throw new Error();
+				// Invalid directory, or path is not a directory
+				continue;
 			}
 		} catch (e) {
+			// stat threw an error
 			continue;
 		}
-		hasValidPath = true;
-		break;
-	}
 
-	if (!hasValidPath) {
-		resetSettingsFromFile();
-		if (Array.isArray(emmetExtensionsPathSetting)) {
-			throw new Error(localize("Emmet extensionsPath plural directories error", "All of the directories in the array doesn't exist. Update emmet.extensionsPath setting"));
-		} else {
-			throw new Error(localize("Emmet extensionsPath single directory error", `The directory ${emmetExtensionsPathSetting} doesn't exist. Update emmet.extensionsPath setting`));
+		const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
+		const profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
+
+		// the only errors we want to throw here are JSON parse errors
+		let snippetsDataStr = "";
+		try {
+			const snippetsData = await fs.readFile(snippetsPath);
+			snippetsDataStr = new TextDecoder().decode(snippetsData);
+		} catch (e) {
+		}
+		if (snippetsDataStr.length) {
+			try {
+				const snippetsJson = tryParseFile(snippetsPath, snippetsDataStr);
+				if (typeof snippetsJson === 'object' && snippetsJson['variables']) {
+					updateVariables(snippetsJson['variables']);
+				}
+				updateSnippets(snippetsJson);
+			} catch (e) {
+				resetSettingsFromFile();
+				throw e;
+			}
+		}
+
+		let profilesDataStr = "";
+		try {
+			const profilesData = await fs.readFile(profilesPath);
+			profilesDataStr = new TextDecoder().decode(profilesData);
+		} catch (e) {
+		}
+		if (profilesDataStr.length) {
+			try {
+				const profilesJson = tryParseFile(profilesPath, profilesDataStr);
+				updateProfiles(profilesJson);
+			} catch (e) {
+				resetSettingsFromFile();
+				throw e;
+			}
 		}
 	}
+}
 
-	const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
-	const profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
+function tryParseFile(strPath: URI, dataStr: string): any {
+	let errors: JSONC.ParseError[] = [];
+	const json = JSONC.parse(dataStr, errors);
+	if (errors.length) {
+		throw new Error(`Found error ${JSONC.printParseErrorCode(errors[0].error)} while parsing the file ${strPath} at offset ${errors[0].offset}`);
+	}
+	return json;
+}
 
-	try {
-		const snippetsData = await fs.readFile(snippetsPath);
-		const snippetsDataStr = new TextDecoder().decode(snippetsData);
+/**
+ * Assigns variables from one snippet file under emmet.extensionsPath to
+ * variablesFromFile
+ */
+function updateVariables(varsJson: unknown) {
+	if (typeof varsJson === 'object' && varsJson) {
+		variablesFromFile = Object.assign({}, variablesFromFile, varsJson);
+	} else {
+		throw new Error(localize("emmetInvalidVariables", "Invalid emmet.variables field. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example."))
+	}
+}
 
-		const errors: JSONC.ParseError[] = [];
-		const snippetsJson = JSONC.parse(snippetsDataStr, errors);
-		if (errors.length > 0) {
-			throw new Error(`Found error ${JSONC.printParseErrorCode(errors[0].error)} while parsing the file ${snippetsPath} at offset ${errors[0].offset}`);
-		}
-		variablesFromFile = snippetsJson['variables'];
-		customSnippetsRegistry = {};
-		snippetKeyCache.clear();
+/**
+ * Assigns profiles from one profile file under emmet.extensionsPath to
+ * profilesFromFile
+ */
+ function updateProfiles(profileJson: unknown) {
+	if (typeof profileJson === 'object' && profileJson) {
+		profilesFromFile = Object.assign({}, profilesFromFile, profileJson);
+	} else {
+		throw new Error(localize("emmetInvalidProfiles", "Invalid syntax profile. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example."))
+	}
+}
+
+/**
+ * Assigns snippets from one snippet file under emmet.extensionsPath to
+ * customSnippetsRegistry, snippetKeyCache, and stylesheetCustomSnippetsKeyCache
+ */
+function updateSnippets(snippetsJson: unknown) {
+	if (typeof snippetsJson === 'object' && snippetsJson) {
 		Object.keys(snippetsJson).forEach(syntax => {
 			if (!snippetsJson[syntax]['snippets']) {
 				return;
@@ -1062,27 +1111,21 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 					}
 				}
 			} else {
-				stylesheetCustomSnippetsKeyCache.set(syntax, Object.keys(customSnippets));
+				const prevSnippetKeys = stylesheetCustomSnippetsKeyCache.get(syntax);
+				const mergedSnippetKeys = Object.assign([], prevSnippetKeys, Object.keys(customSnippets));
+				stylesheetCustomSnippetsKeyCache.set(syntax, mergedSnippetKeys);
 			}
-			customSnippetsRegistry[syntax] = parseSnippets(customSnippets);
-
-			const snippetKeys: string[] = Object.keys(customSnippetsRegistry[syntax]);
-			snippetKeyCache.set(syntax, snippetKeys);
+			const prevSnippetsRegistry = customSnippetsRegistry[syntax];
+			const newSnippets = parseSnippets(customSnippets);
+			const mergedSnippets = Object.assign({}, prevSnippetsRegistry, newSnippets);
+			const mergedSnippetKeys = Object.keys(mergedSnippets);
+			customSnippetsRegistry[syntax] = mergedSnippets;
+			snippetKeyCache.set(syntax, mergedSnippetKeys);
 		});
-	} catch (e) {
-		resetSettingsFromFile();
-		throw new Error(localize("Emmet extensionsPath parsing error", `Error while parsing the file ${snippetsPath}`));
-	}
-
-	try {
-		const profilesData = await fs.readFile(profilesPath);
-		const profilesDataStr = new TextDecoder().decode(profilesData);
-		profilesFromFile = JSON.parse(profilesDataStr);
-	} catch (e) {
-		//
+	} else {
+		throw new Error(localize("emmetInvalidSnippets", "Invalid snippets file. See https://code.visualstudio.com/docs/editor/emmet#_using-custom-emmet-snippets for a valid example."))
 	}
 }
-
 
 function resetSettingsFromFile() {
 	customSnippetsRegistry = {};

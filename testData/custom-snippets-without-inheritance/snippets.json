@@ -1,10 +1,14 @@
 {
+    "css": {
+        "snippets": {
+            "hello": "margin: 100px;"
+        }
+    },
     "scss": {
         "snippets": {
-			"ch": "color:hsl(${1:0}, ${2:100}%, ${3:50}%);"
-         }
+            "ch": "color:hsl(${1:0}, ${2:100}%, ${3:50}%);"
+        }
     },
-
     "xml": {
         "snippets": {
             //This comment should not throw an error while parsing.
