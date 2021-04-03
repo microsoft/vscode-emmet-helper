@@ -41,14 +41,6 @@ const filterDelimitor = '|';
 const trimFilterSuffix = 't';
 const commentFilterSuffix = 'c';
 const maxFilters = 3;
-const vendorPrefixes = { 'w': "webkit", 'm': "moz", 's': "ms", 'o': "o" };
-const defaultVendorProperties = {
-	'w': "animation, animation-delay, animation-direction, animation-duration, animation-fill-mode, animation-iteration-count, animation-name, animation-play-state, animation-timing-function, appearance, backface-visibility, background-clip, background-composite, background-origin, background-size, border-fit, border-horizontal-spacing, border-image, border-vertical-spacing, box-align, box-direction, box-flex, box-flex-group, box-lines, box-ordinal-group, box-orient, box-pack, box-reflect, box-shadow, color-correction, column-break-after, column-break-before, column-break-inside, column-count, column-gap, column-rule-color, column-rule-style, column-rule-width, column-span, column-width, dashboard-region, font-smoothing, highlight, hyphenate-character, hyphenate-limit-after, hyphenate-limit-before, hyphens, line-box-contain, line-break, line-clamp, locale, margin-before-collapse, margin-after-collapse, marquee-direction, marquee-increment, marquee-repetition, marquee-style, mask-attachment, mask-box-image, mask-box-image-outset, mask-box-image-repeat, mask-box-image-slice, mask-box-image-source, mask-box-image-width, mask-clip, mask-composite, mask-image, mask-origin, mask-position, mask-repeat, mask-size, nbsp-mode, perspective, perspective-origin, rtl-ordering, text-combine, text-decorations-in-effect, text-emphasis-color, text-emphasis-position, text-emphasis-style, text-fill-color, text-orientation, text-security, text-stroke-color, text-stroke-width, transform, transition, transform-origin, transform-style, transition-delay, transition-duration, transition-property, transition-timing-function, user-drag, user-modify, user-select, writing-mode, svg-shadow, box-sizing, border-radius",
-	'm': "animation-delay, animation-direction, animation-duration, animation-fill-mode, animation-iteration-count, animation-name, animation-play-state, animation-timing-function, appearance, backface-visibility, background-inline-policy, binding, border-bottom-colors, border-image, border-left-colors, border-right-colors, border-top-colors, box-align, box-direction, box-flex, box-ordinal-group, box-orient, box-pack, box-shadow, box-sizing, column-count, column-gap, column-rule-color, column-rule-style, column-rule-width, column-width, float-edge, font-feature-settings, font-language-override, force-broken-image-icon, hyphens, image-region, orient, outline-radius-bottomleft, outline-radius-bottomright, outline-radius-topleft, outline-radius-topright, perspective, perspective-origin, stack-sizing, tab-size, text-blink, text-decoration-color, text-decoration-line, text-decoration-style, text-size-adjust, transform, transform-origin, transform-style, transition, transition-delay, transition-duration, transition-property, transition-timing-function, user-focus, user-input, user-modify, user-select, window-shadow, background-clip, border-radius",
-	's': "accelerator, backface-visibility, background-position-x, background-position-y, behavior, block-progression, box-align, box-direction, box-flex, box-line-progression, box-lines, box-ordinal-group, box-orient, box-pack, content-zoom-boundary, content-zoom-boundary-max, content-zoom-boundary-min, content-zoom-chaining, content-zoom-snap, content-zoom-snap-points, content-zoom-snap-type, content-zooming, filter, flow-from, flow-into, font-feature-settings, grid-column, grid-column-align, grid-column-span, grid-columns, grid-layer, grid-row, grid-row-align, grid-row-span, grid-rows, high-contrast-adjust, hyphenate-limit-chars, hyphenate-limit-lines, hyphenate-limit-zone, hyphens, ime-mode, interpolation-mode, layout-flow, layout-grid, layout-grid-char, layout-grid-line, layout-grid-mode, layout-grid-type, line-break, overflow-style, perspective, perspective-origin, perspective-origin-x, perspective-origin-y, scroll-boundary, scroll-boundary-bottom, scroll-boundary-left, scroll-boundary-right, scroll-boundary-top, scroll-chaining, scroll-rails, scroll-snap-points-x, scroll-snap-points-y, scroll-snap-type, scroll-snap-x, scroll-snap-y, scrollbar-arrow-color, scrollbar-base-color, scrollbar-darkshadow-color, scrollbar-face-color, scrollbar-highlight-color, scrollbar-shadow-color, scrollbar-track-color, text-align-last, text-autospace, text-justify, text-kashida-space, text-overflow, text-size-adjust, text-underline-position, touch-action, transform, transform-origin, transform-origin-x, transform-origin-y, transform-origin-z, transform-style, transition, transition-delay, transition-duration, transition-property, transition-timing-function, user-select, word-break, wrap-flow, wrap-margin, wrap-through, writing-mode",
-	'o': "dashboard-region, animation, animation-delay, animation-direction, animation-duration, animation-fill-mode, animation-iteration-count, animation-name, animation-play-state, animation-timing-function, border-image, link, link-source, object-fit, object-position, tab-size, table-baseline, transform, transform-origin, transition, transition-delay, transition-duration, transition-property, transition-timing-function, accesskey, input-format, input-required, marquee-dir, marquee-loop, marquee-speed, marquee-style"
-}
-const vendorPrefixesEnabled = false;
 
 /**
  * Emmet configuration as derived from the Emmet related VS Code settings
@@ -84,7 +76,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 			const registry = customSnippetsRegistry[syntax] ?? getDefaultSnippets(syntax);
 			snippetKeyCache.set(syntax, Object.keys(registry));
 		}
-		markupSnippetKeys = snippetKeyCache.get(syntax);
+		markupSnippetKeys = snippetKeyCache.get(syntax) ?? [];
 	}
 
 	const extractOptions: Partial<ExtractOptions> = { lookAhead: !isStyleSheetRes, type: isStyleSheetRes ? 'stylesheet' : 'markup' };
@@ -105,8 +97,8 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 	const expandOptions = getExpandOptions(syntax, emmetConfig, filter);
 
-	let expandedText: string;
-	let expandedAbbr: CompletionItem;
+	let expandedText: string = "";
+	let expandedAbbr: CompletionItem | undefined;
 	let completionItems: CompletionItem[] = [];
 
 	// Create completion item after expanding given abbreviation
@@ -136,42 +128,41 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	}
 
 	if (isStyleSheet(syntax)) {
-		const { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
-		createExpandedAbbr(syntax, abbreviationWithoutPrefix);
+		createExpandedAbbr(syntax, abbreviation);
 
 		// When abbr is longer than usual emmet snippets and matches better with existing css property, then no emmet
-		if (abbreviationWithoutPrefix.length > 4
-			&& cssData.properties.find(x => x.startsWith(abbreviationWithoutPrefix))) {
+		if (abbreviation.length > 4
+			&& cssData.properties.find(x => x.startsWith(abbreviation))) {
 			return CompletionList.create([], true);
 		}
 
-		if (expandedAbbr) {
-			const prefixedExpandedText = applyVendorPrefixes(expandedText, prefixOptions, expandOptions.options);
-			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(prefixedExpandedText)));
-			expandedAbbr.documentation = replaceTabStopsWithCursors(prefixedExpandedText);
+		if (expandedAbbr && expandedText.length) {
+			expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
+			expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 			expandedAbbr.label = removeTabStops(expandedText);
 			expandedAbbr.filterText = abbreviation;
 
 			// Custom snippets should show up in completions if abbreviation is a prefix
-			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ? stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
-			completionItems = makeSnippetSuggestion(stylesheetCustomSnippetsKeys, abbreviation, abbreviation, abbreviationRange, expandOptions, 'Emmet Custom Snippet', false);
+			const stylesheetCustomSnippetsKeys = stylesheetCustomSnippetsKeyCache.has(syntax) ?
+				stylesheetCustomSnippetsKeyCache.get(syntax) : stylesheetCustomSnippetsKeyCache.get('css');
+			completionItems = makeSnippetSuggestion(
+				stylesheetCustomSnippetsKeys ?? [],
+				abbreviation,
+				abbreviation,
+				abbreviationRange,
+				expandOptions,
+				'Emmet Custom Snippet',
+				false);
 
-			if (!completionItems.find(x => x.textEdit.newText === expandedAbbr.textEdit.newText)) {
+			if (!completionItems.find(x => x.textEdit?.newText && x.textEdit?.newText === expandedAbbr?.textEdit?.newText)) {
 
 				// Fix for https://github.com/Microsoft/vscode/issues/28933#issuecomment-309236902
 				// When user types in propertyname, emmet uses it to match with snippet names, resulting in width -> widows or font-family -> font: family
 				// Filter out those cases here.
-				const abbrRegex = new RegExp('.*' + abbreviationWithoutPrefix.split('').map(x => (x === '$' || x === '+') ? '\\' + x : x).join('.*') + '.*', 'i');
+				const abbrRegex = new RegExp('.*' + abbreviation.split('').map(x => (x === '$' || x === '+') ? '\\' + x : x).join('.*') + '.*', 'i');
 				if (/\d/.test(abbreviation) || abbrRegex.test(expandedAbbr.label)) {
 					completionItems.push(expandedAbbr);
 				}
-			}
-		}
-
-		if (vendorPrefixesEnabled) {
-			// Incomplete abbreviations that use vendor prefix
-			if (!completionItems.length && (abbreviation === '-' || /^-[wmso]{1,4}-?$/.test(abbreviation))) {
-				return CompletionList.create([], true);
 			}
 		}
 	} else {
@@ -206,7 +197,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 		// https://github.com/microsoft/vscode/issues/66680
 		if (syntax === 'html' && completionItems.length >= 2 && abbreviation.includes(":")
-			&& expandedAbbr && expandedAbbr.textEdit.newText === `<${abbreviation}>\${0}</${abbreviation}>`) {
+			&& expandedAbbr?.textEdit?.newText === `<${abbreviation}>\${0}</${abbreviation}>`) {
 			completionItems = completionItems.filter(item => item.label !== abbreviation);
 		}
 	}
@@ -232,7 +223,7 @@ function makeSnippetSuggestion(
 	if (!prefix || !snippetKeys) {
 		return [];
 	}
-	const snippetCompletions = [];
+	const snippetCompletions: CompletionItem[] = [];
 	snippetKeys.forEach(snippetKey => {
 		if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
 			return;
@@ -260,7 +251,7 @@ function makeSnippetSuggestion(
 	return snippetCompletions;
 }
 
-function getCurrentWord(currentLineTillPosition: string): string {
+function getCurrentWord(currentLineTillPosition: string): string | undefined {
 	if (currentLineTillPosition) {
 		const matches = currentLineTillPosition.match(/[\w,:,-,\.]*$/)
 		if (matches) {
@@ -281,13 +272,14 @@ function escapeNonTabStopDollar(text: string): string {
 	return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
 }
 
-function addFinalTabStop(text): string {
+function addFinalTabStop(text: string): string {
 	if (!text || !text.trim()) {
 		return text;
 	}
 
 	let maxTabStop = -1;
-	let maxTabStopRanges = [];
+	type TabStopRange = { numberStart: number, numberEnd: number };
+	let maxTabStopRanges: TabStopRange[] = [];
 	let foundLastStop = false;
 	let replaceWithLastStop = false;
 	let i = 0;
@@ -335,10 +327,10 @@ function addFinalTabStop(text): string {
 
 			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
 			if (Number(currentTabStop) > Number(maxTabStop)) {
-				maxTabStop = currentTabStop;
+				maxTabStop = Number(currentTabStop);
 				maxTabStopRanges = [{ numberStart, numberEnd }];
 				replaceWithLastStop = !foundPlaceholder;
-			} else if (currentTabStop == maxTabStop) {
+			} else if (Number(currentTabStop) === maxTabStop) {
 				maxTabStopRanges.push({ numberStart, numberEnd });
 			}
 		}
@@ -381,7 +373,7 @@ let customSnippetsRegistry: Record<string, SnippetsMap> = {};
 let variablesFromFile = {};
 let profilesFromFile = {};
 
-export const emmetSnippetField = (index, placeholder) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
+export const emmetSnippetField = (index: number, placeholder: string) => `\${${index}${placeholder ? ':' + placeholder : ''}}`;
 
 /** Returns whether or not syntax is a supported stylesheet syntax, like CSS */
 export function isStyleSheet(syntax: string): boolean {
@@ -409,8 +401,8 @@ export function getDefaultSnippets(syntax: string): SnippetsMap {
 	return syntax === 'xml' ? {} : resolvedConfig.snippets;
 }
 
-function getFilters(text: string, pos: number): { pos: number, filter: string } {
-	let filter;
+function getFilters(text: string, pos: number): { pos: number, filter: string | undefined } {
+	let filter: string | undefined;
 	for (let i = 0; i < maxFilters; i++) {
 		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
 			pos -= bemFilterSuffix.length + 1;
@@ -437,23 +429,21 @@ function getFilters(text: string, pos: number): { pos: number, filter: string } 
  * @param position The Position in the given document from where abbreviation needs to be extracted
  * @param options The options to pass to the @emmetio/extract-abbreviation module
  */
-export function extractAbbreviation(document: TextDocument, position: Position, options?: Partial<ExtractOptions>): { abbreviation: string, abbreviationRange: Range, filter: string } {
+export function extractAbbreviation(document: TextDocument, position: Position, options?: Partial<ExtractOptions>): { abbreviation: string, abbreviationRange: Range, filter: string | undefined } | undefined {
 	const currentLine = getCurrentLine(document, position);
 	const currentLineTillPosition = currentLine.substr(0, position.character);
 	const { pos, filter } = getFilters(currentLineTillPosition, position.character);
 	const lengthOccupiedByFilter = filter ? filter.length + 1 : 0;
-
-	try {
-		const result = extract(currentLine, pos, options);
-		const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
-		return {
-			abbreviationRange: rangeToReplace,
-			abbreviation: result.abbreviation,
-			filter
-		};
+	const result = extract(currentLine, pos, options);
+	if (!result) {
+		return;
 	}
-	catch (e) {
-	}
+	const rangeToReplace = Range.create(position.line, result.location, position.line, result.location + result.abbreviation.length + lengthOccupiedByFilter);
+	return {
+		abbreviationRange: rangeToReplace,
+		abbreviation: result.abbreviation,
+		filter
+	};
 }
 
 /**
@@ -461,24 +451,22 @@ export function extractAbbreviation(document: TextDocument, position: Position, 
  * @param text Text from which abbreviation needs to be extracted
  * @param syntax Syntax used to extract the abbreviation from the given text
  */
-export function extractAbbreviationFromText(text: string, syntax?: string): { abbreviation: string, filter: string } {
+export function extractAbbreviationFromText(text: string, syntax: string): { abbreviation: string, filter: string | undefined } | undefined {
 	if (!text) {
 		return;
 	}
-
 	const { pos, filter } = getFilters(text, text.length);
-
-	try {
-		const extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ?
-			{ syntax: 'stylesheet', lookAhead: false } : { lookAhead: true };
-		const result = extract(text, pos, extractOptions);
-		return {
-			abbreviation: result.abbreviation,
-			filter
-		};
+	const extractOptions = (isStyleSheet(syntax) || syntax === 'stylesheet') ?
+		{ syntax: 'stylesheet', lookAhead: false } :
+		{ lookAhead: true };
+	const result = extract(text, pos, extractOptions);
+	if (!result) {
+		return;
 	}
-	catch (e) {
-	}
+	return {
+		abbreviation: result.abbreviation,
+		filter
+	};
 }
 
 /**
@@ -494,6 +482,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (isStyleSheet(syntax)) {
 		if (abbreviation.includes('#')) {
 			if (abbreviation.startsWith('#')) {
+				const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
 				return hexColorRegex.test(abbreviation);
 			} else if (commonlyUsedTags.includes(abbreviation.substring(0, abbreviation.indexOf('#')))) {
 				return false;
@@ -517,10 +506,10 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
-function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string, options: Partial<Options>): boolean {
+function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText: string, options: Partial<Options> | undefined): boolean {
 	// Unresolved css abbreviations get expanded to a blank property value
 	// Eg: abc -> abc: ; or abc:d -> abc: d; which is noise if it gets suggested for every word typed
-	if (isStyleSheet(syntax)) {
+	if (isStyleSheet(syntax) && options) {
 		const between = options['stylesheet.between'] ?? ': ';
 		const after = options['stylesheet.after'] ?? ';';
 
@@ -581,18 +570,28 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	return (expandedText.toLowerCase() === `<${abbreviation.toLowerCase()}>\${1}</${abbreviation.toLowerCase()}>`);
 }
 
+type ExpandOptionsConfig = {
+	type: SyntaxType,
+	options: Partial<Options>,
+	variables: SnippetsMap,
+	snippets: SnippetsMap,
+	syntax: string,
+	text: string | undefined
+	maxRepeat: number
+}
+
 /**
  * Returns options to be used by emmet
  */
-export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig, filter?: string): UserConfig {
-	emmetConfig = emmetConfig || {};
-	emmetConfig['preferences'] = emmetConfig['preferences'] || {};
+export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig, filter?: string): ExpandOptionsConfig {
+	emmetConfig = emmetConfig ?? {};
+	emmetConfig['preferences'] = emmetConfig['preferences'] ?? {};
 
 	const preferences = emmetConfig['preferences'];
 	const stylesheetSyntax = isStyleSheet(syntax) ? syntax : 'css';
 
 	// Fetch Profile
-	const profile = getProfile(syntax, emmetConfig['syntaxProfiles']);
+	const profile = getProfile(syntax, emmetConfig['syntaxProfiles'] ?? {});
 	const filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
 	const trimmedFilters = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
 	const bemEnabled = (filter && filter.split(',').some(x => x.trim() === 'bem')) || trimmedFilters.includes('bem');
@@ -708,7 +707,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		snippets,
 		syntax,
 		// context: null,
-		text: null,
+		text: undefined,
 		maxRepeat: 1000,
 		// cache: null
 	};
@@ -722,75 +721,6 @@ function getClosingStyle(syntax: string): string {
 		case 'jsx': return 'xhtml';
 		default: return 'html';
 	}
-}
-
-function splitVendorPrefix(abbreviation: string): { prefixOptions: string, abbreviationWithoutPrefix: string } {
-	if (!vendorPrefixesEnabled) {
-		return {
-			prefixOptions: '',
-			abbreviationWithoutPrefix: abbreviation
-		}
-	}
-
-	abbreviation = abbreviation || "";
-	if (abbreviation[0] != '-') {
-		return {
-			prefixOptions: "",
-			abbreviationWithoutPrefix: abbreviation
-		};
-	} else {
-		abbreviation = abbreviation.substr(1);
-		let pref = "-";
-		if (/^[wmso]*-./.test(abbreviation)) {
-			const index = abbreviation.indexOf("-");
-			if (index > -1) {
-				pref += abbreviation.substr(0, index + 1);
-				abbreviation = abbreviation.substr(index + 1);
-			}
-		}
-		return {
-			prefixOptions: pref,
-			abbreviationWithoutPrefix: abbreviation
-		};
-	}
-}
-
-function applyVendorPrefixes(expandedProperty: string, vendors: string, preferences: any): string {
-	if (!vendorPrefixesEnabled) {
-		return expandedProperty;
-	}
-
-	preferences = preferences || {};
-	expandedProperty = expandedProperty || "";
-	vendors = vendors || "";
-
-	if (vendors[0] !== '-') {
-		return expandedProperty;
-	}
-
-	if (vendors == "-") {
-		let defaultVendors = "-";
-		const property = expandedProperty.substr(0, expandedProperty.indexOf(':'));
-		if (!property) {
-			return expandedProperty;
-		}
-
-		for (const v in vendorPrefixes) {
-			const vendorProperties = preferences['css.' + vendorPrefixes[v] + 'Properties'];
-			if (vendorProperties && vendorProperties.split(',').find(x => x.trim() === property)) defaultVendors += v;
-		}
-
-		// If no vendors specified, add all
-		vendors = defaultVendors == "-" ? "-wmso" : defaultVendors;
-		vendors += '-';
-	}
-	vendors = vendors.substr(1);
-
-	let prefixedProperty = "";
-	for (let index = 0; index < vendors.length - 1; index++) {
-		prefixedProperty += '-' + vendorPrefixes[vendors[index]] + '-' + expandedProperty + "\n";
-	}
-	return prefixedProperty + expandedProperty;
 }
 
 /**
@@ -815,9 +745,7 @@ export function expandAbbreviation(abbreviation: string | MarkupAbbreviation | S
 	const resolvedConfig = resolveConfig(config);
 	if (config.type === 'stylesheet') {
 		if (typeof abbreviation === 'string') {
-			const { prefixOptions, abbreviationWithoutPrefix } = splitVendorPrefix(abbreviation);
-			expandedText = expand(abbreviationWithoutPrefix, resolvedConfig);
-			expandedText = applyVendorPrefixes(expandedText, prefixOptions, resolvedConfig.options);
+			expandedText = expand(abbreviation, resolvedConfig);
 		} else {
 			expandedText = stringifyStylesheet(abbreviation as StylesheetAbbreviation, resolvedConfig);
 		}
@@ -835,7 +763,7 @@ export function expandAbbreviation(abbreviation: string | MarkupAbbreviation | S
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax
  */
-function getProfile(syntax: string, profilesFromSettings: object): any {
+function getProfile(syntax: string, profilesFromSettings: object): object {
 	if (!profilesFromSettings) {
 		profilesFromSettings = {};
 	}
@@ -891,15 +819,15 @@ function getProfile(syntax: string, profilesFromSettings: object): any {
 /**
  * Returns variables to be used while expanding snippets
  */
-function getVariables(variablesFromSettings: object): any {
+function getVariables(variablesFromSettings: object | undefined): SnippetsMap {
 	if (!variablesFromSettings) {
 		return variablesFromFile;
 	}
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
-function getFormatters(syntax: string, preferences: any) {
-	if (!preferences) {
+function getFormatters(syntax: string, preferences: unknown) {
+	if (!preferences || typeof preferences !== 'object') {
 		return {};
 	}
 
@@ -924,7 +852,7 @@ function getFormatters(syntax: string, preferences: any) {
 			comment: commentFormatter
 		};
 	}
-	let fuzzySearchMinScore = typeof preferences['css.fuzzySearchMinScore'] === 'number' ? preferences['css.fuzzySearchMinScore'] : 0.3;
+	let fuzzySearchMinScore = typeof preferences?.['css.fuzzySearchMinScore'] === 'number' ? preferences['css.fuzzySearchMinScore'] : 0.3;
 	if (fuzzySearchMinScore > 1) {
 		fuzzySearchMinScore = 1
 	} else if (fuzzySearchMinScore < 0) {
@@ -1023,7 +951,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		if (snippetsDataStr.length) {
 			try {
 				const snippetsJson = tryParseFile(snippetsPath, snippetsDataStr);
-				if (typeof snippetsJson === 'object' && snippetsJson['variables']) {
+				if (typeof snippetsJson === 'object' && snippetsJson && (snippetsJson as Object).hasOwnProperty('variables')) {
 					updateVariables(snippetsJson['variables']);
 				}
 				updateSnippets(snippetsJson);
@@ -1051,7 +979,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 	}
 }
 
-function tryParseFile(strPath: URI, dataStr: string): any {
+function tryParseFile(strPath: URI, dataStr: string): unknown {
 	let errors: JSONC.ParseError[] = [];
 	const json = JSONC.parse(dataStr, errors);
 	if (errors.length) {
@@ -1076,7 +1004,7 @@ function updateVariables(varsJson: unknown) {
  * Assigns profiles from one profile file under emmet.extensionsPath to
  * profilesFromFile
  */
- function updateProfiles(profileJson: unknown) {
+function updateProfiles(profileJson: unknown) {
 	if (typeof profileJson === 'object' && profileJson) {
 		profilesFromFile = Object.assign({}, profilesFromFile, profileJson);
 	} else {
@@ -1160,60 +1088,4 @@ export function getEmmetMode(language: string, excludedLanguages: string[] = [])
 	if (syntaxes.markup.includes(language) || syntaxes.stylesheet.includes(language)) {
 		return language;
 	}
-}
-
-const hexColorRegex = /^#[\d,a-f,A-F]{1,6}$/;
-const onlyLetters = /^[a-z,A-Z]+$/;
-
-/**
- * Returns a completion participant for Emmet of the form {
- * 		onCssProperty: () => void
- * 		onCssPropertyValue: () => void
- * 		onHtmlContent: () => void
- * }
- * @param document The TextDocument for which completions are being provided
- * @param position The Position in the given document where completions are being provided
- * @param syntax The Emmet syntax to use when providing Emmet completions
- * @param emmetSettings The Emmet settings to use when providing Emmet completions
- * @param result The Completion List object that needs to be updated with Emmet completions
- */
-export function getEmmetCompletionParticipants(document: TextDocument, position: Position, syntax: string, emmetSettings: VSCodeEmmetConfig, result: CompletionList): any {
-	return {
-		getId: () => 'emmet',
-		onCssProperty: (context) => {
-			if (context && context.propertyName) {
-				const currentresult = doComplete(document, position, syntax, emmetSettings);
-				if (result && currentresult) {
-					result.items = currentresult.items;
-					result.isIncomplete = true;
-				}
-			}
-		},
-		onCssPropertyValue: (context) => {
-			if (context && context.propertyValue) {
-				const extractOptions: Partial<ExtractOptions> = { lookAhead: false, type: 'stylesheet' };
-				const extractedResults = extractAbbreviation(document, position, extractOptions);
-				if (!extractedResults) {
-					return;
-				}
-				const validAbbreviationWithColon = extractedResults.abbreviation === `${context.propertyName}:${context.propertyValue}` && onlyLetters.test(context.propertyValue);
-				if (validAbbreviationWithColon // Allows abbreviations like pos:f
-					|| hexColorRegex.test(extractedResults.abbreviation)
-					|| extractedResults.abbreviation === '!') {
-					const currentresult = doComplete(document, position, syntax, emmetSettings);
-					if (result && currentresult) {
-						result.items = currentresult.items;
-						result.isIncomplete = true;
-					}
-				}
-			}
-		},
-		onHtmlContent: () => {
-			const currentresult = doComplete(document, position, syntax, emmetSettings);
-			if (result && currentresult) {
-				result.items = currentresult.items;
-				result.isIncomplete = true;
-			}
-		}
-	};
 }

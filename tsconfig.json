@@ -7,7 +7,9 @@
 		"sourceMap": true,
 		"allowJs": true,
 		"declaration": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"strict": true,
+		"noImplicitAny": false
 	},
 	"exclude": ["node_modules", "lib"]
 }
