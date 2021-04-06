@@ -666,7 +666,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'output.compactBoolean': profile['compactBooleanAttributes'] ?? preferences['profile.allowCompactBoolean'],
 		// 'output.booleanAttributes': string[],
 		'output.reverseAttributes': preferences['output.reverseAttributes'],
-		'output.selfClosingStyle': profile['selfClosingStyle'] ?? getClosingStyle(syntax),
+		'output.selfClosingStyle': profile['selfClosingStyle'] ?? preferences['output.selfClosingStyle'] ?? getClosingStyle(syntax),
 		'output.field': emmetSnippetField,
 		// 'output.text': TextOutput,
 		// 'markup.href': boolean,

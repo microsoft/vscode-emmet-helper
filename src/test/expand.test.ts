@@ -164,6 +164,9 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('jsx', 'MyComponent/', '<MyComponent />');
 	testExpandWithCompletion('html', 'MyComponent/', '<MyComponent>');
 
+	// https://github.com/microsoft/vscode/issues/120417
+	testExpandWithCompletion('html', 'input', '<input type="${2:text}" />', { "preferences": { "output.selfClosingStyle": "xhtml" }});
+
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
 
