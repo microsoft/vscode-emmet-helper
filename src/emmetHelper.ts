@@ -581,7 +581,7 @@ type ExpandOptionsConfig = {
 	variables: SnippetsMap,
 	snippets: SnippetsMap,
 	syntax: string,
-	text: string | undefined
+	text: string | string[] | undefined
 	maxRepeat: number
 }
 
