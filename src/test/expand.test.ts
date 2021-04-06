@@ -168,8 +168,9 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/58
-	// testExpandWithCompletion('css', '!', '!important');
-	// testExpandWithCompletion('css', '!imp', '!important');
+	testExpandWithCompletion('css', '!', '!important');
+	testExpandWithCompletion('css', '!imp', '!important');
+	testCountCompletions('css', '!importante', 0);
 
 	// escaped dollar signs should not change after going through Emmet expansion only
 	// VS Code automatically removes the backslashes after the expansion

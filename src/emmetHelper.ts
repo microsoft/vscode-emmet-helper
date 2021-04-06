@@ -110,6 +110,11 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 
 		try {
 			expandedText = expand(abbr, expandOptions);
+
+			// manually patch https://github.com/microsoft/vscode/issues/120245 for now
+			if (isStyleSheetRes && '!important'.startsWith(abbr)) {
+				expandedText = '!important';
+			}
 		} catch (e) {
 		}
 
