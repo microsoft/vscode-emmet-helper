@@ -315,7 +315,7 @@ describe('Test output profile settings', () => {
 
 		const expandOptions = getExpandOptions('html', { syntaxProfiles: { html: profile } });
 		Object.keys(profile).forEach(key => {
-			assert.strictEqual(expandOptions.options[`output.${key}`], profile[key]);
+			assert.strictEqual((expandOptions as any).options[`output.${key}`], (profile as any)[key]);
 		});
 	});
 
@@ -345,7 +345,7 @@ describe('Test variables settings', () => {
 
 		const expandOptions = getExpandOptions('html', { variables });
 		Object.keys(variables).forEach(key => {
-			assert.strictEqual(expandOptions.variables[key], variables[key]);
+			assert.strictEqual(expandOptions.variables[key], (variables as any)[key]);
 		});
 	});
 

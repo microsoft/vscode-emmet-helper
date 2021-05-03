@@ -592,7 +592,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	emmetConfig = emmetConfig ?? {};
 	emmetConfig['preferences'] = emmetConfig['preferences'] ?? {};
 
-	const preferences = emmetConfig['preferences'];
+	const preferences: any = emmetConfig['preferences'];
 	const stylesheetSyntax = isStyleSheet(syntax) ? syntax : 'css';
 
 	// Fetch Profile
@@ -691,9 +691,10 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'stylesheet.fuzzySearchMinScore': preferences['css.fuzzySearchMinScore'],
 	}
 
-	const combinedOptions = {};
+	const combinedOptions: any = {};
 	[...Object.keys(defaultVSCodeOptions), ...Object.keys(userPreferenceOptions)].forEach(key => {
-		combinedOptions[key] = userPreferenceOptions[key] ?? defaultVSCodeOptions[key];
+		const castKey = key as keyof Options;
+		combinedOptions[castKey] = userPreferenceOptions[castKey] ?? defaultVSCodeOptions[castKey];
 	});
 	const mergedAliases = { ...defaultVSCodeOptions['stylesheet.unitAliases'], ...userPreferenceOptions['stylesheet.unitAliases'] };
 	combinedOptions['stylesheet.unitAliases'] = mergedAliases;
@@ -768,7 +769,7 @@ export function expandAbbreviation(abbreviation: string | MarkupAbbreviation | S
  * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
  * @param syntax
  */
-function getProfile(syntax: string, profilesFromSettings: object): object {
+function getProfile(syntax: string, profilesFromSettings: any): any {
 	if (!profilesFromSettings) {
 		profilesFromSettings = {};
 	}
@@ -783,7 +784,7 @@ function getProfile(syntax: string, profilesFromSettings: object): object {
 		}
 		return {};
 	}
-	const newOptions = {};
+	const newOptions: any = {};
 	for (const key in options) {
 		switch (key) {
 			case 'tag_case':
@@ -831,13 +832,13 @@ function getVariables(variablesFromSettings: object | undefined): SnippetsMap {
 	return Object.assign({}, variablesFromFile, variablesFromSettings);
 }
 
-function getFormatters(syntax: string, preferences: unknown) {
+function getFormatters(syntax: string, preferences: any): any {
 	if (!preferences || typeof preferences !== 'object') {
 		return {};
 	}
 
 	if (!isStyleSheet(syntax)) {
-		const commentFormatter = {};
+		const commentFormatter: any = {};
 		for (const key in preferences) {
 			switch (key) {
 				case 'filter.commentAfter':
@@ -863,7 +864,7 @@ function getFormatters(syntax: string, preferences: unknown) {
 	} else if (fuzzySearchMinScore < 0) {
 		fuzzySearchMinScore = 0
 	}
-	const stylesheetFormatter = {
+	const stylesheetFormatter: any = {
 		'fuzzySearchMinScore': fuzzySearchMinScore
 	};
 	for (const key in preferences) {
@@ -875,8 +876,8 @@ function getFormatters(syntax: string, preferences: unknown) {
 				stylesheetFormatter['intUnit'] = preferences[key];
 				break;
 			case 'css.unitAliases':
-				const unitAliases = {};
-				preferences[key].split(',').forEach(alias => {
+				const unitAliases: any = {};
+				preferences[key].split(',').forEach((alias: string) => {
 					if (!alias || !alias.trim() || !alias.includes(':')) {
 						return;
 					}
@@ -956,7 +957,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		if (snippetsDataStr.length) {
 			try {
 				const snippetsJson = tryParseFile(snippetsPath, snippetsDataStr);
-				if (typeof snippetsJson === 'object' && snippetsJson && (snippetsJson as Object).hasOwnProperty('variables')) {
+				if (snippetsJson['variables']) {
 					updateVariables(snippetsJson['variables']);
 				}
 				updateSnippets(snippetsJson);
@@ -984,7 +985,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 	}
 }
 
-function tryParseFile(strPath: URI, dataStr: string): unknown {
+function tryParseFile(strPath: URI, dataStr: string): any {
 	let errors: JSONC.ParseError[] = [];
 	const json = JSONC.parse(dataStr, errors);
 	if (errors.length) {
@@ -997,7 +998,7 @@ function tryParseFile(strPath: URI, dataStr: string): unknown {
  * Assigns variables from one snippet file under emmet.extensionsPath to
  * variablesFromFile
  */
-function updateVariables(varsJson: unknown) {
+function updateVariables(varsJson: any) {
 	if (typeof varsJson === 'object' && varsJson) {
 		variablesFromFile = Object.assign({}, variablesFromFile, varsJson);
 	} else {
@@ -1009,7 +1010,7 @@ function updateVariables(varsJson: unknown) {
  * Assigns profiles from one profile file under emmet.extensionsPath to
  * profilesFromFile
  */
-function updateProfiles(profileJson: unknown) {
+function updateProfiles(profileJson: any) {
 	if (typeof profileJson === 'object' && profileJson) {
 		profilesFromFile = Object.assign({}, profilesFromFile, profileJson);
 	} else {
@@ -1021,7 +1022,7 @@ function updateProfiles(profileJson: unknown) {
  * Assigns snippets from one snippet file under emmet.extensionsPath to
  * customSnippetsRegistry, snippetKeyCache, and stylesheetCustomSnippetsKeyCache
  */
-function updateSnippets(snippetsJson: unknown) {
+function updateSnippets(snippetsJson: any) {
 	if (typeof snippetsJson === 'object' && snippetsJson) {
 		Object.keys(snippetsJson).forEach(syntax => {
 			if (!snippetsJson[syntax]['snippets']) {

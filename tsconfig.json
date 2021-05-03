@@ -8,8 +8,7 @@
 		"allowJs": true,
 		"declaration": true,
 		"esModuleInterop": true,
-		"strict": true,
-		"noImplicitAny": false
+		"strict": true
 	},
 	"exclude": ["node_modules", "lib"]
 }
