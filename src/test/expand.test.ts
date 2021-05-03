@@ -56,9 +56,9 @@ function testExpand(syntax: string, abbrev: string, expanded: string, options?: 
 	});
 }
 
-function testWrap(abbrev: string, text: string | string[], expanded: string, options?: Partial<Options>) {
+function testWrap(abbrev: string, text: string | string[], expanded: string, options?: Partial<Options>, language: 'html' | 'jsx' = 'html') {
 	it(`should wrap ${text} with ${abbrev} to obtain\n${expanded}`, async () => {
-		const syntax = 'html';
+		const syntax = language;
 		const type = getSyntaxType(syntax);
 		const config: UserConfig = {
 			type,
@@ -252,4 +252,8 @@ describe('Wrap Abbreviations (more advanced)', () => {
 		'<a href="http://example.com">\n\t<div>\n\t\t<p>test</p>\n\t</div>\n</a>');
 	testWrap('a[href=http://example.com]>div', '<ul>\n\t<li>Hello world</li>\n</ul>',
 		'<a href="http://example.com">\n\t<div>\n\t\t<ul>\n\t\t\t<li>Hello world</li>\n\t\t</ul>\n\t</div>\n</a>');
+
+	// https://github.com/microsoft/vscode/issues/122231
+	testWrap('div', '<img src={`img/projects/${src}`} alt=\'\' />',
+		'<div><img src={`img/projects/${src}`} alt=\'\' /></div>', undefined, 'jsx');
 });
