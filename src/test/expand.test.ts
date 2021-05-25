@@ -167,6 +167,9 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/120417
 	testExpandWithCompletion('html', 'input', '<input type="${2:text}" />', { "preferences": { "output.selfClosingStyle": "xhtml" }});
 
+	// https://github.com/microsoft/vscode/issues/124247
+	testExpandWithCompletion('html', 'detai', '<details>${0}</details>');
+
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
 
@@ -240,6 +243,7 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	// https://github.com/microsoft/vscode/issues/107592
 	testWrap('a', 'www.google.it', '<a href="http://www.google.it">www.google.it</a>');
 	testWrap('a', 'http://example.com', '<a href="http://example.com">http://example.com</a>');
+	// testWrap('a.link[test=here]', 'http://example.com', '<a class="link" test="here" href="http://example.com">http://example.com</a>');
 	testWrap('a', 'http://www.site.com/en-us/download/details.aspx?id=12345', '<a href="http://www.site.com/en-us/download/details.aspx?id=12345">http://www.site.com/en-us/download/details.aspx?id=12345</a>');
 	testWrap('a[href=]', 'test@example.com', '<a href="mailto:test@example.com">test@example.com</a>');
 
