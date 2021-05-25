@@ -169,6 +169,7 @@ describe('Expand Abbreviations', () => {
 
 	// https://github.com/microsoft/vscode/issues/124247
 	testExpandWithCompletion('html', 'detai', '<details>${0}</details>');
+	testExpandWithCompletion('html', 'summar', '<summary>${0}</summary>');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
