@@ -17,7 +17,6 @@
   "devDependencies": {
     "@types/mocha": "^8.2.2",
     "@types/node": "^12.11.7",
-    "cpy-cli": "^3.1.1",
     "mocha": "^8.1.1",
     "rimraf": "^3.0.2",
     "typescript": "^3.9.7"
