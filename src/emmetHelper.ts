@@ -501,7 +501,12 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 
 	// Its common for users to type (sometextinsidebrackets), this should not be treated as an abbreviation
 	// Grouping in abbreviation is valid only if it's inside a text node or preceeded/succeeded with one of the symbols for nesting, sibling, repeater or climb up
-	if ((/\(/.test(abbreviation) || /\)/.test(abbreviation)) && !/\{[^\}\{]*[\(\)]+[^\}\{]*\}(?:[>\+\*\^]|$)/.test(abbreviation) && !/\(.*\)[>\+\*\^]/.test(abbreviation) && !/[>\+\*\^]\(.*\)/.test(abbreviation)) {
+	// Also, cases such as `span[onclick="alert();"]` are valid
+	if ((/\(/.test(abbreviation) || /\)/.test(abbreviation))
+		&& !/\{[^\}\{]*[\(\)]+[^\}\{]*\}(?:[>\+\*\^]|$)/.test(abbreviation)
+		&& !/\(.*\)[>\+\*\^]/.test(abbreviation)
+		&& !/\[[^\[\]\(\)]+=".*"\]/.test(abbreviation)
+		&& !/[>\+\*\^]\(.*\)/.test(abbreviation)) {
 		return false;
 	}
 
@@ -909,14 +914,15 @@ function getFormatters(syntax: string, preferences: any): any {
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
-export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPath?: URI, homeDir?: URI): Promise<void> {
+export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPaths?: URI[], homeDir?: URI): Promise<void> {
 	resetSettingsFromFile();
 
 	if (!emmetExtensionsPathSetting.length) {
 		return;
 	}
 
-	let emmetExtensionsPathUri: URI | undefined;
+	// Extract URIs from the given setting
+	const emmetExtensionsPathUri: URI[] = [];
 	for (let emmetExtensionsPath of emmetExtensionsPathSetting) {
 		if (emmetExtensionsPath) {
 			emmetExtensionsPath = emmetExtensionsPath.trim();
@@ -924,18 +930,24 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 
 		if (emmetExtensionsPath.length && emmetExtensionsPath[0] === '~') {
 			if (homeDir) {
-				emmetExtensionsPathUri = joinPath(homeDir, emmetExtensionsPath.substr(1));
+				emmetExtensionsPathUri.push(joinPath(homeDir, emmetExtensionsPath.substr(1)));
 			}
 		} else if (!isAbsolutePath(emmetExtensionsPath)) {
-			if (workspaceFolderPath) {
-				emmetExtensionsPathUri = joinPath(workspaceFolderPath, emmetExtensionsPath);
+			if (workspaceFolderPaths) {
+				// Try pushing the path for each workspace root
+				for (const workspacePath of workspaceFolderPaths) {
+					emmetExtensionsPathUri.push(joinPath(workspacePath, emmetExtensionsPath));
+				}
 			}
 		} else {
-			emmetExtensionsPathUri = URI.file(emmetExtensionsPath);
+			emmetExtensionsPathUri.push(URI.file(emmetExtensionsPath));
 		}
+	}
 
+	// For each URI, grab the files
+	for (const uri of emmetExtensionsPathUri) {
 		try {
-			if (!emmetExtensionsPathUri || (await fs.stat(emmetExtensionsPathUri)).type !== FileType.Directory) {
+			if ((await fs.stat(uri)).type !== FileType.Directory) {
 				// Invalid directory, or path is not a directory
 				continue;
 			}
@@ -944,8 +956,8 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 			continue;
 		}
 
-		const snippetsPath = joinPath(emmetExtensionsPathUri, 'snippets.json');
-		const profilesPath = joinPath(emmetExtensionsPathUri, 'syntaxProfiles.json');
+		const snippetsPath = joinPath(uri, 'snippets.json');
+		const profilesPath = joinPath(uri, 'syntaxProfiles.json');
 
 		// the only errors we want to throw here are JSON parse errors
 		let snippetsDataStr = "";

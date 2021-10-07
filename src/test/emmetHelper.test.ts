@@ -79,7 +79,7 @@ const fileService: FileService = {
 }
 
 function updateExtensionsPath(extPath: string[]): Promise<void> {
-	return updateExtensionsPathHelper(extPath, fileService, URI.file('/home/projects/test'))
+	return updateExtensionsPathHelper(extPath, fileService, [URI.file('/home/projects/test')])
 }
 
 describe('Validate Abbreviations', () => {

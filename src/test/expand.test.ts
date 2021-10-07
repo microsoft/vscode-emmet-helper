@@ -171,6 +171,18 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', 'detai', '<details>${0}</details>');
 	testExpandWithCompletion('html', 'summar', '<summary>${0}</summary>');
 
+	// https://github.com/microsoft/vscode/issues/126780
+	// testExpandWithCompletion('html', 'a[href=#]>p>a[href=#]', '<a href="#">\n\t<p><a href="#"></a></p>\n</a>');
+
+	// https://github.com/microsoft/vscode/issues/127919
+	// testExpandWithCompletion('html', 'div{{{test}}}', '<div>{{test}}</div>');
+
+	// https://github.com/microsoft/vscode/issues/131966
+	testExpandWithCompletion('html', 'span[onclick="alert();"]', '<span onclick="alert();">${0}</span>');
+	testExpandWithCompletion('html', 'span[onclick="hi(1)(2);"]', '<span onclick="hi(1)(2);">${0}</span>');
+	testExpandWithCompletion('html', 'span[onclick="hi;"]>(span)*2', '<span onclick="hi;"><span>${1}</span><span>${0}</span></span>');
+	testExpandWithCompletion('html', '(span[onclick="hi;"]>span)*2', '<span onclick="hi;"><span>${1}</span></span><span onclick="hi;"><span>${0}</span></span>');
+
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
 
