@@ -500,12 +500,30 @@ describe('Test custom snippets', () => {
 
 	// https://github.com/microsoft/vscode/issues/120435
 	it('should do nothing when all extensionsPath in the array are invalid', async () => {
-		const extensionsPathArray = ["./this/is/not/valid", "./this/is/also/not/valid"]
+		const extensionsPathArray = ["./this/is/not/valid", "./this/is/also/not/valid"];
 		try {
 			await updateExtensionsPath(extensionsPathArray);
 		} catch (e) {
 			throw new Error('There should not be an error');
 		}
+	});
+
+	// https://github.com/microsoft/vscode/issues/130868
+	it('should still suggest link:css snippet', async () => {
+		await updateExtensionsPath(extensionsPath);
+		const document = TextDocument.create('test://test/test.html', 'html', 0, 'lin');
+		const position = Position.create(0, 3);
+		const completionList = doComplete(document, position, 'html', {
+			preferences: {},
+			showExpandedAbbreviation: 'always',
+			showAbbreviationSuggestions: true,
+			syntaxProfiles: {},
+			variables: {}
+		});
+
+		assert.ok(completionList);
+		assert.ok(completionList.items.some(y => y.label === 'link'), 'No link suggestion given.');
+		assert.ok(completionList.items.some(y => y.label === 'link:css'), 'No link:css suggestion given.');
 	});
 });
 

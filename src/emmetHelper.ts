@@ -73,7 +73,10 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	// For example, when text at position is `a`, completions should return `a:blank`, `a:link`, `acr` etc.
 	if (!isStyleSheetRes) {
 		if (!snippetKeyCache.has(syntax)) {
-			const registry = customSnippetsRegistry[syntax] ?? getDefaultSnippets(syntax);
+			const registry: SnippetsMap = {
+				...getDefaultSnippets(syntax),
+				...customSnippetsRegistry[syntax]
+			};
 			snippetKeyCache.set(syntax, Object.keys(registry));
 		}
 		markupSnippetKeys = snippetKeyCache.get(syntax) ?? [];
@@ -1065,7 +1068,6 @@ function updateSnippets(snippetsJson: any) {
 			const mergedSnippets = Object.assign({}, prevSnippetsRegistry, newSnippets);
 			const mergedSnippetKeys = Object.keys(mergedSnippets);
 			customSnippetsRegistry[syntax] = mergedSnippets;
-			snippetKeyCache.set(syntax, mergedSnippetKeys);
 		});
 	} else {
 		throw new Error(localize("emmetInvalidSnippets", "Invalid snippets file. See https://code.visualstudio.com/docs/editor/emmet#_using-custom-emmet-snippets for a valid example."))
