@@ -961,12 +961,18 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 
 		const snippetsPath = joinPath(uri, 'snippets.json');
 		const profilesPath = joinPath(uri, 'syntaxProfiles.json');
+		let decoder: TextDecoder | undefined;
+		if (typeof (globalThis as any).TextDecoder === 'function') {
+			decoder = new (globalThis as any).TextDecoder() as TextDecoder;
+		} else {
+			decoder = new TextDecoder();
+		}
 
 		// the only errors we want to throw here are JSON parse errors
 		let snippetsDataStr = "";
 		try {
 			const snippetsData = await fs.readFile(snippetsPath);
-			snippetsDataStr = new TextDecoder().decode(snippetsData);
+			snippetsDataStr = decoder.decode(snippetsData);
 		} catch (e) {
 		}
 		if (snippetsDataStr.length) {
@@ -985,7 +991,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		let profilesDataStr = "";
 		try {
 			const profilesData = await fs.readFile(profilesPath);
-			profilesDataStr = new TextDecoder().decode(profilesData);
+			profilesDataStr = decoder.decode(profilesData);
 		} catch (e) {
 		}
 		if (profilesDataStr.length) {
