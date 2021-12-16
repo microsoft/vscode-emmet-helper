@@ -141,8 +141,8 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', 'hgroup', '<hgroup>${0}</hgroup>');
 
 	// https://github.com/microsoft/vscode/issues/117648
-	// testExpandWithCompletion('css', 'gtc', 'grid-template-columns: repeat();');
-	// testExpandWithCompletion('sass', 'gtc', 'grid-template-columns: repeat()');
+	testExpandWithCompletion('css', 'gtc', 'grid-template-columns: repeat(${0});');
+	testExpandWithCompletion('sass', 'gtc', 'grid-template-columns: repeat(${0})');
 
 	// https://github.com/microsoft/vscode/issues/118363
 	testCountCompletions('jsx', '{test}', 0);
@@ -182,6 +182,9 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', 'span[onclick="hi(1)(2);"]', '<span onclick="hi(1)(2);">${0}</span>');
 	testExpandWithCompletion('html', 'span[onclick="hi;"]>(span)*2', '<span onclick="hi;"><span>${1}</span><span>${0}</span></span>');
 	testExpandWithCompletion('html', '(span[onclick="hi;"]>span)*2', '<span onclick="hi;"><span>${1}</span></span><span onclick="hi;"><span>${0}</span></span>');
+
+	// https://github.com/microsoft/vscode/issues/137240
+	// testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
