@@ -1,7 +1,11 @@
+.github
 .vscode
+lib/cjs/test
+lib/esm/test
 node_modules
 src
-.gitignore
-.github
-lib/test
+test
 testData
+.gitignore
+tsconfig.esm.json
+tsconfig.json
