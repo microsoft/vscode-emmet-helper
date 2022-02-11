@@ -259,7 +259,7 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	// https://github.com/microsoft/vscode/issues/107592
 	testWrap('a', 'www.google.it', '<a href="http://www.google.it">www.google.it</a>');
 	testWrap('a', 'http://example.com', '<a href="http://example.com">http://example.com</a>');
-	// testWrap('a.link[test=here]', 'http://example.com', '<a class="link" test="here" href="http://example.com">http://example.com</a>');
+	testWrap('a.link[test=here]', 'http://example.com', '<a href="http://example.com" class="link" test="here">http://example.com</a>');
 	testWrap('a', 'http://www.site.com/en-us/download/details.aspx?id=12345', '<a href="http://www.site.com/en-us/download/details.aspx?id=12345">http://www.site.com/en-us/download/details.aspx?id=12345</a>');
 	testWrap('a[href=]', 'test@example.com', '<a href="mailto:test@example.com">test@example.com</a>');
 
