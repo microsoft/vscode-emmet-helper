@@ -184,7 +184,7 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', '(span[onclick="hi;"]>span)*2', '<span onclick="hi;"><span>${1}</span></span><span onclick="hi;"><span>${0}</span></span>');
 
 	// https://github.com/microsoft/vscode/issues/137240
-	// testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
+	testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
 
 	// https://github.com/microsoft/vscode-emmet-helper/issues/37
 	testExpandWithCompletion('xsl', 'cp/', '<xsl:copy select="${0}"/>');
