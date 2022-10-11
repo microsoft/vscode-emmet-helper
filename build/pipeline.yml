@@ -4,8 +4,7 @@ trigger:
   branches:
     include:
       - main
-pr:
-  drafts: false
+pr: none
 
 resources:
   repositories:
@@ -25,7 +24,7 @@ extends:
   template: azure-pipelines/npm-package/pipeline.yml@templates
   parameters:
     npmPackages:
-      - name: \@vscode/emmet-helper
+      - name: emmet-helper
 
         buildPlatforms:
           - name: Linux
@@ -46,12 +45,6 @@ extends:
             displayName: Compile npm package
 
         testSteps:
-          - script: yarn --frozen-lockfile
-            displayName: Install dependencies
-
-          - script: yarn compile
-            displayName: Compile npm package
-
           - script: yarn test
             displayName: Test npm package
 
