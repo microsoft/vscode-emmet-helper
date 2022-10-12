@@ -1,5 +1,6 @@
 .github
 .vscode
+build
 lib/cjs/test
 lib/esm/test
 node_modules
