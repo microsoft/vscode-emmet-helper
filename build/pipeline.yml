@@ -26,7 +26,14 @@ extends:
     npmPackages:
       - name: emmet-helper
 
-        buildPlatforms:
+        buildSteps:
+          - script: yarn --frozen-lockfile
+            displayName: Install dependencies
+
+          - script: yarn compile
+            displayName: Compile npm package
+
+        testPlatforms:
           - name: Linux
             nodeVersions:
               - 16.x
@@ -37,14 +44,13 @@ extends:
             nodeVersions:
               - 16.x
 
-        buildSteps:
+        testSteps:
           - script: yarn --frozen-lockfile
             displayName: Install dependencies
 
           - script: yarn compile
             displayName: Compile npm package
 
-        testSteps:
           - script: yarn test
             displayName: Test npm package
 
