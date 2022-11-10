@@ -1,14 +1,14 @@
-import { Position, CompletionItemKind } from 'vscode-languageserver-types'
-import { isAbbreviationValid, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, emmetSnippetField, updateExtensionsPath as updateExtensionsPathHelper, doComplete, expandAbbreviation } from '../emmetHelper';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { describe, it } from 'mocha';
 import assert from 'assert';
+import { ExtractOptions } from 'emmet';
+import * as fs from 'fs';
+import { describe, it } from 'mocha';
 import * as path from 'path';
 import * as util from 'util';
-import * as fs from 'fs';
-import { FileService, FileType } from '../fileService';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItemKind, Position } from 'vscode-languageserver-types';
 import { URI } from 'vscode-uri';
-import { ExtractOptions } from 'emmet';
+import { doComplete, emmetSnippetField, expandAbbreviation, extractAbbreviation, extractAbbreviationFromText, getExpandOptions, isAbbreviationValid, updateExtensionsPath as updateExtensionsPathHelper } from '../emmetHelper';
+import { FileService, FileType } from '../fileService';
 
 const extensionsPath = [path.join(path.normalize(path.join(__dirname, '../../..')), 'testData', 'custom-snippets-profile')];
 const bemFilterExample = 'ul.search-form._wide>li.-querystring+li.-btn_large';
@@ -1272,6 +1272,7 @@ describe('Test completions', () => {
 
 		assert.ok(completionList);
 		assert.strictEqual(completionList.items[0].kind, CompletionItemKind.Snippet);
+		assert.strictEqual(completionList.items[0].detail, 'Emmet abbreviation');
 	});
 
 	it('should not provide double completions for commonly used tags that are also snippets', async () => {

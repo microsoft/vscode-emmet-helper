@@ -4,28 +4,33 @@
  *--------------------------------------------------------------------------------------------*/
 
 
-import { Position, Range, CompletionItem, CompletionList, TextEdit, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as JSONC from 'jsonc-parser';
-import { cssData, htmlData } from './data';
-import { URI } from 'vscode-uri';
-import { FileService, joinPath, isAbsolutePath, FileType, FileStat } from './fileService';
 import { TextDecoder } from 'util';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { CompletionItem, CompletionItemKind, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types';
+import { URI } from 'vscode-uri';
+import { cssData, htmlData } from './data';
+import { FileService, FileStat, FileType, isAbsolutePath, joinPath } from './fileService';
 
 import expand, { Config, extract, ExtractOptions, MarkupAbbreviation, Options, parseMarkup, parseStylesheet, resolveConfig, stringifyMarkup, stringifyStylesheet, StylesheetAbbreviation, SyntaxType, UserConfig } from 'emmet';
 import { parseSnippets, SnippetsMap, syntaxes } from './configCompat';
-
-import * as nls from 'vscode-nls';
-
-const localize = nls.loadMessageBundle();
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
 // */
 // const extract = typeof _extractAbbreviation === 'function' ? _extractAbbreviation : _extractAbbreviation.default;
 
+export { FileService, FileType, FileStat };
 
-export { FileService, FileType, FileStat }
+let l10n: { t: (message: string) => string };
+try {
+	l10n = require('vscode').l10n;
+} catch {
+	// Fallback to the identity function.
+	l10n = {
+		t: (message: string) => message
+	};
+}
 
 const snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
@@ -129,7 +134,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
 		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-		expandedAbbr.detail = localize('Emmet abbreviation', "Emmet Abbreviation");
+		expandedAbbr.detail = l10n.t('Emmet abbreviation');
 		expandedAbbr.label = abbreviation;
 		expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
 		completionItems = [expandedAbbr];
@@ -837,7 +842,7 @@ function getVariables(variablesFromSettings: object | undefined): SnippetsMap {
 	if (!variablesFromSettings) {
 		return variablesFromFile;
 	}
-	return Object.assign({}, variablesFromFile, variablesFromSettings);
+	return Object.assign({}, variablesFromFile, variablesFromSettings) as SnippetsMap;
 }
 
 function getFormatters(syntax: string, preferences: any): any {
@@ -1023,7 +1028,7 @@ function updateVariables(varsJson: any) {
 	if (typeof varsJson === 'object' && varsJson) {
 		variablesFromFile = Object.assign({}, variablesFromFile, varsJson);
 	} else {
-		throw new Error(localize("emmetInvalidVariables", "Invalid emmet.variables field. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example."))
+		throw new Error(l10n.t('Invalid emmet.variables field. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example.'));
 	}
 }
 
@@ -1035,7 +1040,7 @@ function updateProfiles(profileJson: any) {
 	if (typeof profileJson === 'object' && profileJson) {
 		profilesFromFile = Object.assign({}, profilesFromFile, profileJson);
 	} else {
-		throw new Error(localize("emmetInvalidProfiles", "Invalid syntax profile. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example."))
+		throw new Error(l10n.t('Invalid syntax profile. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example.'));
 	}
 }
 
@@ -1072,11 +1077,10 @@ function updateSnippets(snippetsJson: any) {
 			const prevSnippetsRegistry = customSnippetsRegistry[syntax];
 			const newSnippets = parseSnippets(customSnippets);
 			const mergedSnippets = Object.assign({}, prevSnippetsRegistry, newSnippets);
-			const mergedSnippetKeys = Object.keys(mergedSnippets);
 			customSnippetsRegistry[syntax] = mergedSnippets;
 		});
 	} else {
-		throw new Error(localize("emmetInvalidSnippets", "Invalid snippets file. See https://code.visualstudio.com/docs/editor/emmet#_using-custom-emmet-snippets for a valid example."))
+		throw new Error(l10n.t('Invalid snippets file. See https://code.visualstudio.com/docs/editor/emmet#_using-custom-emmet-snippets for a valid example.'));
 	}
 }
 
