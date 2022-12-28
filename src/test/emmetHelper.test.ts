@@ -1272,7 +1272,7 @@ describe('Test completions', () => {
 
 		assert.ok(completionList);
 		assert.strictEqual(completionList.items[0].kind, CompletionItemKind.Snippet);
-		assert.strictEqual(completionList.items[0].detail, 'Emmet abbreviation');
+		assert.strictEqual(completionList.items[0].detail, 'Emmet Abbreviation');
 	});
 
 	it('should not provide double completions for commonly used tags that are also snippets', async () => {
