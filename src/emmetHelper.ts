@@ -134,7 +134,7 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 		expandedAbbr.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedText)));
 		expandedAbbr.documentation = replaceTabStopsWithCursors(expandedText);
 		expandedAbbr.insertTextFormat = InsertTextFormat.Snippet;
-		expandedAbbr.detail = l10n.t('Emmet abbreviation');
+		expandedAbbr.detail = l10n.t('Emmet Abbreviation');
 		expandedAbbr.label = abbreviation;
 		expandedAbbr.label += filter ? '|' + filter.replace(',', '|') : "";
 		completionItems = [expandedAbbr];
