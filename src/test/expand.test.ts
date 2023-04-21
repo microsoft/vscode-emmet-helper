@@ -127,8 +127,8 @@ describe('Expand Abbreviations', () => {
 	testCountCompletions('html', 'body', 1);
 
 	// https://github.com/microsoft/vscode/issues/115839
-	testExpandWithCompletion('css', 'bgc', 'background-color: #${1:fff};');
-	testExpandWithCompletion('sass', 'bgc', 'background-color: #${1:fff}');
+	testExpandWithCompletion('css', 'bgc', 'background-color: ${1:#fff};');
+	testExpandWithCompletion('sass', 'bgc', 'background-color: ${1:#fff}');
 
 	// https://github.com/microsoft/vscode/issues/115854
 	testCountCompletions('sass', 'bkco', 0);
