@@ -183,6 +183,19 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('html', 'span[onclick="hi;"]>(span)*2', '<span onclick="hi;"><span>${1}</span><span>${0}</span></span>');
 	testExpandWithCompletion('html', '(span[onclick="hi;"]>span)*2', '<span onclick="hi;"><span>${1}</span></span><span onclick="hi;"><span>${0}</span></span>');
 
+	// https://github.com/microsoft/vscode/issues/165933
+	it(`should not mention X-UA-Compatible`, async () => {
+		const type = getSyntaxType('html');
+		const config: UserConfig = {
+			type,
+			syntax: 'html'
+		}
+		let expandedRes = expandAbbreviation('!', config);
+		assert.ok(!expandedRes.includes('X-UA-Compatible'));
+		expandedRes = expandAbbreviation('html:5', config);
+		assert.ok(!expandedRes.includes('X-UA-Compatible'));
+	});
+
 	// https://github.com/microsoft/vscode/issues/137240
 	// testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
 
