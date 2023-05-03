@@ -2,24 +2,24 @@
 # yarn lockfile v1
 
 
-"@emmetio/abbreviation@^2.3.1":
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/@emmetio/abbreviation/-/abbreviation-2.3.1.tgz#b5ec06b9629ec63292f3a378e716dcb3071924ea"
-  integrity sha512-QXgYlXZGprqb6aCBJPPWVBN/Jb69khJF73GGJkOk//PoMgSbPGuaHn1hCRolctnzlBHjCIC6Om97Pw46/1A23g==
+"@emmetio/abbreviation@^2.3.2":
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/@emmetio/abbreviation/-/abbreviation-2.3.2.tgz#375bf6bc6ae6405f62dd0ddab2559b46502d01f4"
+  integrity sha512-8vqkn4rtjm5Zv34RPgsq3/ij88ri+IcfC2MxPELytrQvfpaLyppscE0YSwDVuIUR6KL5GCBUfr5Mo7SHSbswpA==
   dependencies:
-    "@emmetio/scanner" "^1.0.2"
+    "@emmetio/scanner" "^1.0.3"
 
-"@emmetio/css-abbreviation@^2.1.6":
-  version "2.1.6"
-  resolved "https://registry.yarnpkg.com/@emmetio/css-abbreviation/-/css-abbreviation-2.1.6.tgz#f37f7ffb8d76efc40d3629739758531bbe810d7b"
-  integrity sha512-bvuPogt0OvwcILRg+ZD/oej1H72xwOhUDPWOmhCWLJrZZ8bMTazsWnvw8a8noaaVqUhOE9PsC0tYgGVv5N7fsw==
+"@emmetio/css-abbreviation@^2.1.7":
+  version "2.1.7"
+  resolved "https://registry.yarnpkg.com/@emmetio/css-abbreviation/-/css-abbreviation-2.1.7.tgz#9791269586d780cf4b40078ea79886d1888a188a"
+  integrity sha512-nrOt3/QROjYYK1cMjoO5fCfHIf0hFpcZeQQt7Ew6ixZ0ElEEs77ijnY57HC6ti91W/mn+c1T7ET8sClBMRHHBg==
   dependencies:
-    "@emmetio/scanner" "^1.0.2"
+    "@emmetio/scanner" "^1.0.3"
 
-"@emmetio/scanner@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@emmetio/scanner/-/scanner-1.0.2.tgz#ee96ecb9f9cfa5f7a876a13011ae74ee06e9100d"
-  integrity sha512-1ESCGgXRgn1r29hRmz8K0G4Ywr5jDWezMgRnICComBCWmg3znLWU8+tmakuM1og1Vn4W/sauvlABl/oq2pve8w==
+"@emmetio/scanner@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@emmetio/scanner/-/scanner-1.0.3.tgz#755e581517e2302d31a387e4064bf73035ebfc46"
+  integrity sha512-/EFyTijquAwKMGSBd50RnjxsfDXmZAFp71PGu7sM6LEnEJXMV+FKL7Rvr6YLu4czQmPVRsfyhcbQz+WZnM4AZw==
 
 "@types/mocha@^9.1.0":
   version "9.1.0"
@@ -172,13 +172,13 @@ diff@5.0.0:
   resolved "https://registry.yarnpkg.com/diff/-/diff-5.0.0.tgz#7ed6ad76d859d030787ec35855f5b1daf31d852b"
   integrity sha512-/VTCrvm5Z0JGty/BWHljh+BAiw3IK+2j87NGMu8Nwc/f48WoDAC395uomO9ZD117ZOBaHmkX1oyLvkVM/aIT3w==
 
-emmet@^2.4.2:
-  version "2.4.2"
-  resolved "https://registry.yarnpkg.com/emmet/-/emmet-2.4.2.tgz#686983e7b8623ad582fc9fbb6515b17d195c0394"
-  integrity sha512-YgmsMkhUgzhJMgH5noGudfxqrQn1bapvF0y7C1e7A0jWFImsRrrvVslzyZz0919NED/cjFOpVWx7c973V+2S/w==
+emmet@^2.4.3:
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/emmet/-/emmet-2.4.3.tgz#c99f19e572a270da27f456dd7f65dfda83dc0ec1"
+  integrity sha512-Bq6zozVDVrLbBmKdosI9Q2DvrFh/ehwnNjgDRsvGVjPOEAhMKie9HwQnPuUi3NOZ2itVGyRwsLAdufnG9DVFwg==
   dependencies:
-    "@emmetio/abbreviation" "^2.3.1"
-    "@emmetio/css-abbreviation" "^2.1.6"
+    "@emmetio/abbreviation" "^2.3.2"
+    "@emmetio/css-abbreviation" "^2.1.7"
 
 emoji-regex@^8.0.0:
   version "8.0.0"
