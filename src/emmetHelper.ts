@@ -521,6 +521,14 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (syntax === 'jsx') {
 		return (jsxAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 	}
+	
+	// Fix for jinja syntax https://github.com/microsoft/vscode/issues/179422
+	if (syntax === 'html') {
+		if (/^({%|{#|{{)/.test(abbreviation)) {
+		  return false;
+		}
+	}
+	
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
@@ -555,6 +563,12 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	if (/[-,:]/.test(abbreviation) && !/--|::/.test(abbreviation) &&
 		!abbreviation.endsWith(':')) {
 		return false;
+	}
+
+	// users might write successive dots '.' which shouldn't be treated as an abbreviation
+	const successiveDots = abbreviation.match(/^([.]+)$/);
+	if (successiveDots) {
+		return true;
 	}
 
 	// Its common for users to type some text and end it with period, this should not be treated as an abbreviation

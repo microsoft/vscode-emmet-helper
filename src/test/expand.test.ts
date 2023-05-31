@@ -134,6 +134,14 @@ describe('Expand Abbreviations', () => {
 	testCountCompletions('sass', 'bkco', 0);
 	testCountCompletions('sass', 'bgc', 1);
 
+	// https://github.com/microsoft/vscode/issues/179422
+	testCountCompletions('html', '{% if value is prime %}', 0);
+	testCountCompletions('html', '{# comment #}', 0);
+	testCountCompletions('html', '{{ value }}', 0);
+	
+	// https://github.com/microsoft/vscode/issues/179422#issuecomment-1504099693
+	testCountCompletions('html', '..', 0);
+
 	// https://github.com/microsoft/vscode/issues/115946
 	testExpandWithCompletion('html', '{test}*3', 'test\ntest\ntest');
 
