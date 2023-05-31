@@ -566,7 +566,7 @@ function isExpandedTextNoise(syntax: string, abbreviation: string, expandedText:
 	}
 
 	// users might write successive dots '.' which shouldn't be treated as an abbreviation
-	const successiveDots = abbreviation.match(/^([.]+)$/);
+	const successiveDots = abbreviation.match(/^(\.{2,})$/);
 	if (successiveDots) {
 		return true;
 	}
