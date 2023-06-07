@@ -523,7 +523,7 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	}
 	
 	// Fix for jinja syntax https://github.com/microsoft/vscode/issues/179422
-	if (/^({%|{#|{{)/.test(abbreviation)) {
+	if (/^{%|{#|{{/.test(abbreviation)) {
 		return false;
 	}
 	
