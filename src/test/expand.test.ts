@@ -289,4 +289,14 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	// https://github.com/microsoft/vscode/issues/122231
 	testWrap('div', '<img src={`img/projects/${src}`} alt=\'\' />',
 		'<div><img src={`img/projects/${src}`} alt=\'\' /></div>', undefined, 'jsx');
+
+	// https://github.com/microsoft/vscode/issues/179422
+	testCountCompletions('html', '{% if value is prime %}', 0);
+	testCountCompletions('html', '{# comment #}', 0);
+	testCountCompletions('html', '{{ value }}', 0);
+	
+	// https://github.com/microsoft/vscode/issues/179422#issuecomment-1504099693
+	testCountCompletions('html', '..', 0);
+	testExpandWithCompletion('html', '.', '<div class="${1}">${0}</div>');
+
 });
