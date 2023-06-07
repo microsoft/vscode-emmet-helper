@@ -297,4 +297,5 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	
 	// https://github.com/microsoft/vscode/issues/179422#issuecomment-1504099693
 	testCountCompletions('html', '..', 0);
+	testCountCompletions('html', '.', 1);
 });
