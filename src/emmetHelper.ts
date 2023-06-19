@@ -713,6 +713,8 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		// 'stylesheet.json': boolean,
 		// 'stylesheet.jsonDoubleQuotes': boolean,
 		'stylesheet.fuzzySearchMinScore': preferences['css.fuzzySearchMinScore'],
+		'markup.attributes': profile['markup.attributes'],
+		'markup.valuePrefix': profile['markup.valuePrefix'],
 	}
 
 	const combinedOptions: any = {};

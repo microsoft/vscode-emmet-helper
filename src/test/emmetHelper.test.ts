@@ -236,6 +236,27 @@ describe('Test Basic Expand Options', () => {
 		assert.strictEqual(expandOptions.options['output.field'], emmetSnippetField)
 		assert.strictEqual(expandOptions.syntax, syntax);
 	});
+
+	it('should support jsx markup attributes', () => {
+		const syntax = 'jsx';
+		const emmetConfig = {
+			syntaxProfiles: {
+				jsx: {
+					'markup.attributes': {
+						'class': 'attributePrefix'
+					},
+					'markup.valuePrefix': {
+						'class': 'valuePrefix'
+					}
+				}
+			}
+		};
+		const expandOptions = getExpandOptions(syntax, emmetConfig);
+		assert.ok(expandOptions.options['markup.valuePrefix']);
+		assert.ok(expandOptions.options['markup.attributes']);
+		assert.strictEqual(expandOptions.options['markup.valuePrefix']!['class'], 'valuePrefix');
+		assert.strictEqual(expandOptions.options['markup.attributes']!['class'], 'attributePrefix');
+	})
 });
 
 describe('Test addons in Expand Options', () => {
@@ -1291,5 +1312,21 @@ describe('Test completions', () => {
 		assert.ok(completionList);
 		assert.strictEqual(completionList.items.length, 1);
 		assert.strictEqual(completionList.items[0].label, 'abbr');
+	});
+
+	it('should complete JSX tags with custom syntaxProfile', async () => {
+		await updateExtensionsPath([]);
+		const expanded = expandAbbreviation('..test', {
+			syntax: 'jsx',
+			options: {
+				"markup.attributes": {
+					"class*": "className"
+				},
+				"markup.valuePrefix": {
+					"class*": "myPrefixHere"
+				}
+			}
+		});
+		assert.strictEqual(expanded, '<div className={myPrefixHere.test}></div>');
 	});
 })
