@@ -521,12 +521,12 @@ export function isAbbreviationValid(syntax: string, abbreviation: string): boole
 	if (syntax === 'jsx') {
 		return (jsxAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 	}
-	
+
 	// Fix for jinja syntax https://github.com/microsoft/vscode/issues/179422
 	if (/^{%|{#|{{/.test(abbreviation)) {
 		return false;
 	}
-	
+
 	return (htmlAbbreviationStartRegex.test(abbreviation) && htmlAbbreviationRegex.test(abbreviation));
 }
 
@@ -943,13 +943,15 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 	// Extract URIs from the given setting
 	const emmetExtensionsPathUri: URI[] = [];
 	for (let emmetExtensionsPath of emmetExtensionsPathSetting) {
-		if (emmetExtensionsPath) {
-			emmetExtensionsPath = emmetExtensionsPath.trim();
+		if (typeof emmetExtensionsPath !== 'string') {
+			console.warn("The following emmetExtensionsPath isn't a string: " + JSON.stringify(emmetExtensionsPath));
+			continue;
 		}
 
+		emmetExtensionsPath = emmetExtensionsPath.trim();
 		if (emmetExtensionsPath.length && emmetExtensionsPath[0] === '~') {
 			if (homeDir) {
-				emmetExtensionsPathUri.push(joinPath(homeDir, emmetExtensionsPath.substr(1)));
+				emmetExtensionsPathUri.push(joinPath(homeDir, emmetExtensionsPath.substring(1)));
 			}
 		} else if (!isAbsolutePath(emmetExtensionsPath)) {
 			if (workspaceFolderPaths) {
