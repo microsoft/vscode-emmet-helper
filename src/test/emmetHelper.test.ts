@@ -1314,19 +1314,66 @@ describe('Test completions', () => {
 		assert.strictEqual(completionList.items[0].label, 'abbr');
 	});
 
-	it('should complete JSX tags with custom syntaxProfile', async () => {
+	it('should complete JSX tags with attribute overrides', async () => {
 		await updateExtensionsPath([]);
-		const expanded = expandAbbreviation('..test', {
-			syntax: 'jsx',
-			options: {
-				"markup.attributes": {
-					"class*": "className"
-				},
-				"markup.valuePrefix": {
-					"class*": "myPrefixHere"
+		const options = {
+			'syntaxProfiles': {
+				'jsx': {
+					'markup.attributes': {
+						'class': 'classPlainName',
+						'class*': 'classStarName'
+					},
+					'markup.valuePrefix': {
+						'class': 'classPlainPrefix',
+						'class*': 'classStarPrefix'
+					}
 				}
 			}
-		});
-		assert.strictEqual(expanded, '<div className={myPrefixHere.test}></div>');
+		};
+		const expanded = expandAbbreviation('..test', getExpandOptions('jsx', options));
+		assert.strictEqual(expanded, '<div classStarName={classStarPrefix.test}>${0}</div>');
+		const expandedSecond = expandAbbreviation('.test', getExpandOptions('jsx', options));
+		assert.strictEqual(expandedSecond, '<div classPlainName={classPlainPrefix.test}>${0}</div>');
+	});
+
+	it('should complete JSX tags with empty string value prefix', async () => {
+		await updateExtensionsPath([]);
+		const options = {
+			'syntaxProfiles': {
+				'jsx': {
+					'markup.attributes': {
+						'class': 'classPlainName',
+						'class*': 'classStarName'
+					},
+					'markup.valuePrefix': {
+						'class': '',
+						'class*': ''
+					}
+				}
+			}
+		};
+		const expanded = expandAbbreviation('..test', getExpandOptions('jsx', options));
+		assert.strictEqual(expanded, '<div classStarName="test">${0}</div>');
+		const expandedSecond = expandAbbreviation('.test', getExpandOptions('jsx', options));
+		assert.strictEqual(expandedSecond, '<div classPlainName="test">${0}</div>');
+	});
+
+	it('should complete JSX tags with partial attribute overrides', async () => {
+		const options = {
+			'syntaxProfiles': {
+				'jsx': {
+					'markup.attributes': {
+						'class*': 'classStarName'
+					},
+					'markup.valuePrefix': {
+						'class': 'classPlainPrefix',
+					}
+				}
+			}
+		};
+		const expanded = expandAbbreviation('.test', getExpandOptions('jsx', options));
+		assert.strictEqual(expanded, '<div className={classPlainPrefix.test}>${0}</div>');
+		const expandedSecond = expandAbbreviation('..test', getExpandOptions('jsx', options));
+		assert.strictEqual(expandedSecond, '<div classStarName={styles.test}>${0}</div>');
 	});
 })
