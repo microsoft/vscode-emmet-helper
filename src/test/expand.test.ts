@@ -196,6 +196,10 @@ describe('Expand Abbreviations', () => {
 		assert.ok(!expandedRes.includes('X-UA-Compatible'));
 	});
 
+	// https://github.com/microsoft/vscode/issues/180689
+	testExpandWithCompletion('jsx', '.bar', '<div className="bar">${0}</div>', { 'syntaxProfiles': { 'jsx': { 'jsx.enabled': true }}});
+	testExpandWithCompletion('jsx', '..bar', '<div styleName={styles.bar}>${0}</div>', { 'syntaxProfiles': { 'jsx': { 'jsx.enabled': true }}});
+
 	// https://github.com/microsoft/vscode/issues/137240
 	// testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
 
@@ -294,7 +298,7 @@ describe('Wrap Abbreviations (more advanced)', () => {
 	testCountCompletions('html', '{% if value is prime %}', 0);
 	testCountCompletions('html', '{# comment #}', 0);
 	testCountCompletions('html', '{{ value }}', 0);
-	
+
 	// https://github.com/microsoft/vscode/issues/179422#issuecomment-1504099693
 	testCountCompletions('html', '..', 0);
 	testExpandWithCompletion('html', '.', '<div class="${1}">${0}</div>');

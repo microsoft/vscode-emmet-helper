@@ -674,7 +674,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	};
 
 	// These options come from user prefs in the vscode repo
-	const userPreferenceOptions: Partial<Options> = {
+	let userPreferenceOptions: Partial<Options> = {
 		// inlineElements: string[],
 		// 'output.indent': string,
 		// 'output.baseIndent': string,
@@ -712,9 +712,34 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		'stylesheet.unitAliases': unitAliases,
 		// 'stylesheet.json': boolean,
 		// 'stylesheet.jsonDoubleQuotes': boolean,
-		'stylesheet.fuzzySearchMinScore': preferences['css.fuzzySearchMinScore'],
-		'markup.attributes': profile['markup.attributes'],
-		'markup.valuePrefix': profile['markup.valuePrefix'],
+		'stylesheet.fuzzySearchMinScore': preferences['css.fuzzySearchMinScore']
+	};
+
+	if (syntax === 'jsx') {
+		// Ref https://github.com/emmetio/emmet/blob/master/src/config.ts#L391
+		const defaultMarkupAttributeOptions = {
+			'class': 'className',
+			'class*': 'styleName',
+			'for': 'htmlFor'
+		};
+		const defaultMarkupValuePrefixOptions = {
+			'class*': 'styles'
+		};
+
+		// Rather than trying to merge these specific options upstream,
+		// we can merge them here before passing them upstream.
+		if (profile['markup.attributes']) {
+			userPreferenceOptions['markup.attributes'] = {
+				...defaultMarkupAttributeOptions,
+				...profile['markup.attributes']
+			};
+		}
+		if (profile['markup.valuePrefix']) {
+			userPreferenceOptions['markup.valuePrefix'] = {
+				...defaultMarkupValuePrefixOptions,
+				...profile['markup.valuePrefix']
+			};
+		}
 	}
 
 	const combinedOptions: any = {};
