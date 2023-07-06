@@ -45,6 +45,6 @@ export function parseSnippets(snippets: SnippetsMap): SnippetsMap {
  * List of all known syntaxes
  */
 export const syntaxes = {
-    markup: ['html', 'xml', 'xsl', 'jsx', 'js', 'pug', 'slim', 'haml'],
+    markup: ['html', 'xml', 'xsl', 'jsx', 'js', 'pug', 'slim', 'haml', 'vue', 'svelte'],
     stylesheet: ['css', 'sass', 'scss', 'less', 'sss', 'stylus']
 };
