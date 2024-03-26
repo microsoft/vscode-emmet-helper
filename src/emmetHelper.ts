@@ -742,6 +742,31 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		}
 	}
 
+	if (syntax === 'vue') {
+		// Ref https://github.com/emmetio/emmet/blob/master/src/config.ts#L404
+		const defaultMarkupAttributeOptions = {
+			'class*': ':class',
+		};
+
+		const defaultMarkupValuePrefixOptions = {
+			'class*': '$style'
+		};
+
+		if (profile['markup.attributes']) {
+			userPreferenceOptions['markup.attributes'] = {
+				...defaultMarkupAttributeOptions,
+				...profile['markup.attributes']
+			};
+		}
+
+		if (profile['markup.valuePrefix']) {
+			userPreferenceOptions['markup.valuePrefix'] = {
+				...defaultMarkupValuePrefixOptions,
+				...profile['markup.valuePrefix']
+			};
+		}
+	}
+
 	const combinedOptions: any = {};
 	[...Object.keys(defaultVSCodeOptions), ...Object.keys(userPreferenceOptions)].forEach(key => {
 		const castKey = key as keyof Options;

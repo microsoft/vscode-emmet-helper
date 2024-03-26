@@ -257,6 +257,27 @@ describe('Test Basic Expand Options', () => {
 		assert.strictEqual(expandOptions.options['markup.valuePrefix']!['class'], 'valuePrefix');
 		assert.strictEqual(expandOptions.options['markup.attributes']!['class'], 'attributePrefix');
 	})
+
+	it('should support vue markup attributes', () => {
+		const syntax = 'vue';
+		const emmetConfig = {
+			syntaxProfiles: {
+				vue: {
+					'markup.attributes': {
+						'class': 'attributePrefix'
+					},
+					'markup.valuePrefix': {
+						'class': 'valuePrefix'
+					}
+				}
+			}
+		};
+		const expandOptions = getExpandOptions(syntax, emmetConfig);
+		assert.ok(expandOptions.options['markup.valuePrefix']);
+		assert.ok(expandOptions.options['markup.attributes']);
+		assert.strictEqual(expandOptions.options['markup.valuePrefix']!['class'], 'valuePrefix');
+		assert.strictEqual(expandOptions.options['markup.attributes']!['class'], 'attributePrefix');
+	})
 });
 
 describe('Test addons in Expand Options', () => {

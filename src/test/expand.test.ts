@@ -199,7 +199,20 @@ describe('Expand Abbreviations', () => {
 	// https://github.com/microsoft/vscode/issues/180689
 	testExpandWithCompletion('jsx', '.bar', '<div className="bar">${0}</div>', { 'syntaxProfiles': { 'jsx': { 'jsx.enabled': true }}});
 	testExpandWithCompletion('jsx', '..bar', '<div styleName={styles.bar}>${0}</div>', { 'syntaxProfiles': { 'jsx': { 'jsx.enabled': true }}});
-
+	testExpandWithCompletion(
+		'vue',
+		'..bar',
+		'<div :class="\\$style.bar">${0}</div>',
+		{
+			syntaxProfiles: {
+				vue: {
+					'markup.valuePrefix': {
+						"class*": "$style"
+					}
+				}
+			}
+		}
+	);
 	// https://github.com/microsoft/vscode/issues/137240
 	// testExpandWithCompletion('css', 'dn!important', 'display: none !important;');
 
