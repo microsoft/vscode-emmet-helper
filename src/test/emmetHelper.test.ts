@@ -1374,7 +1374,7 @@ describe('Test completions', () => {
 			}
 		};
 		const expanded = expandAbbreviation('..test', getExpandOptions('jsx', options));
-		assert.strictEqual(expanded, '<div classStarName="test">${0}</div>');
+		assert.strictEqual(expanded, '<div classStarName={test}>${0}</div>');
 		const expandedSecond = expandAbbreviation('.test', getExpandOptions('jsx', options));
 		assert.strictEqual(expandedSecond, '<div classPlainName="test">${0}</div>');
 	});
