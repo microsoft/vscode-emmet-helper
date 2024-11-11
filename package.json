@@ -32,7 +32,6 @@
   "scripts": {
     "watch": "tsc -watch -p ./",
     "compile": "tsc -p ./",
-    "clean": "rimraf lib",
     "compile-esm": "tsc -p ./tsconfig.esm.json",
     "test": "mocha lib/cjs/test"
   }

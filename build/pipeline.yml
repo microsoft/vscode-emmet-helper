@@ -27,31 +27,31 @@ extends:
       - name: emmet-helper
 
         buildSteps:
-          - script: yarn --frozen-lockfile
+          - script: npm ci
             displayName: Install dependencies
 
-          - script: yarn compile
+          - script: npm run compile && npm run compile-esm
             displayName: Compile npm package
 
         testPlatforms:
           - name: Linux
             nodeVersions:
-              - 16.x
+              - 20.x
           - name: MacOS
             nodeVersions:
-              - 16.x
+              - 20.x
           - name: Windows
             nodeVersions:
-              - 16.x
+              - 20.x
 
         testSteps:
-          - script: yarn --frozen-lockfile
+          - script: npm ci
             displayName: Install dependencies
 
-          - script: yarn compile
+          - script: npm run compile && npm run compile-esm
             displayName: Compile npm package
 
-          - script: yarn test
+          - script: npm run test
             displayName: Test npm package
 
         publishPackage: ${{ parameters.publishPackage }}
