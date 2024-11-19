@@ -88,6 +88,7 @@ describe('Validate Abbreviations', () => {
 			'ul>li',
 			'ul',
 			'h1',
+			'picture>source',
 			'ul>li*3',
 			'(ul>li)+div',
 			'.hello',

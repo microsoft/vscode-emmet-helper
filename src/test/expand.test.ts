@@ -224,6 +224,12 @@ describe('Expand Abbreviations', () => {
 	testExpandWithCompletion('css', '!imp', '!important');
 	testCountCompletions('css', '!importante', 0);
 
+	
+	testExpandWithCompletion('html', 'vid', '<video src="${1}">${0}</video>');
+	testExpandWithCompletion('html', 'dlg', '<dialog>${0}</dialog>');
+	testExpandWithCompletion('html', 'datal', '<datalist>${0}</datalist>');
+	testExpandWithCompletion('html', 'prog', '<progress>${0}</progress>');
+
 	// escaped dollar signs should not change after going through Emmet expansion only
 	// VS Code automatically removes the backslashes after the expansion
 	testExpand('html', 'span{\\$5}', '<span>\\$5</span>');
