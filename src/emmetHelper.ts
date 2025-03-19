@@ -23,11 +23,8 @@ import { parseSnippets, SnippetsMap, syntaxes } from './configCompat';
 export { FileService, FileType, FileStat };
 
 let l10n: { t: (message: string) => string };
-let getProfileOfCurrentLanguageId = (profilesConfig: any) => null;
 try {
-	var vscode = require('vscode');
-	l10n = vscode.l10n;
-	getProfileOfCurrentLanguageId = (profilesConfig: any) => profilesConfig[vscode.window.activeTextEditor.document.languageId];
+	l10n = require('vscode').l10n;
 } catch {
 	// Fallback to the identity function.
 	l10n = {
@@ -854,7 +851,7 @@ function getProfile(syntax: string, profilesFromSettings: any): any {
 	}
 	const profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
-	const options = getProfileOfCurrentLanguageId(profilesConfig) || profilesConfig[syntax];
+	const options = profilesConfig[syntax];
 	if (!options || typeof options === 'string') {
 		if (options === 'xhtml') {
 			return {
