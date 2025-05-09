@@ -1,7 +1,6 @@
 name: run-tests
 on: push
-permissions:
-  contents: read
+permissions: {}
 jobs:
   yarn-ubuntu:
     name: yarn-ubuntu
