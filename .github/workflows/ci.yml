@@ -1,5 +1,7 @@
 name: run-tests
 on: push
+permissions:
+  contents: read
 jobs:
   yarn-ubuntu:
     name: yarn-ubuntu
@@ -7,6 +9,8 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
+      with:
+        persist-credentials: false
     - name: Run yarn
       run: |
         yarn && yarn compile && yarn test
@@ -16,6 +20,8 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
+      with:
+        persist-credentials: false
     - name: Run yarn
       run: |
         yarn && yarn compile && yarn test
