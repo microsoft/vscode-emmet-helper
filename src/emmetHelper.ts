@@ -14,6 +14,12 @@ import { FileService, FileStat, FileType, isAbsolutePath, joinPath } from './fil
 
 import expand, { Config, extract, ExtractOptions, MarkupAbbreviation, Options, parseMarkup, parseStylesheet, resolveConfig, stringifyMarkup, stringifyStylesheet, StylesheetAbbreviation, SyntaxType, UserConfig } from 'emmet';
 import { parseSnippets, SnippetsMap, syntaxes } from './configCompat';
+import { addFinalTabStop, escapeNonTabStopDollar, removeTabStops, replaceTabStopsWithCursors } from './utils/textProcessing';
+import { makeSnippetSuggestion } from './utils/snippetSuggestions';
+import { getCurrentLine, getCurrentWord } from './utils/textNavigation';
+import { getFilters } from './utils/validation';
+import { getClosingStyle, getFormatters, getProfile, getVariables } from './utils/configuration';
+import { resetSettingsFromFile, tryParseFile, updateProfiles, updateSnippets, updateVariables } from './utils/settingsRegistry';
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
@@ -32,9 +38,9 @@ try {
 	};
 }
 
-const snippetKeyCache = new Map<string, string[]>();
+let snippetKeyCache = new Map<string, string[]>();
 let markupSnippetKeys: string[];
-const stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
+let stylesheetCustomSnippetsKeyCache = new Map<string, string[]>();
 const htmlAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.\{]/;
 // take off { for jsx because it interferes with the language
 const jsxAbbreviationStartRegex = /^[a-z,A-Z,!,(,[,#,\.]/;
@@ -221,167 +227,6 @@ export function doComplete(document: TextDocument, position: Position, syntax: s
 	return completionItems.length ? CompletionList.create(completionItems, true) : undefined;
 }
 
-/**
- * Create & return snippets for snippet keys that start with given prefix
- */
-function makeSnippetSuggestion(
-	snippetKeys: string[],
-	prefix: string,
-	abbreviation: string,
-	abbreviationRange: Range,
-	expandOptions: UserConfig,
-	snippetDetail: string,
-	skipFullMatch: boolean = true
-): CompletionItem[] {
-	if (!prefix || !snippetKeys) {
-		return [];
-	}
-	const snippetCompletions: CompletionItem[] = [];
-	snippetKeys.forEach(snippetKey => {
-		if (!snippetKey.startsWith(prefix.toLowerCase()) || (skipFullMatch && snippetKey === prefix.toLowerCase())) {
-			return;
-		}
-
-		const currentAbbr = abbreviation + snippetKey.substr(prefix.length);
-		let expandedAbbr;
-		try {
-			expandedAbbr = expand(currentAbbr, expandOptions);
-		} catch (e) {
-
-		}
-		if (!expandedAbbr) {
-			return;
-		}
-
-		const item = CompletionItem.create(prefix + snippetKey.substr(prefix.length));
-		item.documentation = replaceTabStopsWithCursors(expandedAbbr);
-		item.detail = snippetDetail;
-		item.textEdit = TextEdit.replace(abbreviationRange, escapeNonTabStopDollar(addFinalTabStop(expandedAbbr)));
-		item.insertTextFormat = InsertTextFormat.Snippet;
-
-		snippetCompletions.push(item);
-	});
-	return snippetCompletions;
-}
-
-function getCurrentWord(currentLineTillPosition: string): string | undefined {
-	if (currentLineTillPosition) {
-		const matches = currentLineTillPosition.match(/[\w,:,-,\.]*$/)
-		if (matches) {
-			return matches[0];
-		}
-	}
-}
-
-function replaceTabStopsWithCursors(expandedWord: string): string {
-	return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1|').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
-}
-
-function removeTabStops(expandedWord: string): string {
-	return expandedWord.replace(/([^\\])\$\{\d+\}/g, '$1').replace(/\$\{\d+:([^\}]+)\}/g, '$1');
-}
-
-function escapeNonTabStopDollar(text: string): string {
-	return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
-}
-
-function addFinalTabStop(text: string): string {
-	if (!text || !text.trim()) {
-		return text;
-	}
-
-	let maxTabStop = -1;
-	type TabStopRange = { numberStart: number, numberEnd: number };
-	let maxTabStopRanges: TabStopRange[] = [];
-	let foundLastStop = false;
-	let replaceWithLastStop = false;
-	let i = 0;
-	const n = text.length;
-
-	try {
-		while (i < n && !foundLastStop) {
-			// Look for ${
-			if (text[i++] != '$' || text[i++] != '{') {
-				continue;
-			}
-
-			// Find tabstop
-			let numberStart = -1;
-			let numberEnd = -1;
-			while (i < n && /\d/.test(text[i])) {
-				numberStart = numberStart < 0 ? i : numberStart;
-				numberEnd = i + 1;
-				i++;
-			}
-
-			// If ${ was not followed by a number and either } or :, then its not a tabstop
-			if (numberStart === -1 || numberEnd === -1 || i >= n || (text[i] != '}' && text[i] != ':')) {
-				continue;
-			}
-
-			// If ${0} was found, then break
-			const currentTabStop = text.substring(numberStart, numberEnd);
-			foundLastStop = currentTabStop === '0';
-			if (foundLastStop) {
-				break;
-			}
-
-			let foundPlaceholder = false;
-			if (text[i++] == ':') {
-				// TODO: Nested placeholders may break here
-				while (i < n) {
-					if (text[i] == '}') {
-						foundPlaceholder = true;
-						break;
-					}
-					i++;
-				}
-			}
-
-			// Decide to replace currentTabStop with ${0} only if its the max among all tabstops and is not a placeholder
-			if (Number(currentTabStop) > Number(maxTabStop)) {
-				maxTabStop = Number(currentTabStop);
-				maxTabStopRanges = [{ numberStart, numberEnd }];
-				replaceWithLastStop = !foundPlaceholder;
-			} else if (Number(currentTabStop) === maxTabStop) {
-				maxTabStopRanges.push({ numberStart, numberEnd });
-			}
-		}
-	} catch (e) {
-
-	}
-
-	if (replaceWithLastStop && !foundLastStop) {
-		for (let i = 0; i < maxTabStopRanges.length; i++) {
-			const rangeStart = maxTabStopRanges[i].numberStart;
-			const rangeEnd = maxTabStopRanges[i].numberEnd;
-			text = text.substr(0, rangeStart) + '0' + text.substr(rangeEnd);
-		}
-	}
-
-	return text;
-}
-
-function getCurrentLine(document: TextDocument, position: Position): string {
-	const offset = document.offsetAt(position);
-	const text = document.getText();
-	let start = 0;
-	let end = text.length;
-	for (let i = offset - 1; i >= 0; i--) {
-		if (text[i] === '\n') {
-			start = i + 1;
-			break;
-		}
-	}
-	for (let i = offset; i < text.length; i++) {
-		if (text[i] === '\n') {
-			end = i;
-			break;
-		}
-	}
-	return text.substring(start, end);
-}
-
 let customSnippetsRegistry: Record<string, SnippetsMap> = {};
 let variablesFromFile = {};
 let profilesFromFile = {};
@@ -412,28 +257,6 @@ export function getDefaultSnippets(syntax: string): SnippetsMap {
 	// https://github.com/microsoft/vscode/issues/97632
 	// don't return markup (HTML) snippets for XML
 	return syntax === 'xml' ? {} : resolvedConfig.snippets;
-}
-
-function getFilters(text: string, pos: number): { pos: number, filter: string | undefined } {
-	let filter: string | undefined;
-	for (let i = 0; i < maxFilters; i++) {
-		if (text.endsWith(`${filterDelimitor}${bemFilterSuffix}`, pos)) {
-			pos -= bemFilterSuffix.length + 1;
-			filter = filter ? bemFilterSuffix + ',' + filter : bemFilterSuffix;
-		} else if (text.endsWith(`${filterDelimitor}${commentFilterSuffix}`, pos)) {
-			pos -= commentFilterSuffix.length + 1;
-			filter = filter ? commentFilterSuffix + ',' + filter : commentFilterSuffix;
-		} else if (text.endsWith(`${filterDelimitor}${trimFilterSuffix}`, pos)) {
-			pos -= trimFilterSuffix.length + 1;
-			filter = filter ? trimFilterSuffix + ',' + filter : trimFilterSuffix;
-		} else {
-			break;
-		}
-	}
-	return {
-		pos: pos,
-		filter: filter
-	}
 }
 
 /**
@@ -620,14 +443,14 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	const stylesheetSyntax = isStyleSheet(syntax) ? syntax : 'css';
 
 	// Fetch Profile
-	const profile = getProfile(syntax, emmetConfig['syntaxProfiles'] ?? {});
+	const profile = getProfile(syntax, emmetConfig['syntaxProfiles'] ?? {}, profilesFromFile);
 	const filtersFromProfile: string[] = (profile && profile['filters']) ? profile['filters'].split(',') : [];
 	const trimmedFilters = filtersFromProfile.map(filterFromProfile => filterFromProfile.trim());
 	const bemEnabled = (filter && filter.split(',').some(x => x.trim() === 'bem')) || trimmedFilters.includes('bem');
 	const commentEnabled = (filter && filter.split(',').some(x => x.trim() === 'c')) || trimmedFilters.includes('c');
 
 	// Fetch formatters
-	const formatters = getFormatters(syntax, emmetConfig['preferences']);
+	const formatters = getFormatters(syntax, emmetConfig['preferences'], isStyleSheet);
 	const unitAliases: SnippetsMap = (formatters?.stylesheet && formatters.stylesheet['unitAliases']) || {};
 
 	// These options are the default values provided by vscode for
@@ -776,7 +599,7 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 	combinedOptions['stylesheet.unitAliases'] = mergedAliases;
 
 	const type = getSyntaxType(syntax);
-	const variables = getVariables(emmetConfig['variables']);
+	const variables = getVariables(emmetConfig['variables'], variablesFromFile);
 	const baseSyntax = getDefaultSyntax(syntax);
 	const snippets = (type === 'stylesheet') ?
 		(customSnippetsRegistry[syntax] ?? customSnippetsRegistry[baseSyntax]) :
@@ -793,16 +616,6 @@ export function getExpandOptions(syntax: string, emmetConfig?: VSCodeEmmetConfig
 		maxRepeat: 1000,
 		// cache: null
 	};
-}
-
-function getClosingStyle(syntax: string): string {
-	switch (syntax) {
-		case 'xhtml': return 'xhtml';
-		case 'xml': return 'xml';
-		case 'xsl': return 'xml';
-		case 'jsx': return 'xhtml';
-		default: return 'html';
-	}
 }
 
 /**
@@ -842,151 +655,16 @@ export function expandAbbreviation(abbreviation: string | MarkupAbbreviation | S
 }
 
 /**
- * Maps and returns syntaxProfiles of previous format to ones compatible with new emmet modules
- * @param syntax
- */
-function getProfile(syntax: string, profilesFromSettings: any): any {
-	if (!profilesFromSettings) {
-		profilesFromSettings = {};
-	}
-	const profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
-
-	const options = profilesConfig[syntax];
-	if (!options || typeof options === 'string') {
-		if (options === 'xhtml') {
-			return {
-				selfClosingStyle: 'xhtml'
-			};
-		}
-		return {};
-	}
-	const newOptions: any = {};
-	for (const key in options) {
-		switch (key) {
-			case 'tag_case':
-				newOptions['tagCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
-				break;
-			case 'attr_case':
-				newOptions['attributeCase'] = (options[key] === 'lower' || options[key] === 'upper') ? options[key] : '';
-				break;
-			case 'attr_quotes':
-				newOptions['attributeQuotes'] = options[key];
-				break;
-			case 'tag_nl':
-				newOptions['format'] = (options[key] === true || options[key] === false) ? options[key] : true;
-				break;
-			case 'inline_break':
-				newOptions['inlineBreak'] = options[key];
-				break;
-			case 'self_closing_tag':
-				if (options[key] === true) {
-					newOptions['selfClosingStyle'] = 'xml'; break;
-				}
-				if (options[key] === false) {
-					newOptions['selfClosingStyle'] = 'html'; break;
-				}
-				newOptions['selfClosingStyle'] = options[key];
-				break;
-			case 'compact_bool':
-				newOptions['compactBooleanAttributes'] = options[key];
-				break;
-			default:
-				newOptions[key] = options[key];
-				break;
-		}
-	}
-	return newOptions;
-}
-
-/**
- * Returns variables to be used while expanding snippets
- */
-function getVariables(variablesFromSettings: object | undefined): SnippetsMap {
-	if (!variablesFromSettings) {
-		return variablesFromFile;
-	}
-	return Object.assign({}, variablesFromFile, variablesFromSettings) as SnippetsMap;
-}
-
-function getFormatters(syntax: string, preferences: any): any {
-	if (!preferences || typeof preferences !== 'object') {
-		return {};
-	}
-
-	if (!isStyleSheet(syntax)) {
-		const commentFormatter: any = {};
-		for (const key in preferences) {
-			switch (key) {
-				case 'filter.commentAfter':
-					commentFormatter['after'] = preferences[key];
-					break;
-				case 'filter.commentBefore':
-					commentFormatter['before'] = preferences[key];
-					break;
-				case 'filter.commentTrigger':
-					commentFormatter['trigger'] = preferences[key];
-					break;
-				default:
-					break;
-			}
-		}
-		return {
-			comment: commentFormatter
-		};
-	}
-	let fuzzySearchMinScore = typeof preferences?.['css.fuzzySearchMinScore'] === 'number' ? preferences['css.fuzzySearchMinScore'] : 0.3;
-	if (fuzzySearchMinScore > 1) {
-		fuzzySearchMinScore = 1
-	} else if (fuzzySearchMinScore < 0) {
-		fuzzySearchMinScore = 0
-	}
-	const stylesheetFormatter: any = {
-		'fuzzySearchMinScore': fuzzySearchMinScore
-	};
-	for (const key in preferences) {
-		switch (key) {
-			case 'css.floatUnit':
-				stylesheetFormatter['floatUnit'] = preferences[key];
-				break;
-			case 'css.intUnit':
-				stylesheetFormatter['intUnit'] = preferences[key];
-				break;
-			case 'css.unitAliases':
-				const unitAliases: any = {};
-				preferences[key].split(',').forEach((alias: string) => {
-					if (!alias || !alias.trim() || !alias.includes(':')) {
-						return;
-					}
-					const aliasName = alias.substr(0, alias.indexOf(':'));
-					const aliasValue = alias.substr(aliasName.length + 1);
-					if (!aliasName.trim() || !aliasValue) {
-						return;
-					}
-					unitAliases[aliasName.trim()] = aliasValue;
-				});
-				stylesheetFormatter['unitAliases'] = unitAliases;
-				break;
-			case `${syntax}.valueSeparator`:
-				stylesheetFormatter['between'] = preferences[key];
-				break;
-			case `${syntax}.propertyEnd`:
-				stylesheetFormatter['after'] = preferences[key];
-				break;
-			default:
-				break;
-		}
-	}
-	return {
-		stylesheet: stylesheetFormatter
-	};
-}
-
-/**
  * Updates customizations from snippets.json and syntaxProfiles.json files in the directory configured in emmet.extensionsPath setting
  * @param emmetExtensionsPathSetting setting passed from emmet.extensionsPath. Supports multiple paths
  */
 export async function updateExtensionsPath(emmetExtensionsPathSetting: string[], fs: FileService, workspaceFolderPaths?: URI[], homeDir?: URI): Promise<void> {
-	resetSettingsFromFile();
+	const reset = resetSettingsFromFile();
+	customSnippetsRegistry = reset.customSnippetsRegistry;
+	snippetKeyCache = reset.snippetKeyCache;
+	stylesheetCustomSnippetsKeyCache = reset.stylesheetCustomSnippetsKeyCache;
+	profilesFromFile = reset.profilesFromFile;
+	variablesFromFile = reset.variablesFromFile;
 
 	if (!emmetExtensionsPathSetting.length) {
 		return;
@@ -1049,11 +727,18 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 			try {
 				const snippetsJson = tryParseFile(snippetsPath, snippetsDataStr);
 				if (snippetsJson['variables']) {
-					updateVariables(snippetsJson['variables']);
+					variablesFromFile = updateVariables(snippetsJson['variables'], variablesFromFile);
 				}
-				updateSnippets(snippetsJson);
+				const result = updateSnippets(snippetsJson, customSnippetsRegistry, stylesheetCustomSnippetsKeyCache, getDefaultSyntax, isStyleSheet);
+				customSnippetsRegistry = result.customSnippetsRegistry;
+				stylesheetCustomSnippetsKeyCache = result.stylesheetCustomSnippetsKeyCache;
 			} catch (e) {
-				resetSettingsFromFile();
+				const reset = resetSettingsFromFile();
+				customSnippetsRegistry = reset.customSnippetsRegistry;
+				snippetKeyCache = reset.snippetKeyCache;
+				stylesheetCustomSnippetsKeyCache = reset.stylesheetCustomSnippetsKeyCache;
+				profilesFromFile = reset.profilesFromFile;
+				variablesFromFile = reset.variablesFromFile;
 				throw e;
 			}
 		}
@@ -1067,94 +752,18 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		if (profilesDataStr.length) {
 			try {
 				const profilesJson = tryParseFile(profilesPath, profilesDataStr);
-				updateProfiles(profilesJson);
+				profilesFromFile = updateProfiles(profilesJson, profilesFromFile);
 			} catch (e) {
-				resetSettingsFromFile();
+				const reset = resetSettingsFromFile();
+				customSnippetsRegistry = reset.customSnippetsRegistry;
+				snippetKeyCache = reset.snippetKeyCache;
+				stylesheetCustomSnippetsKeyCache = reset.stylesheetCustomSnippetsKeyCache;
+				profilesFromFile = reset.profilesFromFile;
+				variablesFromFile = reset.variablesFromFile;
 				throw e;
 			}
 		}
 	}
-}
-
-function tryParseFile(strPath: URI, dataStr: string): any {
-	let errors: JSONC.ParseError[] = [];
-	const json = JSONC.parse(dataStr, errors);
-	if (errors.length) {
-		throw new Error(`Found error ${JSONC.printParseErrorCode(errors[0].error)} while parsing the file ${strPath} at offset ${errors[0].offset}`);
-	}
-	return json;
-}
-
-/**
- * Assigns variables from one snippet file under emmet.extensionsPath to
- * variablesFromFile
- */
-function updateVariables(varsJson: any) {
-	if (typeof varsJson === 'object' && varsJson) {
-		variablesFromFile = Object.assign({}, variablesFromFile, varsJson);
-	} else {
-		throw new Error(l10n.t('Invalid emmet.variables field. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example.'));
-	}
-}
-
-/**
- * Assigns profiles from one profile file under emmet.extensionsPath to
- * profilesFromFile
- */
-function updateProfiles(profileJson: any) {
-	if (typeof profileJson === 'object' && profileJson) {
-		profilesFromFile = Object.assign({}, profilesFromFile, profileJson);
-	} else {
-		throw new Error(l10n.t('Invalid syntax profile. See https://code.visualstudio.com/docs/editor/emmet#_emmet-configuration for a valid example.'));
-	}
-}
-
-/**
- * Assigns snippets from one snippet file under emmet.extensionsPath to
- * customSnippetsRegistry, snippetKeyCache, and stylesheetCustomSnippetsKeyCache
- */
-function updateSnippets(snippetsJson: any) {
-	if (typeof snippetsJson === 'object' && snippetsJson) {
-		Object.keys(snippetsJson).forEach(syntax => {
-			if (!snippetsJson[syntax]['snippets']) {
-				return;
-			}
-			const baseSyntax = getDefaultSyntax(syntax);
-			let customSnippets = snippetsJson[syntax]['snippets'];
-			if (snippetsJson[baseSyntax] && snippetsJson[baseSyntax]['snippets'] && baseSyntax !== syntax) {
-				customSnippets = Object.assign({}, snippetsJson[baseSyntax]['snippets'], snippetsJson[syntax]['snippets'])
-			}
-			if (!isStyleSheet(syntax)) {
-				// In Emmet 2.0 all snippets should be valid abbreviations
-				// Convert old snippets that do not follow this format to new format
-				for (const snippetKey in customSnippets) {
-					if (customSnippets.hasOwnProperty(snippetKey)
-						&& customSnippets[snippetKey].startsWith('<')
-						&& customSnippets[snippetKey].endsWith('>')) {
-						customSnippets[snippetKey] = `{${customSnippets[snippetKey]}}`
-					}
-				}
-			} else {
-				const prevSnippetKeys = stylesheetCustomSnippetsKeyCache.get(syntax);
-				const mergedSnippetKeys = Object.assign([], prevSnippetKeys, Object.keys(customSnippets));
-				stylesheetCustomSnippetsKeyCache.set(syntax, mergedSnippetKeys);
-			}
-			const prevSnippetsRegistry = customSnippetsRegistry[syntax];
-			const newSnippets = parseSnippets(customSnippets);
-			const mergedSnippets = Object.assign({}, prevSnippetsRegistry, newSnippets);
-			customSnippetsRegistry[syntax] = mergedSnippets;
-		});
-	} else {
-		throw new Error(l10n.t('Invalid snippets file. See https://code.visualstudio.com/docs/editor/emmet#_using-custom-emmet-snippets for a valid example.'));
-	}
-}
-
-function resetSettingsFromFile() {
-	customSnippetsRegistry = {};
-	snippetKeyCache.clear();
-	stylesheetCustomSnippetsKeyCache.clear();
-	profilesFromFile = {};
-	variablesFromFile = {};
 }
 
 
