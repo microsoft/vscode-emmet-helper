@@ -5,7 +5,7 @@
 
 
 import * as JSONC from 'jsonc-parser';
-import { TextDecoder } from 'util';
+import type { TextDecoder } from 'util';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CompletionItem, CompletionItemKind, CompletionList, InsertTextFormat, Position, Range, TextEdit } from 'vscode-languageserver-types';
 import { URI } from 'vscode-uri';
@@ -1035,7 +1035,7 @@ export async function updateExtensionsPath(emmetExtensionsPathSetting: string[],
 		if (typeof (globalThis as any).TextDecoder === 'function') {
 			decoder = new (globalThis as any).TextDecoder() as TextDecoder;
 		} else {
-			decoder = new TextDecoder();
+			decoder = new (require('util').TextDecoder)() as TextDecoder;
 		}
 
 		// the only errors we want to throw here are JSON parse errors
