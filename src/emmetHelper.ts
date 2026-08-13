@@ -14,6 +14,7 @@ import { FileService, FileStat, FileType, isAbsolutePath, joinPath } from './fil
 
 import expand, { Config, extract, ExtractOptions, MarkupAbbreviation, Options, parseMarkup, parseStylesheet, resolveConfig, stringifyMarkup, stringifyStylesheet, StylesheetAbbreviation, SyntaxType, UserConfig } from 'emmet';
 import { parseSnippets, SnippetsMap, syntaxes } from './configCompat';
+import * as vscode from 'vscode';
 
 // /* workaround for webpack issue: https://github.com/webpack/webpack/issues/5756
 //  @emmetio/extract-abbreviation has a cjs that uses a default export
@@ -851,7 +852,9 @@ function getProfile(syntax: string, profilesFromSettings: any): any {
 	}
 	const profilesConfig = Object.assign({}, profilesFromFile, profilesFromSettings);
 
-	const options = profilesConfig[syntax];
+	const activeEditor = vscode.window.activeTextEditor;
+
+	const options = activeEditor && profilesConfig[activeEditor.document.languageId] || profilesConfig[syntax];
 	if (!options || typeof options === 'string') {
 		if (options === 'xhtml') {
 			return {
