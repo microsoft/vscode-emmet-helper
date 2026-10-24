@@ -954,7 +954,9 @@ describe('Test completions', () => {
 		await updateExtensionsPath([]);
 		const testCases: [string, number, number, string, string][] = [
 			['span{\\$5}', 0, 9, '<span>$5</span>', '<span>\\$5</span>'],
-			['span{\\$hello}', 0, 13, '<span>$hello</span>', '<span>\\$hello</span>']
+			['span{\\$hello}', 0, 13, '<span>$hello</span>', '<span>\\$hello</span>'],
+			['span{\\$1\\$2}', 0, 12, '<span>$1$2</span>', '<span>\\$1\\$2</span>'],
+			['span{\\$a\\$\\$b}', 0, 14, '<span>$a$$b</span>', '<span>\\$a\\$\\$b</span>']
 		];
 		testCases.forEach(([content, positionLine, positionChar, expectedDoc, expectedSnippetText]) => {
 			const document = TextDocument.create('test://test/test.html', 'html', 0, content);
