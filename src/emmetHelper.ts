@@ -282,7 +282,9 @@ function removeTabStops(expandedWord: string): string {
 }
 
 function escapeNonTabStopDollar(text: string): string {
-	return text ? text.replace(/([^\\])(\$)([^\{])/g, '$1\\$2$3') : text;
+	// Lookarounds instead of matching the neighbouring characters, so that a `$` at the start or
+	// right after another `$` (e.g. `$1$2`) is escaped too
+	return text ? text.replace(/(?<!\\)\$(?!\{)/g, '\\$&') : text;
 }
 
 function addFinalTabStop(text: string): string {
